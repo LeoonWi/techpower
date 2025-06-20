@@ -14,8 +14,8 @@ func New(e *echo.Echo, service *service.Service) *Handler {
 	// TODO enable JWT
 
 	auth := e.Group("auth")
-	auth.POST("signup", h.signup)
-	auth.POST("signin", h.signin)
+	auth.POST("/signup", h.signup)
+	auth.POST("/signin", h.signin)
 
 	return &h
 }
