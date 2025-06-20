@@ -2,15 +2,22 @@ import React, { createContext, useContext, useState } from 'react';
 import { Order, OrderStatus } from '@/types/order';
 import { ChatCategory, ChatMessage } from '@/types/chat';
 import { Analytics } from '@/types/analytics';
+import { User } from '@/types/user';
+import { Complaint } from '@/types/complaint';
 
 interface DataContextType {
   orders: Order[];
   chatCategories: ChatCategory[];
   messages: ChatMessage[];
   analytics: Analytics;
+  masters: User[];
+  masterStats: { [key: string]: { orders: number; earnings: number; rating: number } };
+  complaints: Complaint[];
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   assignOrder: (orderId: string, masterId: string) => void;
   sendMessage: (categoryId: string, content: string, senderId: string, senderName: string) => void;
+  addComplaint: (title: string, description: string, authorId: string, authorName: string) => void;
+  resolveComplaint: (complaintId: string, resolvedBy: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -106,6 +113,40 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date('2025-01-05'),
       isPremium: false,
     },
+    {
+      id: '6',
+      title: 'Ремонт кондиционера',
+      description: 'Кондиционер не охлаждает, требуется заправка фреоном и чистка фильтров.',
+      category: 'Ремонт техники',
+      city: 'Москва',
+      address: 'ул. Арбат, 25',
+      coordinates: { latitude: 55.7522, longitude: 37.5927 },
+      price: 4500,
+      commission: 675,
+      status: 'pending',
+      clientName: 'Елена Васильева',
+      clientPhone: '+7 999 678-90-12',
+      createdAt: new Date('2025-01-06'),
+      updatedAt: new Date('2025-01-06'),
+      isPremium: false,
+    },
+    {
+      id: '7',
+      title: 'Установка видеонаблюдения',
+      description: 'Установка системы видеонаблюдения в офисе: 8 камер, сервер записи, настройка удаленного доступа.',
+      category: 'Электроника',
+      city: 'Санкт-Петербург',
+      address: 'ул. Рубинштейна, 15',
+      coordinates: { latitude: 59.9280, longitude: 30.3609 },
+      price: 25000,
+      commission: 2000,
+      status: 'pending',
+      clientName: 'ООО "Бизнес Центр"',
+      clientPhone: '+7 999 789-01-23',
+      createdAt: new Date('2025-01-07'),
+      updatedAt: new Date('2025-01-07'),
+      isPremium: true,
+    },
   ]);
 
   const [chatCategories] = useState<ChatCategory[]>([
@@ -157,6 +198,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       description: 'Бытовая техника и крупная электроника',
       participantCount: 29,
     },
+    {
+      id: 'support',
+      name: 'Поддержка',
+      description: 'Чат с технической поддержкой',
+      participantCount: 15,
+    },
+    {
+      id: 'senior_master',
+      name: 'Старший мастер',
+      description: 'Чат со старшим мастером',
+      participantCount: 8,
+    },
   ]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -177,6 +230,109 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       category: '1',
     },
   ]);
+
+  const [complaints, setComplaints] = useState<Complaint[]>([
+    {
+      id: '1',
+      title: 'Жалоба на качество работы',
+      description: 'Мастер выполнил работу некачественно, устройство снова сломалось через день',
+      authorId: '6',
+      authorName: 'Клиент Недовольный',
+      status: 'open',
+      createdAt: new Date(Date.now() - 86400000),
+    },
+    {
+      id: '2',
+      title: 'Нарушение сроков',
+      description: 'Заказ должен был быть выполнен вчера, но мастер до сих пор не приступил к работе',
+      authorId: '7',
+      authorName: 'Клиент Ожидающий',
+      status: 'open',
+      createdAt: new Date(Date.now() - 43200000),
+    },
+    {
+      id: '3',
+      title: 'Некорректное поведение мастера',
+      description: 'Мастер был груб и невежлив во время выполнения работы',
+      authorId: '8',
+      authorName: 'Клиент Расстроенный',
+      status: 'resolved',
+      createdAt: new Date(Date.now() - 172800000),
+      resolvedAt: new Date(Date.now() - 86400000),
+      resolvedBy: '2',
+    },
+  ]);
+
+  const masters: User[] = [
+    {
+      id: '3',
+      role: 'master',
+      fullName: 'Мастер Обычный',
+      nickname: 'master',
+      phone: '+7 900 345-67-89',
+      city: 'Казань',
+      category: 'Ремонт техники',
+      balance: 25000,
+      commission: 15,
+      isActive: true,
+    },
+    {
+      id: '4',
+      role: 'senior_master',
+      fullName: 'Мастер Старший',
+      nickname: 'senior_master',
+      phone: '+7 900 456-78-90',
+      city: 'Новосибирск',
+      category: 'Компьютеры',
+      balance: 75000,
+      commission: 12,
+      isActive: true,
+    },
+    {
+      id: '5',
+      role: 'premium_master',
+      fullName: 'Мастер Премиум',
+      nickname: 'premium_master',
+      phone: '+7 900 567-89-01',
+      city: 'Екатеринбург',
+      category: 'Электроника',
+      balance: 120000,
+      commission: 8,
+      isActive: true,
+    },
+    {
+      id: '8',
+      role: 'master',
+      fullName: 'Петров Иван Сергеевич',
+      nickname: 'ivan_master',
+      phone: '+7 900 111-22-33',
+      city: 'Москва',
+      category: 'Мобильные устройства',
+      balance: 18000,
+      commission: 15,
+      isActive: false,
+    },
+    {
+      id: '9',
+      role: 'premium_master',
+      fullName: 'Сидорова Анна Владимировна',
+      nickname: 'anna_premium',
+      phone: '+7 900 444-55-66',
+      city: 'Санкт-Петербург',
+      category: 'Компьютеры',
+      balance: 95000,
+      commission: 8,
+      isActive: true,
+    },
+  ];
+
+  const masterStats = {
+    '3': { orders: 24, earnings: 45000, rating: 4.6 },
+    '4': { orders: 38, earnings: 78000, rating: 4.9 },
+    '5': { orders: 42, earnings: 125000, rating: 4.8 },
+    '8': { orders: 15, earnings: 28000, rating: 4.2 },
+    '9': { orders: 35, earnings: 89000, rating: 4.7 },
+  };
 
   const analytics: Analytics = {
     totalOrders: 156,
@@ -234,15 +390,46 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  const addComplaint = (title: string, description: string, authorId: string, authorName: string) => {
+    const newComplaint: Complaint = {
+      id: Date.now().toString(),
+      title,
+      description,
+      authorId,
+      authorName,
+      status: 'open',
+      createdAt: new Date(),
+    };
+    setComplaints(prev => [...prev, newComplaint]);
+  };
+
+  const resolveComplaint = (complaintId: string, resolvedBy: string) => {
+    setComplaints(prev => prev.map(complaint =>
+      complaint.id === complaintId
+        ? {
+            ...complaint,
+            status: 'resolved' as const,
+            resolvedAt: new Date(),
+            resolvedBy,
+          }
+        : complaint
+    ));
+  };
+
   return (
     <DataContext.Provider value={{
       orders,
       chatCategories,
       messages,
       analytics,
+      masters,
+      masterStats,
+      complaints,
       updateOrderStatus,
       assignOrder,
       sendMessage,
+      addComplaint,
+      resolveComplaint,
     }}>
       {children}
     </DataContext.Provider>

@@ -3,13 +3,15 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Keyboa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Send, ArrowLeft, Users } from 'lucide-react-native';
+import { Send, ArrowLeft, Users, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 
 export default function ChatScreen() {
   const { user } = useAuth();
-  const { chatCategories, messages, sendMessage } = useData();
+  const { chatCategories, messages, sendMessage, addComplaint } = useData();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
+  const [complaintText, setComplaintText] = useState('');
+  const [showComplaintForm, setShowComplaintForm] = useState(false);
 
   const selectedCategoryData = chatCategories.find(cat => cat.id === selectedCategory);
   const categoryMessages = messages.filter(msg => msg.category === selectedCategory);
@@ -20,6 +22,50 @@ export default function ChatScreen() {
       setMessageText('');
     }
   };
+
+  const handleSubmitComplaint = () => {
+    if (complaintText.trim() && user) {
+      addComplaint(
+        'Жалоба от пользователя',
+        complaintText.trim(),
+        user.id,
+        user.fullName
+      );
+      setComplaintText('');
+      setShowComplaintForm(false);
+    }
+  };
+
+  // Фильтруем категории чатов в зависимости от роли
+  const getAvailableCategories = () => {
+    if (user?.role === 'support') {
+      // Поддержка видит все категории
+      return chatCategories;
+    }
+    
+    if (user?.role === 'master' || user?.role === 'premium_master') {
+      // Мастера видят свою категорию + поддержку + старший мастер (если назначен)
+      return chatCategories.filter(cat => 
+        cat.name === user.category || 
+        cat.id === 'support' ||
+        cat.id === 'senior_master'
+      );
+    }
+    
+    if (user?.role === 'senior_master') {
+      // Старший мастер видит все категории
+      return chatCategories;
+    }
+    
+    if (user?.role === 'admin') {
+      // Админ видит все
+      return chatCategories;
+    }
+    
+    return chatCategories;
+  };
+
+  const availableCategories = getAvailableCategories();
 
   if (selectedCategory) {
     return (
@@ -113,6 +159,50 @@ export default function ChatScreen() {
     );
   }
 
+  if (showComplaintForm) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => setShowComplaintForm(false)}
+          >
+            <ArrowLeft size={24} color="#1E293B" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Подать жалобу</Text>
+        </View>
+
+        <View style={styles.complaintForm}>
+          <Text style={styles.formLabel}>Опишите проблему</Text>
+          <TextInput
+            style={styles.complaintInput}
+            placeholder="Подробно опишите вашу жалобу..."
+            value={complaintText}
+            onChangeText={setComplaintText}
+            multiline
+            numberOfLines={6}
+            maxLength={1000}
+          />
+          <View style={styles.formButtons}>
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={() => setShowComplaintForm(false)}
+            >
+              <Text style={styles.cancelButtonText}>Отмена</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.submitButton, !complaintText.trim() && styles.submitButtonDisabled]}
+              onPress={handleSubmitComplaint}
+              disabled={!complaintText.trim()}
+            >
+              <Text style={styles.submitButtonText}>Отправить</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -121,7 +211,18 @@ export default function ChatScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.categoriesList}>
-        {chatCategories.map((category) => (
+        {/* Кнопка подачи жалобы - только для мастеров */}
+        {(user?.role === 'master' || user?.role === 'premium_master') && (
+          <TouchableOpacity
+            style={styles.complaintButton}
+            onPress={() => setShowComplaintForm(true)}
+          >
+            <AlertTriangle size={20} color="#EF4444" />
+            <Text style={styles.complaintButtonText}>Подать жалобу</Text>
+          </TouchableOpacity>
+        )}
+
+        {availableCategories.map((category) => (
           <TouchableOpacity
             key={category.id}
             style={styles.categoryCard}
@@ -167,20 +268,44 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#1E293B',
     marginBottom: 4,
+    flex: 1,
   },
   subtitle: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#64748B',
   },
+  backButton: {
+    marginRight: 16,
+    padding: 4,
+  },
   categoriesList: {
     flex: 1,
+  },
+  complaintButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  complaintButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#EF4444',
+    marginLeft: 8,
   },
   categoryCard: {
     backgroundColor: 'white',
@@ -257,9 +382,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-  },
-  backButton: {
-    marginRight: 16,
   },
   chatHeaderInfo: {
     flex: 1,
@@ -375,5 +497,58 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#F1F5F9',
+  },
+  complaintForm: {
+    padding: 20,
+    flex: 1,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  complaintInput: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    textAlignVertical: 'top',
+    minHeight: 120,
+    marginBottom: 24,
+  },
+  formButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#64748B',
+  },
+  submitButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#2563EB',
+    alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#94A3B8',
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: 'white',
   },
 });

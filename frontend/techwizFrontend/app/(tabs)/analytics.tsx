@@ -3,15 +3,149 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { ChartBar as BarChart3, TrendingUp, Users, DollarSign, Calendar, MapPin } from 'lucide-react-native';
+import { ChartBar as BarChart3, TrendingUp, Users, DollarSign, Calendar, MapPin, Crown, Star, ClipboardList } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function AnalyticsScreen() {
   const { user } = useAuth();
-  const { analytics } = useData();
+  const { analytics, masters, masterStats, orders } = useData();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
 
+  // Для мастеров показываем их личную статистику
+  if (user?.role === 'master' || user?.role === 'premium_master') {
+    const userOrders = orders.filter(order => order.assignedMasterId === user.id);
+    const userStats = masterStats[user.id] || { orders: 0, earnings: 0, rating: 0 };
+    
+    const personalStats = [
+      {
+        title: 'Всего заказов',
+        value: userStats.orders,
+        icon: ClipboardList,
+        color: '#2563EB',
+        change: '+5%',
+      },
+      {
+        title: 'Выполнено',
+        value: userOrders.filter(o => o.status === 'completed').length,
+        icon: TrendingUp,
+        color: '#10B981',
+        change: '+8%',
+      },
+      {
+        title: 'Доходы',
+        value: `${userStats.earnings.toLocaleString('ru-RU')} ₽`,
+        icon: DollarSign,
+        color: '#F59E0B',
+        change: '+12%',
+      },
+      {
+        title: 'Рейтинг',
+        value: userStats.rating,
+        icon: Star,
+        color: '#7C3AED',
+        change: '+0.2',
+      },
+    ];
+
+    const statusStats = userOrders.reduce((acc, order) => {
+      acc[order.status] = (acc[order.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Моя статистика</Text>
+          <Text style={styles.subtitle}>Личная аналитика работы</Text>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+          {/* Personal Stats */}
+          <View style={styles.statsGrid}>
+            {personalStats.map((stat, index) => {
+              const IconComponent = stat.icon;
+              return (
+                <View key={index} style={styles.statCard}>
+                  <View style={styles.statHeader}>
+                    <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
+                      <IconComponent size={20} color={stat.color} />
+                    </View>
+                    <Text style={[styles.statChange, { color: stat.color }]}>
+                      {stat.change}
+                    </Text>
+                  </View>
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statTitle}>{stat.title}</Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Order Status Distribution */}
+          <View style={styles.chartContainer}>
+            <View style={styles.chartHeader}>
+              <BarChart3 size={20} color="#2563EB" />
+              <Text style={styles.chartTitle}>Статусы заказов</Text>
+            </View>
+            <View style={styles.statusStats}>
+              {Object.entries(statusStats).map(([status, count]) => {
+                const statusLabels = {
+                  pending: 'Ожидают',
+                  assigned: 'Назначены',
+                  in_progress: 'В работе',
+                  completed: 'Выполнены',
+                  cancelled: 'Отменены',
+                  rejected: 'Отклонены',
+                  modernization: 'Модернизация',
+                };
+                
+                return (
+                  <View key={status} style={styles.statusItem}>
+                    <View style={styles.statusDot} />
+                    <View style={styles.statusInfo}>
+                      <Text style={styles.statusName}>{statusLabels[status as keyof typeof statusLabels] || status}</Text>
+                      <Text style={styles.statusCount}>{count} заказов</Text>
+                    </View>
+                    <Text style={styles.statusPercentage}>
+                      {Math.round((count / userStats.orders) * 100)}%
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Recent Orders */}
+          <View style={styles.chartContainer}>
+            <View style={styles.chartHeader}>
+              <Calendar size={20} color="#059669" />
+              <Text style={styles.chartTitle}>Последние заказы</Text>
+            </View>
+            <View style={styles.recentOrders}>
+              {userOrders.slice(0, 5).map((order) => (
+                <View key={order.id} style={styles.orderItem}>
+                  <View style={styles.orderInfo}>
+                    <Text style={styles.orderTitle}>{order.title}</Text>
+                    <Text style={styles.orderDate}>
+                      {order.createdAt.toLocaleDateString('ru-RU')}
+                    </Text>
+                  </View>
+                  <View style={styles.orderPrice}>
+                    <Text style={styles.orderPriceText}>
+                      {order.price.toLocaleString('ru-RU')} ₽
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Для админов и старших мастеров показываем общую аналитику
   if (user?.role !== 'admin' && user?.role !== 'senior_master') {
     return (
       <SafeAreaView style={styles.container}>
@@ -52,13 +186,22 @@ export default function AnalyticsScreen() {
       change: '+15%',
     },
     {
-      title: 'Комиссия',
-      value: `${analytics.commission.toLocaleString('ru-RU')} ₽`,
+      title: 'Активных мастеров',
+      value: masters.filter(m => m.isActive).length,
       icon: Users,
       color: '#7C3AED',
-      change: '+10%',
+      change: '+5%',
     },
   ];
+
+  // Топ мастера по доходам
+  const topMasters = masters
+    .map(master => ({
+      ...master,
+      stats: masterStats[master.id] || { orders: 0, earnings: 0, rating: 0 }
+    }))
+    .sort((a, b) => b.stats.earnings - a.stats.earnings)
+    .slice(0, 5);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -105,6 +248,53 @@ export default function AnalyticsScreen() {
               </View>
             );
           })}
+        </View>
+
+        {/* Top Masters */}
+        <View style={styles.chartContainer}>
+          <View style={styles.chartHeader}>
+            <Crown size={20} color="#F59E0B" />
+            <Text style={styles.chartTitle}>Топ мастера по доходам</Text>
+          </View>
+          <View style={styles.mastersRanking}>
+            {topMasters.map((master, index) => (
+              <View key={master.id} style={styles.masterRankItem}>
+                <View style={styles.masterRankLeft}>
+                  <View style={[
+                    styles.rankBadge,
+                    { backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#E2E8F0' }
+                  ]}>
+                    <Text style={[
+                      styles.rankNumber,
+                      { color: index < 3 ? 'white' : '#64748B' }
+                    ]}>
+                      {index + 1}
+                    </Text>
+                  </View>
+                  <View style={styles.masterRankInfo}>
+                    <View style={styles.masterNameRow}>
+                      <Text style={styles.masterRankName}>{master.fullName}</Text>
+                      {master.role === 'premium_master' && (
+                        <Crown size={14} color="#FFD700" />
+                      )}
+                      {master.role === 'senior_master' && (
+                        <Star size={14} color="#EA580C" />
+                      )}
+                    </View>
+                    <Text style={styles.masterRankCity}>{master.city}</Text>
+                  </View>
+                </View>
+                <View style={styles.masterRankStats}>
+                  <Text style={styles.masterRankEarnings}>
+                    {master.stats.earnings.toLocaleString('ru-RU')} ₽
+                  </Text>
+                  <Text style={styles.masterRankOrders}>
+                    {master.stats.orders} заказов
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
 
         {/* Orders by City */}
@@ -190,6 +380,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+    paddingBottom: 90,
   },
   header: {
     paddingHorizontal: 20,
@@ -199,6 +390,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#1E293B',
+    marginBottom: 16,
+  },
+  subtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
     marginBottom: 16,
   },
   periodSelector: {
@@ -308,6 +505,65 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#1E293B',
     marginLeft: 8,
+  },
+  mastersRanking: {
+    gap: 12,
+  },
+  masterRankItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  masterRankLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  rankBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  rankNumber: {
+    fontSize: 12,
+    fontFamily: 'Inter-Bold',
+  },
+  masterRankInfo: {
+    flex: 1,
+  },
+  masterNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  masterRankName: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1E293B',
+    marginRight: 6,
+  },
+  masterRankCity: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+  },
+  masterRankStats: {
+    alignItems: 'flex-end',
+  },
+  masterRankEarnings: {
+    fontSize: 14,
+    fontFamily: 'Inter-Bold',
+    color: '#059669',
+    marginBottom: 2,
+  },
+  masterRankOrders: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
   },
   cityStats: {
     gap: 12,
@@ -419,5 +675,71 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'Inter-Regular',
     color: '#64748B',
+  },
+  statusStats: {
+    gap: 16,
+  },
+  statusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#2563EB',
+    marginRight: 12,
+  },
+  statusInfo: {
+    flex: 1,
+  },
+  statusName: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  statusCount: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+  },
+  statusPercentage: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#2563EB',
+  },
+  recentOrders: {
+    gap: 12,
+  },
+  orderItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  orderInfo: {
+    flex: 1,
+  },
+  orderTitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  orderDate: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+  },
+  orderPrice: {
+    alignItems: 'flex-end',
+  },
+  orderPriceText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Bold',
+    color: '#059669',
   },
 });

@@ -4,22 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { router } from 'expo-router';
-import { 
-  Wallet, 
-  TrendingUp, 
-  ClipboardList, 
-  Users, 
-  MessageSquare,
-  Calendar,
-  MapPin,
-  Crown,
-  Settings,
-  FileText
-} from 'lucide-react-native';
+import { Wallet, TrendingUp, ClipboardList, Users, MessageSquare, Calendar, MapPin, Crown, Settings, FileText, TriangleAlert as AlertTriangle, Clock, CircleCheck as CheckCircle, ChartBar as BarChart3 } from 'lucide-react-native';
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const { orders, analytics } = useData();
+  const { orders, analytics, complaints, masterStats } = useData();
 
   useEffect(() => {
     if (!user) {
@@ -50,6 +39,29 @@ export default function HomeScreen() {
   };
 
   const getDashboardData = () => {
+    if (user.role === 'support') {
+      return {
+        totalComplaints: complaints.length,
+        openComplaints: complaints.filter(c => c.status === 'open').length,
+        resolvedComplaints: complaints.filter(c => c.status === 'resolved').length,
+        pendingOrders: orders.filter(o => o.status === 'pending').length,
+      };
+    }
+
+    if (user.role === 'master' || user.role === 'premium_master') {
+      const userOrders = orders.filter(order => order.assignedMasterId === user.id);
+      const stats = masterStats[user.id] || { orders: 0, earnings: 0, rating: 0 };
+      
+      return {
+        activeOrders: userOrders.filter(order => 
+          ['assigned', 'in_progress'].includes(order.status)
+        ).length,
+        completedOrders: userOrders.filter(order => order.status === 'completed').length,
+        totalEarnings: stats.earnings,
+        rating: stats.rating,
+      };
+    }
+
     const userOrders = orders.filter(order => 
       user.role === 'admin' || order.assignedMasterId === user.id
     );
@@ -66,50 +78,194 @@ export default function HomeScreen() {
 
   const dashboardData = getDashboardData();
 
-  const quickActions = [
-    {
-      title: 'Заказы',
-      icon: ClipboardList,
-      color: '#2563EB',
-      onPress: () => router.push('/(tabs)/orders'),
-    },
-    {
-      title: 'Карта',
-      icon: MapPin,
-      color: '#059669',
-      onPress: () => router.push('/(tabs)/map'),
-    },
-    {
-      title: 'Чаты',
-      icon: MessageSquare,
-      color: '#F59E0B',
-      onPress: () => router.push('/(tabs)/chat'),
-    },
-    {
-      title: 'Профиль',
-      icon: Users,
-      color: '#EA580C',
-      onPress: () => router.push('/(tabs)/profile'),
-    },
-    ...(user.role === 'admin' || user.role === 'senior_master' ? [{
-      title: 'Аналитика',
-      icon: TrendingUp,
-      color: '#7C3AED',
-      onPress: () => router.push('/(tabs)/analytics'),
-    }] : []),
-    ...(user.role === 'admin' || user.role === 'senior_master' ? [{
-      title: 'Отчеты',
-      icon: FileText,
-      color: '#DC2626',
-      onPress: () => router.push('/reports'),
-    }] : []),
-    {
-      title: 'Настройки',
-      icon: Settings,
-      color: '#64748B',
-      onPress: () => router.push('/settings'),
-    },
-  ];
+  const getQuickActions = () => {
+    const baseActions = [
+      {
+        title: 'Заказы',
+        icon: ClipboardList,
+        color: '#2563EB',
+        onPress: () => router.push('/(tabs)/orders'),
+      },
+    ];
+
+    if (user.role === 'support') {
+      baseActions.push(
+        {
+          title: 'Жалобы',
+          icon: AlertTriangle,
+          color: '#EF4444',
+          onPress: () => router.push('/(tabs)/complaints'),
+        },
+        {
+          title: 'Чаты',
+          icon: MessageSquare,
+          color: '#F59E0B',
+          onPress: () => router.push('/(tabs)/chat'),
+        }
+      );
+    } else if (user.role === 'master' || user.role === 'premium_master') {
+      baseActions.push(
+        {
+          title: 'Статистика',
+          icon: BarChart3,
+          color: '#7C3AED',
+          onPress: () => router.push('/(tabs)/analytics'),
+        },
+        {
+          title: 'Чаты',
+          icon: MessageSquare,
+          color: '#F59E0B',
+          onPress: () => router.push('/(tabs)/chat'),
+        }
+      );
+    } else {
+      baseActions.push(
+        {
+          title: 'Карта',
+          icon: MapPin,
+          color: '#059669',
+          onPress: () => router.push('/(tabs)/map'),
+        },
+        {
+          title: 'Чаты',
+          icon: MessageSquare,
+          color: '#F59E0B',
+          onPress: () => router.push('/(tabs)/chat'),
+        }
+      );
+
+      if (user.role === 'admin' || user.role === 'senior_master') {
+        baseActions.push(
+          {
+            title: 'Аналитика',
+            icon: TrendingUp,
+            color: '#7C3AED',
+            onPress: () => router.push('/(tabs)/analytics'),
+          },
+          {
+            title: 'Мастера',
+            icon: Users,
+            color: '#EA580C',
+            onPress: () => router.push('/(tabs)/masters'),
+          }
+        );
+      }
+    }
+
+    baseActions.push(
+      {
+        title: 'Профиль',
+        icon: Users,
+        color: '#64748B',
+        onPress: () => router.push('/(tabs)/profile'),
+      }
+    );
+
+    return baseActions;
+  };
+
+  const quickActions = getQuickActions();
+
+  const renderSupportDashboard = () => (
+    <>
+      {/* Support Stats Cards */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <AlertTriangle size={20} color="#EF4444" />
+          <Text style={styles.statNumber}>{dashboardData.totalComplaints}</Text>
+          <Text style={styles.statLabel}>Всего жалоб</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Clock size={20} color="#F59E0B" />
+          <Text style={styles.statNumber}>{dashboardData.openComplaints}</Text>
+          <Text style={styles.statLabel}>Открытых</Text>
+        </View>
+        <View style={styles.statCard}>
+          <CheckCircle size={20} color="#10B981" />
+          <Text style={styles.statNumber}>{dashboardData.resolvedComplaints}</Text>
+          <Text style={styles.statLabel}>Решенных</Text>
+        </View>
+      </View>
+
+      {/* Pending Orders */}
+      <View style={styles.pendingOrdersCard}>
+        <View style={styles.pendingOrdersHeader}>
+          <ClipboardList size={24} color="#2563EB" />
+          <Text style={styles.pendingOrdersTitle}>Ожидающие назначения</Text>
+        </View>
+        <Text style={styles.pendingOrdersCount}>
+          {dashboardData.pendingOrders} заказов
+        </Text>
+        <Text style={styles.pendingOrdersSubtext}>
+          Требуют назначения мастера
+        </Text>
+      </View>
+    </>
+  );
+
+  const renderMasterDashboard = () => (
+    <>
+      {/* Master Stats Cards */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <Text style={styles.statNumber}>{dashboardData.activeOrders}</Text>
+          <Text style={styles.statLabel}>Активные заказы</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statNumber}>{dashboardData.completedOrders}</Text>
+          <Text style={styles.statLabel}>Выполнено</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statNumber}>{dashboardData.rating}</Text>
+          <Text style={styles.statLabel}>Рейтинг</Text>
+        </View>
+      </View>
+
+      {/* Earnings Card */}
+      <View style={styles.balanceCard}>
+        <View style={styles.balanceHeader}>
+          <Wallet size={24} color="#2563EB" />
+          <Text style={styles.balanceTitle}>Доходы</Text>
+        </View>
+        <Text style={styles.balanceAmount}>
+          {dashboardData.totalEarnings.toLocaleString('ru-RU')} ₽
+        </Text>
+        <Text style={styles.commissionText}>
+          Комиссия: {user.commission}%
+        </Text>
+      </View>
+    </>
+  );
+
+  const renderDefaultDashboard = () => (
+    <>
+      {/* Balance Card */}
+      <View style={styles.balanceCard}>
+        <View style={styles.balanceHeader}>
+          <Wallet size={24} color="#2563EB" />
+          <Text style={styles.balanceTitle}>Баланс</Text>
+        </View>
+        <Text style={styles.balanceAmount}>
+          {user.balance.toLocaleString('ru-RU')} ₽
+        </Text>
+        <Text style={styles.commissionText}>
+          Комиссия: {user.commission}%
+        </Text>
+      </View>
+
+      {/* Stats Cards */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <Text style={styles.statNumber}>{dashboardData.activeOrders}</Text>
+          <Text style={styles.statLabel}>Активные заказы</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statNumber}>{dashboardData.completedOrders}</Text>
+          <Text style={styles.statLabel}>Выполнено</Text>
+        </View>
+      </View>
+    </>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -132,31 +288,10 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Balance Card */}
-        <View style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <Wallet size={24} color="#2563EB" />
-            <Text style={styles.balanceTitle}>Баланс</Text>
-          </View>
-          <Text style={styles.balanceAmount}>
-            {user.balance.toLocaleString('ru-RU')} ₽
-          </Text>
-          <Text style={styles.commissionText}>
-            Комиссия: {user.commission}%
-          </Text>
-        </View>
-
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{dashboardData.activeOrders}</Text>
-            <Text style={styles.statLabel}>Активные заказы</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{dashboardData.completedOrders}</Text>
-            <Text style={styles.statLabel}>Выполнено</Text>
-          </View>
-        </View>
+        {/* Role-specific Dashboard */}
+        {user.role === 'support' && renderSupportDashboard()}
+        {(user.role === 'master' || user.role === 'premium_master') && renderMasterDashboard()}
+        {(user.role === 'admin' || user.role === 'senior_master') && renderDefaultDashboard()}
 
         {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
@@ -185,7 +320,9 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Последняя активность</Text>
           <View style={styles.activityCard}>
             <Text style={styles.activityText}>
-              {user.role === 'admin' 
+              {user.role === 'support' 
+                ? `Открытых жалоб: ${dashboardData.openComplaints}, Ожидающих заказов: ${dashboardData.pendingOrders}`
+                : user.role === 'admin' 
                 ? `Всего заказов в системе: ${orders.length}`
                 : `Заказов назначено: ${orders.filter(o => o.assignedMasterId === user.id).length}`
               }
@@ -279,6 +416,42 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   commissionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+  },
+  pendingOrdersCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2563EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pendingOrdersHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  pendingOrdersTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1E293B',
+    marginLeft: 8,
+  },
+  pendingOrdersCount: {
+    fontSize: 28,
+    fontFamily: 'Inter-Bold',
+    color: '#2563EB',
+    marginBottom: 4,
+  },
+  pendingOrdersSubtext: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#64748B',

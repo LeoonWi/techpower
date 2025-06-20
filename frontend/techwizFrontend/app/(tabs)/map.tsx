@@ -238,6 +238,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+    paddingBottom: 90, // Отступ для нижней панели
   },
   header: {
     flexDirection: 'row',
