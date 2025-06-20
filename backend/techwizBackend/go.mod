@@ -5,6 +5,7 @@ go 1.24
 require github.com/labstack/echo/v4 v4.13.4
 
 require (
+	github.com/dongri/phonenumber v0.1.12 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
