@@ -1,6 +1,9 @@
 package user
 
-import "techwizBackend/pkg/models/category"
+import (
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"techwizBackend/pkg/models/category"
+)
 
 type Status string
 
@@ -20,13 +23,14 @@ func (s Status) IsValid() bool {
 }
 
 type Master struct {
-	Fullname    string              `json:"fullname,omitempty"`
-	PhoneNumber string              `json:"phone_number,omitempty"`
-	Password    string              `json:"password,omitempty"`
-	Nickname    string              `json:"nickname,omitempty"`
-	Photo       string              `json:"photo,omitempty"`
-	Status      Status              `json:"status,omitempty"` // default, senior or premium
-	Category    []category.Category `json:"category,omitempty"`
-	Balance     float32             `json:"balance,omitempty"`
-	Commission  int                 `json:"commission,omitempty"`
+	Id          bson.ObjectID       `bson:"_id,omitempty"`
+	Fullname    string              `bson:"fullname,omitempty"`
+	PhoneNumber string              `bson:"phone_number,omitempty"`
+	Password    string              `bson:"password,omitempty"`
+	Nickname    string              `bson:"nickname,omitempty"`
+	Photo       string              `bson:"photo,omitempty"`
+	Status      Status              `bson:"status,omitempty"` // default, senior or premium
+	Category    []category.Category `bson:"category,omitempty"`
+	Balance     float32             `bson:"balance,omitempty"`
+	Commission  int                 `bson:"commission,omitempty"`
 }
