@@ -1,11 +1,12 @@
 package user
 
-type (
-	IUser interface{}
+import "go.mongodb.org/mongo-driver/v2/bson"
 
+type (
 	User struct {
-		PhoneNumber string `json:"phone_number,omitempty"`
-		Password    string `json:"password,omitempty"`
-		Permission  int    `json:"permission,omitempty"`
+		Id          bson.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+		PhoneNumber string        `json:"phone_number,omitempty" bson:"phone_number"`
+		Password    string        `json:"password,omitempty" bson:"password"`
+		Permission  int           `json:"permission,omitempty" bson:"permission,omitempty"`
 	}
 )

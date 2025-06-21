@@ -11,9 +11,12 @@ func main() {
 	// Init Web Server
 	e := echo.New()
 	// Init connection MongoDB
-	repository.New()
+	db := repository.New()
+	// Init repositories
+	authRepository := repository.NewAuthRepository(db)
 	// Create services
-	authService := service.NewAuthService()
+	authService := service.NewAuthService(authRepository)
+	// Create general service
 	services := service.NewServices(authService)
 	// Init handler
 	http.New(e, services)
