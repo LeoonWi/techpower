@@ -42,6 +42,13 @@ func (h Handler) signin(c echo.Context) error {
 		)
 	}
 
+	if len(input.Permission) != 4 {
+		return c.JSON(
+			http.StatusBadRequest,
+			map[string]string{"error": "Invalid string permission"},
+		)
+	}
+
 	if err := h.services.Authorization.Login(&input); err != nil {
 		return c.JSON(
 			http.StatusBadRequest,

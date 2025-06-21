@@ -44,5 +44,9 @@ func (s AuthService) Login(dto *userDTO.User) error {
 	if dto.Password != res.Password {
 		return errors.New("Password does not match")
 	}
+
+	if dto.Permission != res.Permission {
+		return errors.New("Permission does not match")
+	}
 	return nil
 }
