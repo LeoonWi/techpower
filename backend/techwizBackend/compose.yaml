@@ -1,12 +1,12 @@
 services:
   mongodb:
     image: mongodb/mongodb-community-server:7.0.20-ubi9
+    restart:
+      on-failure:5
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGODB_INITDB_ROOT_USERNAME=admin
+      - MONGODB_INITDB_ROOT_PASSWORD=admin
     volumes:
-      - type: bind
-        source: ./data
-        target: /data/db
+      - ./data:/data/db
     ports:
       - "27017:27017"

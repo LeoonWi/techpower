@@ -1,0 +1,8 @@
+### POST create user
+POST http://127.0.0.1:8080/auth/signup
+Content-Type: application/json
+
+{
+  "phone_number": "79785553535",
+  "password": "qwerty"
+}
