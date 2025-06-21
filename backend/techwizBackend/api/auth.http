@@ -6,3 +6,12 @@ Content-Type: application/json
   "phone_number": "79785553535",
   "password": "qwerty"
 }
+
+### POST login user
+POST http://127.0.0.1:8080/auth/signin
+Content-Type: application/json
+
+{
+  "phone_number": "79785553535",
+  "password": "qwerty"
+}
