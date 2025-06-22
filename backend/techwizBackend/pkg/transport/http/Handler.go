@@ -17,5 +17,8 @@ func New(e *echo.Echo, service *service.Service) *Handler {
 	auth.POST("/signup", h.signup)
 	auth.POST("/signin", h.signin)
 
+	user := e.Group("user")
+	user.PATCH("/changepassword", h.changePassword)
+
 	return &h
 }

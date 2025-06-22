@@ -3,43 +3,50 @@ package service
 import (
 	"errors"
 	"github.com/dongri/phonenumber"
-	"techwizBackend/pkg/models/dto/userDTO"
-	"techwizBackend/pkg/models/user"
+	"techwizBackend/pkg/models/dao"
+	"techwizBackend/pkg/models/dto"
 	"techwizBackend/pkg/repository"
 )
 
 type (
 	IAuthService interface {
-		CreateUser(value user.User) (string, error)
-		Login(dto *userDTO.User) error
+		CreateUser(value dao.User) (string, error)
+		Login(dto *dto.User) error
 	}
 
 	AuthService struct {
 		AuthRepository repository.IAuthRepository
+		UserRepository repository.IUserRepository
 	}
 )
 
-func NewAuthService(authRepository repository.IAuthRepository) *AuthService {
-	return &AuthService{AuthRepository: authRepository}
+func NewAuthService(
+	authRepository repository.IAuthRepository,
+	userRepository repository.IUserRepository,
+) *AuthService {
+	return &AuthService{
+		AuthRepository: authRepository,
+		UserRepository: userRepository,
+	}
 }
 
-func (s AuthService) CreateUser(value user.User) (string, error) {
+func (s AuthService) CreateUser(value dao.User) (string, error) {
 	number := phonenumber.Parse(value.PhoneNumber, "ru")
-	var res user.User
-	if err := s.AuthRepository.GetUserByPhone(number, &res); err == nil {
+	var res dao.User
+	if err := s.UserRepository.GetUserByPhone(number, &res); err == nil {
 		return res.Id.Hex(), errors.New("User already exists")
 	}
 	res.PhoneNumber = number
 	return s.AuthRepository.CreateUser(res)
 }
 
-func (s AuthService) Login(dto *userDTO.User) error {
+func (s AuthService) Login(dto *dto.User) error {
 	number := phonenumber.Parse(dto.PhoneNumber, "ru")
-	dto.PhoneNumber = number
-	var res user.User
-	if err := s.AuthRepository.GetUserByPhone(number, &res); err != nil {
+	var res dao.User
+	if err := s.UserRepository.GetUserByPhone(number, &res); err != nil {
 		return err
 	}
+	dto.Id = res.Id.Hex()
 
 	if dto.Password != res.Password {
 		return errors.New("Password does not match")

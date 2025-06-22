@@ -3,12 +3,12 @@ package http
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"techwizBackend/pkg/models/dto/userDTO"
-	"techwizBackend/pkg/models/user"
+	"techwizBackend/pkg/models/dao"
+	"techwizBackend/pkg/models/dto"
 )
 
 func (h Handler) signup(c echo.Context) error {
-	var input userDTO.User
+	var input dto.User
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(
 			http.StatusBadRequest,
@@ -16,7 +16,7 @@ func (h Handler) signup(c echo.Context) error {
 		)
 	}
 
-	var user user.User
+	var user dao.User
 	user.PhoneNumber = input.PhoneNumber
 	user.Password = input.Password
 	id, err := h.services.Authorization.CreateUser(user)
@@ -34,7 +34,7 @@ func (h Handler) signup(c echo.Context) error {
 }
 
 func (h Handler) signin(c echo.Context) error {
-	var input userDTO.User
+	var input dto.User
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(
 			http.StatusBadRequest,
@@ -57,6 +57,6 @@ func (h Handler) signin(c echo.Context) error {
 	}
 	return c.JSON(
 		http.StatusOK,
-		map[string]string{"id": input.PhoneNumber},
+		map[string]string{"phone_number": input.Id},
 	)
 }

@@ -22,10 +22,12 @@ func main() {
 	}()
 	// Init repositories
 	authRepository := repository.NewAuthRepository(db)
+	userRepository := repository.NewUserRepository(db)
 	// Create services
-	authService := service.NewAuthService(authRepository)
+	authService := service.NewAuthService(authRepository, userRepository)
+	userService := service.NewUserService(userRepository)
 	// Create general service
-	services := service.NewServices(authService)
+	services := service.NewServices(authService, userService)
 	// Init handler
 	http.New(e, services)
 	// Start server
