@@ -1,0 +1,17 @@
+### POST update password
+POST http://127.0.0.1:8080/user/changepassword
+Content-Type: application/json
+
+{
+  "id": "6856b81e3d37f7499be7728c",
+  "password": "qwerty"
+}
+### results:
+### 200 {"status": "ok"}
+### 400 {"error": "Invalid request body"}
+### 400 {"error": "Invalid id or password"}
+### 400 {"error": "New password cannot match the past"}
+### 400 {"error": "Failed update user password"}
+### 404 {"error": "User not found"}
+
+###
