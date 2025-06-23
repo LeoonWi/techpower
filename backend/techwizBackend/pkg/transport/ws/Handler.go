@@ -45,13 +45,15 @@ func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
 		if err := conn.ReadJSON(&message); err != nil {
 			// If the error is a connection closure
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-				log.Printf("Клиент %p закрыл соединение: %s", conn, err)
+				log.Printf("Клиент %s закрыл соединение", id)
+				wsConn.Hub.Remove <- conn
 				return nil
 			} else {
-				log.Printf("read error from client %p: %s", conn, err)
+				log.Printf("read error from client %s: %s", id, err)
 				continue
 			}
 		}
+
 		message.SenderConn = conn
 		wsConn.Hub.Broadcast <- message
 	}

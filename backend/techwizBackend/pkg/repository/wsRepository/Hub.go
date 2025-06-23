@@ -10,11 +10,16 @@ type Hub struct {
 	Clients   map[*websocket.Conn]string
 	Broadcast chan dto.Message
 	Add       chan dto.User
-	Remove    chan dto.User
+	Remove    chan *websocket.Conn
 }
 
 func New() *Hub {
-	return &Hub{}
+	return &Hub{
+		Clients:   make(map[*websocket.Conn]string),
+		Broadcast: make(chan dto.Message, 50),
+		Add:       make(chan dto.User, 50),
+		Remove:    make(chan *websocket.Conn, 50),
+	}
 }
 
 func (h *Hub) Run() {
@@ -24,10 +29,10 @@ func (h *Hub) Run() {
 			h.Clients[user.Conn] = user.Id
 			log.Printf("клиент подключён | всего клиентов: %d", len(h.Clients))
 
-		case user := <-h.Remove:
-			if _, ok := h.Clients[user.Conn]; ok {
-				delete(h.Clients, user.Conn)
-				if err := user.Conn.Close(); err != nil {
+		case conn := <-h.Remove:
+			if _, ok := h.Clients[conn]; ok {
+				delete(h.Clients, conn)
+				if err := conn.Close(); err != nil {
 					log.Printf("Не удалось разорвать соединение: %v", err)
 				}
 				log.Printf("клиент отключён | всего клиентов: %d", len(h.Clients))

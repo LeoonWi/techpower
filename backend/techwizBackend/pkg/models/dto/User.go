@@ -6,9 +6,9 @@ import (
 )
 
 type User struct {
-	Id          string          `json:"id,omitempty" query:"id"`
+	Id          string          `json:"id,omitempty"`
 	Conn        *websocket.Conn `json:"-"`
-	PhoneNumber string          `json:"phone_number" query:"phone_number"`
+	PhoneNumber string          `json:"phone_number"`
 	FullName    string          `json:"full_name,omitempty"`
 	Password    string          `json:"password"`
 	Permission  string          `json:"permission,omitempty"`

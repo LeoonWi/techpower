@@ -21,7 +21,7 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	user := e.Group("user")
 	user.PATCH("/changepassword", h.changePassword)
 
-	e.GET("/ws:id", func(c echo.Context) error {
+	e.GET("/ws", func(c echo.Context) error {
 		return websocketConn.Ws(c)
 	})
 
