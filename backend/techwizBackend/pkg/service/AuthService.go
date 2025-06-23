@@ -5,7 +5,7 @@ import (
 	"github.com/dongri/phonenumber"
 	"techwizBackend/pkg/models/dao"
 	"techwizBackend/pkg/models/dto"
-	"techwizBackend/pkg/repository"
+	"techwizBackend/pkg/repository/mongodb"
 )
 
 type (
@@ -15,14 +15,14 @@ type (
 	}
 
 	AuthService struct {
-		AuthRepository repository.IAuthRepository
-		UserRepository repository.IUserRepository
+		AuthRepository mongodb.IAuthRepository
+		UserRepository mongodb.IUserRepository
 	}
 )
 
 func NewAuthService(
-	authRepository repository.IAuthRepository,
-	userRepository repository.IUserRepository,
+	authRepository mongodb.IAuthRepository,
+	userRepository mongodb.IUserRepository,
 ) *AuthService {
 	return &AuthService{
 		AuthRepository: authRepository,
@@ -30,7 +30,7 @@ func NewAuthService(
 	}
 }
 
-func (s AuthService) CreateUser(value dao.User) (string, error) {
+func (s *AuthService) CreateUser(value dao.User) (string, error) {
 	number := phonenumber.Parse(value.PhoneNumber, "ru")
 	var res dao.User
 	if err := s.UserRepository.GetUserByPhone(number, &res); err == nil {
@@ -40,7 +40,7 @@ func (s AuthService) CreateUser(value dao.User) (string, error) {
 	return s.AuthRepository.CreateUser(res)
 }
 
-func (s AuthService) Login(dto *dto.User) error {
+func (s *AuthService) Login(dto *dto.User) error {
 	number := phonenumber.Parse(dto.PhoneNumber, "ru")
 	var res dao.User
 	if err := s.UserRepository.GetUserByPhone(number, &res); err != nil {

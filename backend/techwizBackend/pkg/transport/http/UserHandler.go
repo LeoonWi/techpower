@@ -6,7 +6,7 @@ import (
 	"techwizBackend/pkg/models/dto"
 )
 
-func (h Handler) changePassword(c echo.Context) error {
+func (h *Handler) changePassword(c echo.Context) error {
 	var input dto.User
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})

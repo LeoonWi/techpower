@@ -7,7 +7,7 @@ import (
 	"techwizBackend/pkg/models/dto"
 )
 
-func (h Handler) signup(c echo.Context) error {
+func (h *Handler) signup(c echo.Context) error {
 	var input dto.User
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(
@@ -33,7 +33,7 @@ func (h Handler) signup(c echo.Context) error {
 	)
 }
 
-func (h Handler) signin(c echo.Context) error {
+func (h *Handler) signin(c echo.Context) error {
 	var input dto.User
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(

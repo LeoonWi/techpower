@@ -1,4 +1,4 @@
-package repository
+package mongodb
 
 import (
 	"context"
@@ -22,7 +22,7 @@ func NewAuthRepository(db *mongo.Client) *AuthRepository {
 	return &AuthRepository{db: db}
 }
 
-func (r AuthRepository) CreateUser(val dao.User) (string, error) {
+func (r *AuthRepository) CreateUser(val dao.User) (string, error) {
 	coll := r.db.Database("TechPower").Collection("Users")
 	var result *mongo.InsertOneResult
 	var err error

@@ -1,4 +1,4 @@
-package repository
+package mongodb
 
 import (
 	"github.com/joho/godotenv"
