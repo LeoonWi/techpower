@@ -22,31 +22,6 @@ const testUsers = [
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [status, setStatus] = useState<string | null>(null);
-
-  const handleLogin = () => {
-    const user = testUsers.find(u => u.username === username && u.password === password);
-    if (user) {
-      setStatus(user.status);
-    } else {
-      Alert.alert('Ошибка', 'Неверный логин или пароль');
-    }
-  };
-
-  const getAvailableRoles = () => {
-    switch (status) {
-      case 'admin':
-        return roles;
-      case 'support':
-        return roles.filter(r => r.role === 'support');
-      case 'senior_master':
-        return roles.filter(r => ['master', 'premium_master'].includes(r.role));
-      default:
-        return [];
-    }
-  };
 
   const handleRoleSelect = (role: UserRole) => {
     login(role);
@@ -57,62 +32,29 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>TechWiz</Text>
-        <Text style={styles.subtitle}>Тестовый вход в систему</Text>
+        <Text style={styles.subtitle}>Выберите роль для входа</Text>
       </View>
-
-      {/* Вход */}
-      {!status && (
-        <View style={styles.loginForm}>
-          <Text style={styles.sectionTitle}>Тестовые аккаунты:</Text>
-          {testUsers.map(user => (
-            <Text key={user.username} style={styles.testUser}>
-              {user.username} / {user.password}
-            </Text>
-          ))}
-          <TextInput
-            placeholder="Логин"
-            value={username}
-            onChangeText={setUsername}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Пароль"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-          />
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Войти</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Роли */}
-      {status && (
-        <ScrollView style={styles.rolesList} showsVerticalScrollIndicator={false}>
-          <Text style={styles.sectionTitle}>Выберите роль:</Text>
-          {getAvailableRoles().map(item => {
-            const IconComponent = item.icon;
-            return (
-              <TouchableOpacity
-                key={item.role}
-                style={[styles.roleCard, { borderLeftColor: item.color }]}
-                onPress={() => handleRoleSelect(item.role)}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
-                  <IconComponent size={24} color={item.color} />
-                </View>
-                <View style={styles.roleInfo}>
-                  <Text style={styles.roleTitle}>{item.title}</Text>
-                  <Text style={styles.roleDescription}>{item.description}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
-
+      <ScrollView style={styles.rolesList} showsVerticalScrollIndicator={false}>
+        <Text style={styles.sectionTitle}>Выберите роль:</Text>
+        {roles.map(item => {
+          const IconComponent = item.icon;
+          return (
+            <TouchableOpacity
+              key={item.role}
+              style={[styles.roleCard, { borderLeftColor: item.color }]}
+              onPress={() => handleRoleSelect(item.role)}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}> 
+                <IconComponent size={24} color={item.color} />
+              </View>
+              <View style={styles.roleInfo}>
+                <Text style={styles.roleTitle}>{item.title}</Text>
+                <Text style={styles.roleDescription}>{item.description}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
       <View style={styles.footer}>
         <Text style={styles.footerText}>Демо версия приложения TechWiz</Text>
       </View>

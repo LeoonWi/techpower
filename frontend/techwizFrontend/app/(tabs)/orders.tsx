@@ -34,7 +34,7 @@ export default function OrdersScreen() {
         case 'admin':
           return true;
         case 'support':
-          return true; // Поддержка видит все заказы для назначения
+          return true;
         case 'senior_master':
           return order.status === 'pending' || order.assignedMasterId === user.id;
         case 'premium_master':
@@ -266,28 +266,33 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   filtersContainer: {
-    marginBottom: 16,
+    marginBottom: 0, // Убран большой отступ
+    maxHeight: 50,
   },
   filtersContent: {
     paddingHorizontal: 20,
-    gap: 8,
+    gap: 4,
   },
   filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    height: 32,
+    paddingHorizontal: 8,
+    paddingVertical: 0,
+    borderRadius: 16,
     backgroundColor: 'white',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterChipActive: {
     backgroundColor: '#2563EB',
     borderColor: '#2563EB',
   },
   filterChipText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#64748B',
+    textAlign: 'center',
   },
   filterChipTextActive: {
     color: 'white',

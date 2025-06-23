@@ -11,7 +11,6 @@ export default function ProfileScreen() {
   const [editedUser, setEditedUser] = useState(user || null);
 
   if (!user) {
-    router.replace('/login');
     return null;
   }
 
@@ -31,7 +30,6 @@ export default function ProfileScreen() {
         { text: 'Отмена', style: 'cancel' },
         { text: 'Выйти', style: 'destructive', onPress: () => {
           logout();
-          router.replace('/login');
         }},
       ]
     );

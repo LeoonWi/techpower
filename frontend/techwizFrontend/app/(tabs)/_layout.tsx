@@ -129,8 +129,8 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#64748B',
         tabBarStyle: {
           backgroundColor: 'white',
+          borderTopWidth: 0, // Убрана верхняя граница
           borderTopColor: '#E2E8F0',
-          borderTopWidth: 1,
           paddingBottom: Platform.OS === 'ios' ? 25 : 8,
           paddingTop: 8,
           height: Platform.OS === 'ios' ? 90 : 70,

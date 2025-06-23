@@ -362,9 +362,9 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     backgroundColor: 'white',
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 12,
+    height: 12,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -375,6 +375,7 @@ const styles = StyleSheet.create({
   },
   filtersContainer: {
     marginBottom: 16,
+    maxHeight: 35
   },
   filtersContent: {
     paddingHorizontal: 20,

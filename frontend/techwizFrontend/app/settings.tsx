@@ -19,7 +19,6 @@ export default function SettingsScreen() {
         { text: 'Отмена', style: 'cancel' },
         { text: 'Выйти', style: 'destructive', onPress: () => {
           logout();
-          router.replace('/login');
         }},
       ]
     );
