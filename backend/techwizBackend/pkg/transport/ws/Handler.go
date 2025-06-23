@@ -18,8 +18,8 @@ func New(hub *Hub) *WebsocketConnection {
 }
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize:  16384,
+	WriteBufferSize: 16384,
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
