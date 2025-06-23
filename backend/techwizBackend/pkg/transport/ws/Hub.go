@@ -1,4 +1,4 @@
-package wsRepository
+package ws
 
 import (
 	"github.com/gorilla/websocket"
@@ -13,7 +13,7 @@ type Hub struct {
 	Remove    chan *websocket.Conn
 }
 
-func New() *Hub {
+func NewHub() *Hub {
 	return &Hub{
 		Clients:   make(map[*websocket.Conn]string),
 		Broadcast: make(chan dto.Message, 50),

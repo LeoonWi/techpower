@@ -4,8 +4,7 @@ import (
 	"context"
 	"github.com/labstack/echo/v4"
 	"log"
-	"techwizBackend/pkg/repository/mongodb"
-	"techwizBackend/pkg/repository/wsRepository"
+	"techwizBackend/pkg/repository"
 	"techwizBackend/pkg/service"
 	"techwizBackend/pkg/transport/http"
 	"techwizBackend/pkg/transport/ws"
@@ -15,7 +14,7 @@ func main() {
 	// Init Web Server
 	e := echo.New()
 	// Init connection MongoDB
-	db := mongodb.New()
+	db := repository.New()
 	defer func() {
 		if err := db.Disconnect(context.TODO()); err != nil {
 			log.Println(err)
@@ -23,9 +22,9 @@ func main() {
 		}
 	}()
 	// Init repositories
-	authRepository := mongodb.NewAuthRepository(db)
-	userRepository := mongodb.NewUserRepository(db)
-	hubRepository := wsRepository.New()
+	authRepository := repository.NewAuthRepository(db)
+	userRepository := repository.NewUserRepository(db)
+	hubRepository := ws.NewHub()
 	go hubRepository.Run()
 	// Create services
 	authService := service.NewAuthService(authRepository, userRepository)

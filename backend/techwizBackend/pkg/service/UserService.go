@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"techwizBackend/pkg/models/dao"
 	"techwizBackend/pkg/models/dto"
-	"techwizBackend/pkg/repository/mongodb"
+	"techwizBackend/pkg/repository"
 )
 
 type (
@@ -15,11 +15,11 @@ type (
 	}
 
 	UserService struct {
-		UserRepository mongodb.IUserRepository
+		UserRepository repository.IUserRepository
 	}
 )
 
-func NewUserService(userRepository mongodb.IUserRepository) *UserService {
+func NewUserService(userRepository repository.IUserRepository) *UserService {
 	return &UserService{UserRepository: userRepository}
 }
 

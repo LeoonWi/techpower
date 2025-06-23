@@ -5,7 +5,7 @@ import (
 	"github.com/dongri/phonenumber"
 	"techwizBackend/pkg/models/dao"
 	"techwizBackend/pkg/models/dto"
-	"techwizBackend/pkg/repository/mongodb"
+	"techwizBackend/pkg/repository"
 )
 
 type (
@@ -15,14 +15,14 @@ type (
 	}
 
 	AuthService struct {
-		AuthRepository mongodb.IAuthRepository
-		UserRepository mongodb.IUserRepository
+		AuthRepository repository.IAuthRepository
+		UserRepository repository.IUserRepository
 	}
 )
 
 func NewAuthService(
-	authRepository mongodb.IAuthRepository,
-	userRepository mongodb.IUserRepository,
+	authRepository repository.IAuthRepository,
+	userRepository repository.IUserRepository,
 ) *AuthService {
 	return &AuthService{
 		AuthRepository: authRepository,

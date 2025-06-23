@@ -6,14 +6,13 @@ import (
 	"log"
 	"net/http"
 	"techwizBackend/pkg/models/dto"
-	"techwizBackend/pkg/repository/wsRepository"
 )
 
 type WebsocketConnection struct {
-	Hub *wsRepository.Hub
+	Hub *Hub
 }
 
-func New(hub *wsRepository.Hub) *WebsocketConnection {
+func New(hub *Hub) *WebsocketConnection {
 	ws := WebsocketConnection{Hub: hub}
 	return &ws
 }
