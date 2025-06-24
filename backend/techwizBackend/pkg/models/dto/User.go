@@ -2,7 +2,6 @@ package dto
 
 import (
 	"github.com/gorilla/websocket"
-	"techwizBackend/pkg/models/dao"
 )
 
 type User struct {
@@ -10,11 +9,11 @@ type User struct {
 	Conn        *websocket.Conn `json:"-"`
 	PhoneNumber string          `json:"phone_number"`
 	FullName    string          `json:"full_name,omitempty"`
-	Password    string          `json:"password"`
+	Password    string          `json:"password,omitempty"`
 	Permission  string          `json:"permission,omitempty"`
 	Photo       string          `json:"photo,omitempty"`
 	Nickname    string          `json:"nickname,omitempty"`   // superadmin and master
-	Category    []dao.Category  `json:"category,omitempty"`   // only master
+	Category    []Category      `json:"category,omitempty"`   // only master
 	Status      string          `json:"status,omitempty"`     // only master // default, senior or premium
 	Balance     float32         `json:"balance,omitempty"`    // only master
 	Commission  int             `json:"commission,omitempty"` // only master

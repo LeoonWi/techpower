@@ -1,7 +1,8 @@
 package dto
 
 type File struct {
-	Name string `json:"name,omitempty"`
-	//ContentType string `json:"content_type"` ???
-	// MetaData godoc.Metadata ???
+	Id          string `json:"id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Path        string `json:"path,omitempty"`
+	ContentType string `json:"content_type,omitempty"`
 }

@@ -11,7 +11,7 @@ func (h *Handler) signup(c echo.Context) error {
 	var input dto.User
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 			map[string]string{"error": "Invalid request body"},
 		)
 	}
@@ -37,7 +37,7 @@ func (h *Handler) signin(c echo.Context) error {
 	var input dto.User
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 			map[string]string{"error": "Invalid request body"},
 		)
 	}

@@ -28,6 +28,12 @@ var upgrader = websocket.Upgrader{
 func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
 	id := c.QueryParam("id")
 	conn, err := upgrader.Upgrade(c.Response().Writer, c.Request(), nil)
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("Не удалось разорвать соединение: %v", err)
+		}
+	}()
+
 	if err != nil {
 		log.Println(err)
 		return c.JSON(
@@ -46,6 +52,7 @@ func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 				log.Printf("Клиент %s закрыл соединение", id)
 				wsConn.Hub.Remove <- conn
+				// TODO отправку сообщения клиенту об успешном отключении c.JSON
 				return nil
 			} else {
 				log.Printf("read error from client %s: %s", id, err)

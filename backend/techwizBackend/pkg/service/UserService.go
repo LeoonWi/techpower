@@ -11,6 +11,7 @@ import (
 
 type (
 	IUserService interface {
+		GetUser(id string, userDTO *dto.User, statusCode *int) error
 		ChangePassword(input dto.User, statusCode *int) error
 	}
 
@@ -21,6 +22,28 @@ type (
 
 func NewUserService(userRepository repository.IUserRepository) *UserService {
 	return &UserService{UserRepository: userRepository}
+}
+
+func (s UserService) GetUser(id string, userDTO *dto.User, statusCode *int) error {
+	objectId, _ := bson.ObjectIDFromHex(id)
+	var userDAO dao.User
+	if err := s.UserRepository.GetUserById(objectId, &userDAO); err != nil {
+		*statusCode = http.StatusNotFound
+		return err
+	}
+
+	userDTO.Id = userDAO.Id.Hex()
+	userDTO.PhoneNumber = userDAO.PhoneNumber
+	userDTO.FullName = userDAO.FullName
+	userDTO.Permission = userDAO.Permission
+	userDTO.Photo = userDAO.Photo
+	userDTO.Nickname = userDAO.Nickname
+	//userDTO.Category = userDAO.Category
+	userDTO.Status = userDAO.Status
+	userDTO.Balance = userDAO.Balance
+	userDTO.Commission = userDAO.Commission
+	*statusCode = http.StatusOK
+	return nil
 }
 
 func (s *UserService) ChangePassword(input dto.User, statusCode *int) error {

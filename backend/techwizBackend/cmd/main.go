@@ -23,14 +23,17 @@ func main() {
 	}()
 	// Init repositories
 	authRepository := repository.NewAuthRepository(db)
+	categoryRepository := repository.NewCategoryRepository(db)
 	userRepository := repository.NewUserRepository(db)
 	hubRepository := ws.NewHub()
 	go hubRepository.Run()
 	// Create services
 	authService := service.NewAuthService(authRepository, userRepository)
+	categoryService := service.NewCategoryService(categoryRepository)
 	userService := service.NewUserService(userRepository)
+	requestService := service.NewRequestService()
 	// Create general service
-	services := service.NewServices(authService, userService)
+	services := service.NewServices(authService, userService, requestService, categoryService)
 	// Init handler
 	websocket := ws.New(hubRepository)
 	http.New(e, services, websocket)

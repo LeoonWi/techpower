@@ -18,8 +18,16 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	auth.POST("/signup", h.signup)
 	auth.POST("/signin", h.signin)
 
+	category := e.Group("category")
+	category.POST("", h.createCategory)
+	category.PUT("", h.renameCategory)
+
 	user := e.Group("user")
 	user.PATCH("/changepassword", h.changePassword)
+	user.GET("", h.getUser)
+
+	//request := e.Group("request")
+	//request.POST("/create", h.createRequest)
 
 	e.GET("/ws", func(c echo.Context) error {
 		return websocketConn.Ws(c)

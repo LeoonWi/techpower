@@ -1,6 +1,9 @@
 package dto
 
-import "github.com/gorilla/websocket"
+import (
+	"github.com/gorilla/websocket"
+	"time"
+)
 
 type Message struct {
 	Id         string          `json:"id,omitempty"`
@@ -9,5 +12,5 @@ type Message struct {
 	Chat       string          `json:"chat_id,omitempty"`
 	Text       string          `json:"text,omitempty"`
 	Files      []File          `json:"files,omitempty"`
-	CreatedAt  string          `json:"created_at,omitempty"` // format time.RFC3339
+	CreatedAt  time.Time       `json:"created_at,omitempty"` // format time.RFC3339
 }
