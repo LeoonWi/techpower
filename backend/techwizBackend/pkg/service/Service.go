@@ -7,6 +7,7 @@ type (
 		UserService     IUserService
 		RequestService  IRequestService
 		CategoryService ICategoryService
+		ChatService     IChatService
 	}
 )
 
@@ -15,11 +16,13 @@ func NewServices(
 	userService IUserService,
 	requestService IRequestService,
 	categoryService ICategoryService,
+	chatService IChatService,
 ) *Service {
 	return &Service{
 		Authorization:   authService,
 		UserService:     userService,
 		RequestService:  requestService,
 		CategoryService: categoryService,
+		ChatService:     chatService,
 	}
 }

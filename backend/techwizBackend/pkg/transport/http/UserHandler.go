@@ -6,7 +6,7 @@ import (
 	"techwizBackend/pkg/models"
 )
 
-func (h Handler) changePassword(c echo.Context) error {
+func (h *Handler) changePassword(c echo.Context) error {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(
@@ -34,7 +34,7 @@ func (h Handler) changePassword(c echo.Context) error {
 	)
 }
 
-func (h Handler) changePermission(c echo.Context) error {
+func (h *Handler) changePermission(c echo.Context) error {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(
@@ -54,7 +54,7 @@ func (h Handler) changePermission(c echo.Context) error {
 	)
 }
 
-func (h Handler) getUser(c echo.Context) error {
+func (h *Handler) getUser(c echo.Context) error {
 	id := c.QueryParam("id")
 	if len(id) < 24 {
 		return c.JSON(

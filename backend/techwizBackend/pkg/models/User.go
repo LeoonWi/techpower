@@ -16,6 +16,7 @@ type User struct {
 	Nickname    string          `json:"nickname,omitempty" bson:"nickname,omitempty"`     // superadmin and master
 	Status      string          `json:"status,omitempty" bson:"status,omitempty"`         // only master // default, senior or premium
 	Category    []Category      `json:"categories,omitempty" bson:"categories,omitempty"` // only master
+	CategoryId  []bson.ObjectID `json:"categories_id,omitempty" bson:"categories_id,omitempty"`
 	Balance     float32         `json:"balance,omitempty" bson:"balance,omitempty"`       // only master
 	Commission  int             `json:"commission,omitempty" bson:"commission,omitempty"` // only master
 }

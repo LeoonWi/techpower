@@ -6,7 +6,7 @@ import (
 	"techwizBackend/pkg/models"
 )
 
-func (h Handler) createRequest(c echo.Context) error {
+func (h *Handler) createRequest(c echo.Context) error {
 	var request models.Request
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(

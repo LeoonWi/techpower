@@ -7,7 +7,7 @@ import (
 	"techwizBackend/pkg/models"
 )
 
-func (h Handler) createCategory(c echo.Context) error {
+func (h *Handler) createCategory(c echo.Context) error {
 	var category models.Category
 	if err := c.Bind(&category); err != nil {
 		return c.JSON(
@@ -34,7 +34,7 @@ func (h Handler) createCategory(c echo.Context) error {
 	return c.JSON(status, category)
 }
 
-func (h Handler) renameCategory(c echo.Context) error {
+func (h *Handler) renameCategory(c echo.Context) error {
 	id, _ := bson.ObjectIDFromHex(c.QueryParam("id"))
 	name := c.QueryParam("name")
 	category := models.Category{Id: id, Name: name}

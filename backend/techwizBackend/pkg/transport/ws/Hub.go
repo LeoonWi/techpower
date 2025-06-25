@@ -8,18 +8,18 @@ import (
 )
 
 type Hub struct {
-	Clients   map[*websocket.Conn]bson.ObjectID
+	Clients   map[bson.ObjectID]*websocket.Conn
 	Broadcast chan models.Message
 	Add       chan models.User
-	Remove    chan *websocket.Conn
+	Remove    chan bson.ObjectID
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		Clients:   make(map[*websocket.Conn]bson.ObjectID),
+		Clients:   make(map[bson.ObjectID]*websocket.Conn),
 		Broadcast: make(chan models.Message, 50),
 		Add:       make(chan models.User, 50),
-		Remove:    make(chan *websocket.Conn, 50),
+		Remove:    make(chan bson.ObjectID, 50),
 	}
 }
 
@@ -27,12 +27,12 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case user := <-h.Add:
-			h.Clients[user.Conn] = user.Id
+			h.Clients[user.Id] = user.Conn
 			log.Printf("клиент подключён | всего клиентов: %d", len(h.Clients))
 
-		case conn := <-h.Remove:
-			if _, ok := h.Clients[conn]; ok {
-				delete(h.Clients, conn)
+		case id := <-h.Remove:
+			if conn, ok := h.Clients[id]; ok {
+				delete(h.Clients, id)
 				if err := conn.Close(); err != nil {
 					log.Printf("Не удалось разорвать соединение: %v", err)
 				}
@@ -40,14 +40,14 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.Broadcast:
-			for conn := range h.Clients {
-				if conn == message.SenderConn {
+			for id, conn := range h.Clients {
+				if id == message.SenderId {
 					continue
 				}
 				err := conn.WriteJSON(message)
 				if err != nil {
 					log.Printf("write error: %s", err)
-					delete(h.Clients, conn)
+					delete(h.Clients, id)
 					if err := conn.Close(); err != nil {
 						log.Printf("Не удалось разорвать соединение: %v", err)
 					}

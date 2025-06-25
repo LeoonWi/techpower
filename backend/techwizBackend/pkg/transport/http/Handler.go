@@ -27,6 +27,9 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	user.PATCH("/changepermission", h.changePermission)
 	user.GET("", h.getUser)
 
+	chat := e.Group("chat")
+	chat.POST("", h.CreateChat)
+
 	//request := e.Group("request")
 	//request.POST("/create", h.createRequest)
 

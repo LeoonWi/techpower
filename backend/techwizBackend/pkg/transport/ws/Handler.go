@@ -44,7 +44,8 @@ func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
 	}
 
 	// Add new user connection to Hub
-	wsConn.Hub.Add <- models.User{Id: id, Conn: conn}
+	user := models.User{Id: id, Conn: conn}
+	wsConn.Hub.Add <- user
 
 	for {
 		var message models.Message
@@ -52,7 +53,7 @@ func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
 			// If the error is a connection closure
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 				log.Printf("Клиент %s закрыл соединение", id)
-				wsConn.Hub.Remove <- conn
+				wsConn.Hub.Remove <- user.Id
 				// TODO отправку сообщения клиенту об успешном отключении c.JSON
 				return nil
 			} else {
