@@ -1,7 +1,7 @@
 package service
 
 import (
-	"errors"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
 	"techwizBackend/pkg/models"
 	"techwizBackend/pkg/repository"
@@ -9,7 +9,7 @@ import (
 
 type (
 	IChatService interface {
-		Create(chat *models.Chat) (int, error)
+		Create(sender bson.ObjectID, recipient bson.ObjectID, chat *models.Chat) (int, error)
 	}
 
 	ChatService struct {
@@ -28,14 +28,10 @@ func NewChatService(
 	}
 }
 
-func (s *ChatService) Create(chat *models.Chat) (int, error) {
-	if chat.Name == "" {
-		return http.StatusBadRequest, errors.New("Name is required")
-	}
-	if len(chat.OwnerId.Hex()) < 24 {
-		return http.StatusBadRequest, errors.New("Invalid OwnerId")
-	}
-
+func (s *ChatService) Create(sender bson.ObjectID, recipient bson.ObjectID, chat *models.Chat) (int, error) {
+	//if len(sender.Hex()) < 24 || len(recipient.Hex()) < 24 {
+	//	return http.StatusBadRequest, errors.New("Invalid id")
+	//}
 	if err := s.ChatRepository.Create(chat); err != nil {
 		return http.StatusBadRequest, err
 	}

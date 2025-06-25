@@ -12,7 +12,6 @@ type Handler struct {
 
 func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConnection) *Handler {
 	h := Handler{services: service}
-	// TODO enable JWT
 
 	auth := e.Group("auth")
 	auth.POST("/signup", h.signup)
@@ -27,8 +26,8 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	user.PATCH("/changepermission", h.changePermission)
 	user.GET("", h.getUser)
 
-	chat := e.Group("chat")
-	chat.POST("", h.CreateChat)
+	//chat := e.Group("chat")
+	//chat.POST("/:sender/:recipient", h.createChat)
 
 	//request := e.Group("request")
 	//request.POST("/create", h.createRequest)

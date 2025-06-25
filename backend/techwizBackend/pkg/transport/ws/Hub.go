@@ -5,17 +5,20 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"log"
 	"techwizBackend/pkg/models"
+	"techwizBackend/pkg/service"
 )
 
 type Hub struct {
+	services  *service.Service
 	Clients   map[bson.ObjectID]*websocket.Conn
 	Broadcast chan models.Message
 	Add       chan models.User
 	Remove    chan bson.ObjectID
 }
 
-func NewHub() *Hub {
+func NewHub(services *service.Service) *Hub {
 	return &Hub{
+		services:  services,
 		Clients:   make(map[bson.ObjectID]*websocket.Conn),
 		Broadcast: make(chan models.Message, 50),
 		Add:       make(chan models.User, 50),
@@ -40,17 +43,24 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.Broadcast:
-			for id, conn := range h.Clients {
-				if id == message.SenderId {
+			result, err := h.services.MessageService.Save(message)
+			if err != nil {
+				message.Conn.WriteJSON(map[string]string{"error": err.Error()})
+				continue
+			}
+			for _, item := range result {
+				// TODO вынести в GetRecipient
+				if message.SenderId == item {
 					continue
 				}
-				err := conn.WriteJSON(message)
+
+				err = h.Clients[item].WriteJSON(message)
 				if err != nil {
 					log.Printf("write error: %s", err)
-					delete(h.Clients, id)
-					if err := conn.Close(); err != nil {
+					if err := h.Clients[item].Close(); err != nil {
 						log.Printf("Не удалось разорвать соединение: %v", err)
 					}
+					delete(h.Clients, item)
 				}
 			}
 		}

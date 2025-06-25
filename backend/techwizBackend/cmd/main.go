@@ -26,18 +26,28 @@ func main() {
 	chatRepository := repository.NewChatRepository(db)
 	categoryRepository := repository.NewCategoryRepository(db)
 	userRepository := repository.NewUserRepository(db)
-	hubRepository := ws.NewHub()
-	go hubRepository.Run()
+	messageRepository := repository.NewMessageRepository(db)
 	// Create services
 	authService := service.NewAuthService(authRepository, userRepository)
 	chatService := service.NewChatService(chatRepository, userRepository)
 	categoryService := service.NewCategoryService(categoryRepository)
 	userService := service.NewUserService(userRepository)
 	requestService := service.NewRequestService()
+	messageService := service.NewMessageService(messageRepository)
 	// Create general service
-	services := service.NewServices(authService, userService, requestService, categoryService, chatService)
+	services := service.NewServices(
+		authService,
+		userService,
+		requestService,
+		categoryService,
+		chatService,
+		messageService,
+	)
+	// Init hub websocket
+	hub := ws.NewHub(services)
+	go hub.Run()
 	// Init handler
-	websocket := ws.New(hubRepository)
+	websocket := ws.New(hub)
 	http.New(e, services, websocket)
 	// Start server
 	err := e.Start(":8080")
