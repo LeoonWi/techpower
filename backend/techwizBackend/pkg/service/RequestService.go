@@ -2,13 +2,12 @@ package service
 
 import (
 	"net/http"
-	"techwizBackend/pkg/models/dao"
-	"techwizBackend/pkg/models/dto"
+	"techwizBackend/pkg/models"
 )
 
 type (
 	IRequestService interface {
-		Create(val *dto.Request, status *int) error
+		Create(val *models.Request, status *int) error
 	}
 
 	RequestService struct {
@@ -19,8 +18,8 @@ func NewRequestService() *RequestService {
 	return &RequestService{}
 }
 
-func (service *RequestService) Create(val *dto.Request, status *int) error {
-	var request dao.Request
+func (service *RequestService) Create(val *models.Request, status *int) error {
+	var request models.Request
 	request.Name = val.Name
 	request.PhoneNumber = val.PhoneNumber
 	request.Address = val.Address

@@ -3,11 +3,11 @@ package http
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"techwizBackend/pkg/models/dto"
+	"techwizBackend/pkg/models"
 )
 
 func (h Handler) createRequest(c echo.Context) error {
-	var request dto.Request
+	var request models.Request
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(
 			http.StatusUnprocessableEntity,

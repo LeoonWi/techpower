@@ -2,22 +2,23 @@ package ws
 
 import (
 	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"log"
-	"techwizBackend/pkg/models/dto"
+	"techwizBackend/pkg/models"
 )
 
 type Hub struct {
-	Clients   map[*websocket.Conn]string
-	Broadcast chan dto.Message
-	Add       chan dto.User
+	Clients   map[*websocket.Conn]bson.ObjectID
+	Broadcast chan models.Message
+	Add       chan models.User
 	Remove    chan *websocket.Conn
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		Clients:   make(map[*websocket.Conn]string),
-		Broadcast: make(chan dto.Message, 50),
-		Add:       make(chan dto.User, 50),
+		Clients:   make(map[*websocket.Conn]bson.ObjectID),
+		Broadcast: make(chan models.Message, 50),
+		Add:       make(chan models.User, 50),
 		Remove:    make(chan *websocket.Conn, 50),
 	}
 }

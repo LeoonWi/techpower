@@ -3,9 +3,10 @@ package ws
 import (
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"log"
 	"net/http"
-	"techwizBackend/pkg/models/dto"
+	"techwizBackend/pkg/models"
 )
 
 type WebsocketConnection struct {
@@ -26,7 +27,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
-	id := c.QueryParam("id")
+	id, _ := bson.ObjectIDFromHex(c.QueryParam("id"))
 	conn, err := upgrader.Upgrade(c.Response().Writer, c.Request(), nil)
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -43,10 +44,10 @@ func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
 	}
 
 	// Add new user connection to Hub
-	wsConn.Hub.Add <- dto.User{Id: id, Conn: conn}
+	wsConn.Hub.Add <- models.User{Id: id, Conn: conn}
 
 	for {
-		var message dto.Message
+		var message models.Message
 		if err := conn.ReadJSON(&message); err != nil {
 			// If the error is a connection closure
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {

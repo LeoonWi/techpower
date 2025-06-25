@@ -2,12 +2,13 @@ package http
 
 import (
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
-	"techwizBackend/pkg/models/dto"
+	"techwizBackend/pkg/models"
 )
 
 func (h Handler) createCategory(c echo.Context) error {
-	var category dto.Category
+	var category models.Category
 	if err := c.Bind(&category); err != nil {
 		return c.JSON(
 			http.StatusUnprocessableEntity,
@@ -34,20 +35,14 @@ func (h Handler) createCategory(c echo.Context) error {
 }
 
 func (h Handler) renameCategory(c echo.Context) error {
-	id := c.QueryParam("id")
+	id, _ := bson.ObjectIDFromHex(c.QueryParam("id"))
 	name := c.QueryParam("name")
-
-	if id == "" || name == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "id and name are required"})
-	}
+	category := models.Category{Id: id, Name: name}
 
 	var status int
-	if err := h.services.CategoryService.Rename(id, name, &status); err != nil {
+	if err := h.services.CategoryService.Rename(&category, &status); err != nil {
 		return c.JSON(status, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(status, map[string]string{
-		"id":   id,
-		"name": name,
-	})
+	return c.JSON(status, category)
 }

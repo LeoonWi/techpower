@@ -24,6 +24,7 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 
 	user := e.Group("user")
 	user.PATCH("/changepassword", h.changePassword)
+	user.PATCH("/changepermission", h.changePermission)
 	user.GET("", h.getUser)
 
 	//request := e.Group("request")
