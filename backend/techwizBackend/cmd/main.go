@@ -33,7 +33,7 @@ func main() {
 	categoryService := service.NewCategoryService(categoryRepository)
 	userService := service.NewUserService(userRepository)
 	requestService := service.NewRequestService()
-	messageService := service.NewMessageService(messageRepository)
+	messageService := service.NewMessageService(messageRepository, chatRepository)
 	// Create general service
 	services := service.NewServices(
 		authService,

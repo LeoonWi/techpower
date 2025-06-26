@@ -43,24 +43,24 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.Broadcast:
-			result, err := h.services.MessageService.Save(message)
-			if err != nil {
+			if err := h.services.MessageService.Save(&message); err != nil {
 				message.Conn.WriteJSON(map[string]string{"error": err.Error()})
 				continue
 			}
-			for _, item := range result {
-				// TODO вынести в GetRecipient
+			recipients := h.services.ChatService.GetRecipient(&message)
+			for _, item := range recipients {
 				if message.SenderId == item {
 					continue
 				}
-
-				err = h.Clients[item].WriteJSON(message)
-				if err != nil {
-					log.Printf("write error: %s", err)
-					if err := h.Clients[item].Close(); err != nil {
-						log.Printf("Не удалось разорвать соединение: %v", err)
+				log.Println(message)
+				if conn, ok := h.Clients[item]; ok {
+					if err := conn.WriteJSON(&message); err != nil {
+						log.Printf("write error: %s", err)
+						if err := h.Clients[item].Close(); err != nil {
+							log.Printf("Не удалось разорвать соединение: %v", err)
+						}
+						delete(h.Clients, item)
 					}
-					delete(h.Clients, item)
 				}
 			}
 		}

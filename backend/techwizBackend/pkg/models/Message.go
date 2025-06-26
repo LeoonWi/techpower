@@ -9,10 +9,8 @@ import (
 type Message struct {
 	Id          bson.ObjectID   `json:"id,omitempty" bson:"_id,omitempty"`
 	Conn        *websocket.Conn `json:"-" bson:"-"`
-	Sender      User            `json:"sender,omitempty" bson:"sender,omitempty"`
 	SenderId    bson.ObjectID   `json:"sender_id" bson:"sender_id"`
-	Recipient   User            `json:"recipient,omitempty" bson:"recipient,omitempty"`
-	RecipientId bson.ObjectID   `json:"recipient_id" bson:"recipient_id"`
+	RecipientId *bson.ObjectID  `json:"recipient_id" bson:"recipient_id"`
 	Chat        bson.ObjectID   `json:"chat_id" bson:"chat_id"`
 	Text        string          `json:"text,omitempty" bson:"text,omitempty"`
 	Files       []File          `json:"files,omitempty" bson:"files,omitempty"`

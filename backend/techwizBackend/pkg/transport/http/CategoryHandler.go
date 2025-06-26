@@ -37,7 +37,7 @@ func (h *Handler) createCategory(c echo.Context) error {
 func (h *Handler) renameCategory(c echo.Context) error {
 	id, _ := bson.ObjectIDFromHex(c.QueryParam("id"))
 	name := c.QueryParam("name")
-	category := models.Category{Id: id, Name: name}
+	category := models.Category{Id: &id, Name: name}
 
 	var status int
 	if err := h.services.CategoryService.Rename(&category, &status); err != nil {

@@ -49,7 +49,6 @@ func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
 
 	for {
 		var message models.Message
-		message.Conn = conn
 		if err := conn.ReadJSON(&message); err != nil {
 			// If the error is a connection closure
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
@@ -63,6 +62,8 @@ func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
 			}
 		}
 
+		message.SenderId = user.Id
+		message.Conn = user.Conn
 		wsConn.Hub.Broadcast <- message
 	}
 }

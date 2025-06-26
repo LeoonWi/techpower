@@ -11,7 +11,7 @@ import (
 type (
 	ICategoryRepository interface {
 		Create(*models.Category) error
-		FindById(id bson.ObjectID, category *models.Category) error
+		FindById(id *bson.ObjectID, category *models.Category) error
 		FindByName(name string, category *models.Category) error
 		Rename(*models.Category) error
 	}
@@ -31,11 +31,11 @@ func (r *CategoryRepository) Create(category *models.Category) error {
 	if err != nil {
 		return errors.New("Failed to create category")
 	}
-	category.Id = res.InsertedID.(bson.ObjectID)
+	*category.Id = res.InsertedID.(bson.ObjectID)
 	return nil
 }
 
-func (r *CategoryRepository) FindById(id bson.ObjectID, category *models.Category) error {
+func (r *CategoryRepository) FindById(id *bson.ObjectID, category *models.Category) error {
 	coll := r.db.Database("TechPower").Collection("Category")
 	if err := coll.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&category); err != nil {
 		if err == mongo.ErrNoDocuments {
