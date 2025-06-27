@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
-import { router } from 'expo-router';
 import { User, Phone, MapPin, Camera, CreditCard as Edit3, LogOut, CreditCard, Settings, Star, Crown, Wallet } from 'lucide-react-native';
 
 export default function ProfileScreen() {
@@ -28,19 +27,21 @@ export default function ProfileScreen() {
       'Вы уверены, что хотите выйти?',
       [
         { text: 'Отмена', style: 'cancel' },
-        { text: 'Выйти', style: 'destructive', onPress: () => {
-          logout();
-        }},
+        {
+          text: 'Выйти',
+          style: 'destructive',
+          onPress: () => {
+            logout();
+          },
+        },
       ]
     );
   };
 
   const handlePayment = () => {
-    Alert.alert(
-      'Пополнение баланса',
-      'Интеграция с СБП (Система быстрых платежей) для пополнения баланса',
-      [{ text: 'OK' }]
-    );
+    Alert.alert('Пополнение баланса', 'Интеграция с СБП (Система быстрых платежей) для пополнения баланса', [
+      { text: 'OK' },
+    ]);
   };
 
   const getRoleTitle = () => {
@@ -67,7 +68,10 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent} // Added contentContainerStyle
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.profileImageContainer}>
@@ -78,25 +82,18 @@ export default function ProfileScreen() {
               <Camera size={16} color="white" />
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.userInfo}>
             <View style={styles.nameRow}>
               <Text style={styles.userName}>{user.fullName}</Text>
-              {user.role === 'premium_master' && (
-                <Crown size={20} color="#FFD700" />
-              )}
+              {user.role === 'premium_master' && <Crown size={20} color="#FFD700" />}
             </View>
             <View style={[styles.roleBadge, { backgroundColor: `${getRoleBadgeColor()}20` }]}>
-              <Text style={[styles.roleText, { color: getRoleBadgeColor() }]}>
-                {getRoleTitle()}
-              </Text>
+              <Text style={[styles.roleText, { color: getRoleBadgeColor() }]}>{getRoleTitle()}</Text>
             </View>
           </View>
 
-          <TouchableOpacity 
-            style={styles.editButton}
-            onPress={() => setIsEditing(!isEditing)}
-          >
+          <TouchableOpacity style={styles.editButton} onPress={() => setIsEditing(!isEditing)}>
             <Edit3 size={20} color="#2563EB" />
           </TouchableOpacity>
         </View>
@@ -111,9 +108,7 @@ export default function ProfileScreen() {
               <Text style={styles.topUpText}>Пополнить</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.balanceAmount}>
-            {user.balance.toLocaleString('ru-RU')} ₽
-          </Text>
+          <Text style={styles.balanceAmount}>{user.balance.toLocaleString('ru-RU')} ₽</Text>
           <Text style={styles.commissionInfo}>
             Комиссия: {user.commission}% • Статус: {user.isActive ? 'Активен' : 'Неактивен'}
           </Text>
@@ -122,7 +117,7 @@ export default function ProfileScreen() {
         {/* Profile Form */}
         <View style={styles.formContainer}>
           <Text style={styles.formTitle}>Личная информация</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Полное имя *</Text>
             <View style={styles.inputContainer}>
@@ -130,7 +125,7 @@ export default function ProfileScreen() {
               <TextInput
                 style={styles.input}
                 value={isEditing ? editedUser?.fullName : user.fullName}
-                onChangeText={(text) => setEditedUser(prev => prev ? {...prev, fullName: text} : null)}
+                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, fullName: text } : null))}
                 editable={isEditing}
                 placeholder="Введите полное имя"
               />
@@ -144,7 +139,7 @@ export default function ProfileScreen() {
               <TextInput
                 style={styles.input}
                 value={isEditing ? editedUser?.nickname : user.nickname}
-                onChangeText={(text) => setEditedUser(prev => prev ? {...prev, nickname: text} : null)}
+                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, nickname: text } : null))}
                 editable={isEditing}
                 placeholder="Введите никнейм"
               />
@@ -158,7 +153,7 @@ export default function ProfileScreen() {
               <TextInput
                 style={styles.input}
                 value={isEditing ? editedUser?.phone : user.phone}
-                onChangeText={(text) => setEditedUser(prev => prev ? {...prev, phone: text} : null)}
+                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, phone: text } : null))}
                 editable={isEditing}
                 placeholder="Введите номер телефона"
                 keyboardType="phone-pad"
@@ -173,7 +168,7 @@ export default function ProfileScreen() {
               <TextInput
                 style={styles.input}
                 value={isEditing ? editedUser?.city : user.city}
-                onChangeText={(text) => setEditedUser(prev => prev ? {...prev, city: text} : null)}
+                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, city: text } : null))}
                 editable={isEditing}
                 placeholder="Введите город"
               />
@@ -187,7 +182,7 @@ export default function ProfileScreen() {
               <TextInput
                 style={styles.input}
                 value={isEditing ? editedUser?.category : user.category}
-                onChangeText={(text) => setEditedUser(prev => prev ? {...prev, category: text} : null)}
+                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, category: text } : null))}
                 editable={isEditing}
                 placeholder="Введите категорию"
               />
@@ -196,7 +191,7 @@ export default function ProfileScreen() {
 
           {isEditing && (
             <View style={styles.actionButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => {
                   setIsEditing(false);
@@ -238,6 +233,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  scrollContent: {
+    paddingBottom: 40, // Added padding to ensure content is not cut off
   },
   header: {
     flexDirection: 'row',
@@ -424,7 +422,7 @@ const styles = StyleSheet.create({
   settingsContainer: {
     backgroundColor: 'white',
     marginHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 40, // Increased marginBottom for extra space
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

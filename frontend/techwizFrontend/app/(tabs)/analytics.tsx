@@ -60,7 +60,11 @@ export default function AnalyticsScreen() {
           <Text style={styles.subtitle}>Личная аналитика работы</Text>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+        >
           {/* Personal Stats */}
           <View style={styles.statsGrid}>
             {personalStats.map((stat, index) => {
@@ -228,7 +232,11 @@ export default function AnalyticsScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+      >
         {/* Main Stats */}
         <View style={styles.statsGrid}>
           {stats.map((stat, index) => {
@@ -314,8 +322,8 @@ export default function AnalyticsScreen() {
                       { width: `${(count / Math.max(...Object.values(analytics.ordersByCity))) * 100}%` }
                     ]} 
                   />
-                  <Text style={styles.cityCount}>{count}</Text>
                 </View>
+                <Text style={styles.cityCount}>{count}</Text>
               </View>
             ))}
           </View>
@@ -380,7 +388,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    paddingBottom: 90,
   },
   header: {
     paddingHorizontal: 20,
@@ -424,6 +431,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
+    paddingTop: 20,
+    paddingBottom: 120,
   },
   accessDenied: {
     flex: 1,
@@ -584,10 +595,8 @@ const styles = StyleSheet.create({
     height: 24,
     backgroundColor: '#F1F5F9',
     borderRadius: 12,
-    marginLeft: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
+    marginHorizontal: 12,
+    position: 'relative',
   },
   cityBarFill: {
     position: 'absolute',
@@ -601,7 +610,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
     color: '#1E293B',
-    marginLeft: 'auto',
+    width: 50,
+    textAlign: 'right',
   },
   categoryStats: {
     gap: 16,

@@ -73,6 +73,7 @@ export default function ChatScreen() {
         <KeyboardAvoidingView 
           style={styles.chatContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           {/* Chat Header */}
           <View style={styles.chatHeader}>
@@ -94,7 +95,11 @@ export default function ChatScreen() {
           </View>
 
           {/* Messages */}
-          <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={styles.messagesContainer}
+            contentContainerStyle={styles.messagesContent}
+            showsVerticalScrollIndicator={true}
+          >
             {categoryMessages.length === 0 ? (
               <View style={styles.emptyChat}>
                 <Text style={styles.emptyChatText}>Начните общение в этой категории</Text>
@@ -172,7 +177,11 @@ export default function ChatScreen() {
           <Text style={styles.title}>Подать жалобу</Text>
         </View>
 
-        <View style={styles.complaintForm}>
+        <ScrollView 
+          style={styles.complaintForm}
+          contentContainerStyle={styles.complaintFormContent}
+          showsVerticalScrollIndicator={true}
+        >
           <Text style={styles.formLabel}>Опишите проблему</Text>
           <TextInput
             style={styles.complaintInput}
@@ -198,7 +207,7 @@ export default function ChatScreen() {
               <Text style={styles.submitButtonText}>Отправить</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -210,7 +219,11 @@ export default function ChatScreen() {
         <Text style={styles.subtitle}>Выберите категорию для общения</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.categoriesList}>
+      <ScrollView 
+        style={styles.categoriesList}
+        contentContainerStyle={styles.categoriesListContent}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Кнопка подачи жалобы - только для мастеров */}
         {(user?.role === 'master' || user?.role === 'premium_master') && (
           <TouchableOpacity
@@ -264,6 +277,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+    paddingBottom: 80, // Added to account for potential bottom navigation bar
   },
   header: {
     paddingHorizontal: 20,
@@ -289,12 +303,16 @@ const styles = StyleSheet.create({
   },
   categoriesList: {
     flex: 1,
+    paddingHorizontal: 20,
+  },
+  categoriesListContent: {
+    paddingBottom: 120, // Added to ensure last category card is fully visible
+    flexGrow: 1,
   },
   complaintButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF2F2',
-    marginHorizontal: 20,
     marginBottom: 16,
     padding: 16,
     borderRadius: 12,
@@ -309,7 +327,6 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     backgroundColor: 'white',
-    marginHorizontal: 20,
     marginBottom: 16,
     padding: 16,
     borderRadius: 12,
@@ -407,6 +424,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
+  messagesContent: {
+    paddingBottom: 120, // Added to ensure last message is fully visible
+    flexGrow: 1,
+  },
   emptyChat: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -499,8 +520,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   complaintForm: {
-    padding: 20,
     flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  complaintFormContent: {
+    paddingBottom: 120, // Added to ensure complaint form content is fully visible
+    flexGrow: 1,
   },
   formLabel: {
     fontSize: 16,

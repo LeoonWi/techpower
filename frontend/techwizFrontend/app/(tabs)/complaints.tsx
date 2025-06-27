@@ -298,6 +298,7 @@ const styles = StyleSheet.create({
   },
   filtersContainer: {
     marginBottom: 16,
+    maxHeight: 35
   },
   filtersContent: {
     paddingHorizontal: 20,

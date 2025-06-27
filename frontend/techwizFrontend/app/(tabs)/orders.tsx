@@ -77,7 +77,7 @@ export default function OrdersScreen() {
   };
 
   const handleAddOrder = () => {
-    // Здесь будет логика отправки заказа (заглушка для фронтенда)
+    // Placeholder logic for adding an order
     Alert.alert('Успешно', 'Заказ создан');
     setShowAddOrderModal(false);
     setNewOrder({
@@ -94,7 +94,7 @@ export default function OrdersScreen() {
   };
 
   const handleDeleteOrder = (orderId: string) => {
-    // Здесь будет логика удаления заказа (заглушка для фронтенда)
+    // Placeholder logic for deleting an order
     Alert.alert('Успешно', 'Заказ удалён');
     setShowDeleteConfirm(null);
   };
@@ -163,7 +163,11 @@ export default function OrdersScreen() {
       </ScrollView>
 
       {/* Orders List */}
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.ordersList}>
+      <ScrollView 
+        style={styles.ordersList}
+        contentContainerStyle={styles.ordersListContent}
+        showsVerticalScrollIndicator={true}
+      >
         {filteredOrders.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>Заказы не найдены</Text>
@@ -221,7 +225,11 @@ export default function OrdersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Создать новый заказ</Text>
-            <ScrollView style={styles.formContainer}>
+            <ScrollView 
+              style={styles.formContainer}
+              contentContainerStyle={styles.formContent}
+              showsVerticalScrollIndicator={true}
+            >
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Имя клиента</Text>
                 <TextInput
@@ -368,36 +376,47 @@ export default function OrdersScreen() {
 
       {/* Master Selection Modal */}
       {showMasterSelection && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Выберите мастера</Text>
-            <ScrollView style={styles.mastersList}>
-              {availableMasters.map((master) => (
-                <TouchableOpacity
-                  key={master.id}
-                  style={styles.masterItem}
-                  onPress={() => handleAssignOrder(showMasterSelection, master.id)}
-                >
-                  <View style={styles.masterInfo}>
-                    <Text style={styles.masterName}>{master.fullName}</Text>
-                    <Text style={styles.masterCategory}>{master.category}</Text>
-                    <Text style={styles.masterCity}>{master.city}</Text>
-                  </View>
-                  <View style={styles.masterStats}>
-                    <Text style={styles.masterRating}>★ 4.8</Text>
-                    <Text style={styles.masterOrders}>24 заказа</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={() => setShowMasterSelection(null)}
-            >
-              <Text style={styles.cancelButtonText}>Отмена</Text>
-            </TouchableOpacity>
+        <Modal
+          visible={!!showMasterSelection}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowMasterSelection(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Выберите мастера</Text>
+              <ScrollView 
+                style={styles.mastersList}
+                contentContainerStyle={styles.mastersListContent}
+                showsVerticalScrollIndicator={true}
+              >
+                {availableMasters.map((master) => (
+                  <TouchableOpacity
+                    key={master.id}
+                    style={styles.masterItem}
+                    onPress={() => handleAssignOrder(showMasterSelection, master.id)}
+                  >
+                    <View style={styles.masterInfo}>
+                      <Text style={styles.masterName}>{master.fullName}</Text>
+                      <Text style={styles.masterCategory}>{master.category}</Text>
+                      <Text style={styles.masterCity}>{master.city}</Text>
+                    </View>
+                    <View style={styles.masterStats}>
+                      <Text style={styles.masterRating}>★ 4.8</Text>
+                      <Text style={styles.masterOrders}>24 заказа</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setShowMasterSelection(null)}
+              >
+                <Text style={styles.cancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </Modal>
       )}
     </SafeAreaView>
   );
@@ -407,6 +426,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+    paddingBottom: 80, // Added to account for potential bottom navigation bar
   },
   header: {
     flexDirection: 'row',
@@ -503,6 +523,11 @@ const styles = StyleSheet.create({
   },
   ordersList: {
     flex: 1,
+    paddingHorizontal: 20,
+  },
+  ordersListContent: {
+    paddingBottom: 120, // Added to ensure last order is fully visible
+    flexGrow: 1,
   },
   orderItemContainer: {
     marginBottom: 16,
@@ -510,7 +535,7 @@ const styles = StyleSheet.create({
   orderActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginHorizontal: 20,
+    marginHorizontal: 0,
     marginTop: -8,
     gap: 8,
   },
@@ -588,7 +613,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   formContainer: {
-    maxHeight: '80%',
+    flex: 1,
+  },
+  formContent: {
+    paddingBottom: 120, // Added to ensure full scrolling in modal
+    flexGrow: 1,
   },
   formGroup: {
     marginBottom: 16,
@@ -649,7 +678,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   mastersList: {
-    maxHeight: 300,
+    flex: 1,
+  },
+  mastersListContent: {
+    paddingBottom: 120, // Added to ensure full scrolling in modal
+    flexGrow: 1,
   },
   masterItem: {
     flexDirection: 'row',
