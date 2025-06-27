@@ -2,6 +2,7 @@ package models
 
 import "go.mongodb.org/mongo-driver/v2/bson"
 
+// first member is always the owner, unless the chat is a group
 type Chat struct {
 	Id         *bson.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
 	Name       string          `json:"name,omitempty" bson:"name,omitempty"`

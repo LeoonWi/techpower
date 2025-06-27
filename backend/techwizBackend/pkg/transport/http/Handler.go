@@ -20,6 +20,7 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	category := e.Group("category")
 	category.POST("", h.createCategory)
 	category.PUT("", h.renameCategory)
+	category.DELETE("", h.removeCategory)
 
 	user := e.Group("user")
 	user.PATCH("/changepassword", h.changePassword)
@@ -27,6 +28,7 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	user.GET("", h.getUser)
 
 	chat := e.Group("chat")
+	chat.POST("", h.createChat)
 	chat.GET("/:member1/:member2", h.getChatByMember)
 
 	//request := e.Group("request")

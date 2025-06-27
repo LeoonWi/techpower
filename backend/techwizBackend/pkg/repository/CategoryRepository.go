@@ -14,6 +14,7 @@ type (
 		FindById(id *bson.ObjectID, category *models.Category) error
 		FindByName(name string, category *models.Category) error
 		Rename(*models.Category) error
+		Remove(id bson.ObjectID) error
 	}
 
 	CategoryRepository struct {
@@ -25,17 +26,32 @@ func NewCategoryRepository(db *mongo.Client) *CategoryRepository {
 	return &CategoryRepository{db: db}
 }
 
-func (r *CategoryRepository) Create(category *models.Category) error {
+func (r CategoryRepository) Create(category *models.Category) error {
 	coll := r.db.Database("TechPower").Collection("Category")
 	res, err := coll.InsertOne(context.TODO(), category)
 	if err != nil {
 		return errors.New("Failed to create category")
 	}
-	*category.Id = res.InsertedID.(bson.ObjectID)
+	insertedId := res.InsertedID.(bson.ObjectID)
+	category.Id = &insertedId
 	return nil
 }
 
-func (r *CategoryRepository) FindById(id *bson.ObjectID, category *models.Category) error {
+func (r CategoryRepository) Remove(id bson.ObjectID) error {
+	coll := r.db.Database("TechPower").Collection("Category")
+	res, err := coll.DeleteOne(context.TODO(), bson.D{{"_id", id}})
+	if err != nil {
+		return errors.New("Failed to remove category")
+	}
+
+	if res.DeletedCount == 0 {
+		return errors.New("Failed to remove category")
+	}
+
+	return nil
+}
+
+func (r CategoryRepository) FindById(id *bson.ObjectID, category *models.Category) error {
 	coll := r.db.Database("TechPower").Collection("Category")
 	if err := coll.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&category); err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -46,7 +62,7 @@ func (r *CategoryRepository) FindById(id *bson.ObjectID, category *models.Catego
 	return nil
 }
 
-func (r *CategoryRepository) FindByName(name string, category *models.Category) error {
+func (r CategoryRepository) FindByName(name string, category *models.Category) error {
 	coll := r.db.Database("TechPower").Collection("Category")
 	filter := bson.D{{"name", name}}
 	if err := coll.FindOne(context.TODO(), filter).Decode(&category); err != nil {

@@ -13,6 +13,8 @@ type (
 		Create(chat *models.Chat) error
 		GetRecipient(message *models.Message) []bson.ObjectID
 		GetChatByMembers(member1 bson.ObjectID, member2 bson.ObjectID, chat *models.Chat) error
+		RenameByCategory(id bson.ObjectID, name string) error
+		RemoveByCategory(id bson.ObjectID) error
 	}
 
 	ChatRepository struct {
@@ -56,6 +58,28 @@ func (r ChatRepository) GetChatByMembers(
 	}}
 	if err := coll.FindOne(context.TODO(), filter).Decode(chat); err != nil {
 		return errors.New("Chat not found")
+	}
+	return nil
+}
+
+func (r ChatRepository) RenameByCategory(id bson.ObjectID, name string) error {
+	coll := r.db.Database("TechPower").Collection("Chats")
+	filter := bson.M{"category_id": id}
+	update := bson.M{"$set": bson.M{"name": name}}
+
+	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
+		return errors.New("Failed to rename chat")
+	}
+
+	return nil
+}
+
+func (r ChatRepository) RemoveByCategory(id bson.ObjectID) error {
+	coll := r.db.Database("TechPower").Collection("Chats")
+	filter := bson.M{"category_id": id}
+
+	if _, err := coll.DeleteOne(context.TODO(), filter); err != nil {
+		return errors.New("Failed to remove chat")
 	}
 	return nil
 }

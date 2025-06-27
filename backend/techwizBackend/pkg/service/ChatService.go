@@ -31,7 +31,6 @@ func NewChatService(
 }
 
 func (s *ChatService) Create(chat *models.Chat) (int, error) {
-
 	if err := s.ChatRepository.Create(chat); err != nil {
 		return http.StatusBadRequest, err
 	}
