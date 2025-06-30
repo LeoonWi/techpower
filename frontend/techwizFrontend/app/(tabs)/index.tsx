@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { router } from 'expo-router';
-import { Wallet, TrendingUp, ClipboardList, Users, MessageSquare, Calendar, MapPin, Crown, Settings, FileText, TriangleAlert as AlertTriangle, Clock, CircleCheck as CheckCircle, ChartBar as BarChart3 } from 'lucide-react-native';
+import { Wallet, Pickaxe, TrendingUp, ClipboardList, Users, MessageSquare, Calendar, MapPin, Crown, Settings, FileText, TriangleAlert as AlertTriangle, Clock, CircleCheck as CheckCircle, ChartBar as BarChart3 } from 'lucide-react-native';
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -101,6 +101,12 @@ export default function HomeScreen() {
           icon: MessageSquare,
           color: '#F59E0B',
           onPress: () => router.push('/(tabs)/chat'),
+        },
+        {
+          title: 'Добавить мастера',
+          icon: Pickaxe,
+          color: '#F59E0B',
+          onPress: () => router.push('/(tabs)/masterscreen'),
         }
       );
     } else if (user.role === 'master' || user.role === 'premium_master') {
