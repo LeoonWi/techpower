@@ -35,6 +35,26 @@ func (h *Handler) changePassword(c echo.Context) error {
 	)
 }
 
+func (h Handler) changePermission(c echo.Context) error {
+	var user models.User
+	if err := c.Bind(&user); err != nil {
+		return c.JSON(
+			http.StatusUnprocessableEntity,
+			map[string]string{"error": "Invalid request body"},
+		)
+	}
+
+	var status int
+	if err := h.services.UserService.ChangePermission(&user, &status); err != nil {
+		return c.JSON(status, err.Error())
+	}
+
+	return c.JSON(
+		status,
+		map[string]string{"status": "ok"},
+	)
+}
+
 func (h *Handler) getUser(c echo.Context) error {
 	id := c.Param("id")
 	if len(id) < 24 {

@@ -11,6 +11,7 @@ type User struct {
 	PhoneNumber string          `json:"phone_number" bson:"phone_number"`
 	FullName    string          `json:"full_name,omitempty" bson:"full_name,omitempty"`
 	Password    string          `json:"password,omitempty" bson:"password"`
+	Permission  string          `json:"permission,omitempty" bson:"permission,omitempty"`
 	Photo       string          `json:"photo,omitempty" bson:"photo,omitempty"`
 	Nickname    string          `json:"nickname,omitempty" bson:"nickname,omitempty"`     // superadmin and master
 	Status      string          `json:"status,omitempty" bson:"status,omitempty"`         // only master // default, senior or premium

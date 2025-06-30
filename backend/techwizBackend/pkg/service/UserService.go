@@ -13,6 +13,7 @@ type (
 		GetUser(id string, user *models.User, statusCode *int) error
 		GetUsers() *[]models.User
 		ChangePassword(user *models.User, statusCode *int) error
+		ChangePermission(user *models.User, statusCode *int) error
 		AddCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error)
 		RemoveCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error)
 	}
@@ -50,6 +51,37 @@ func (s *UserService) ChangePassword(user *models.User, statusCode *int) error {
 	}
 
 	if err := s.UserRepository.ChangePassword(user.Id, user.Password); err != nil {
+		*statusCode = http.StatusBadRequest
+		return err
+	}
+
+	*statusCode = http.StatusOK
+	return nil
+}
+
+func (s *UserService) ChangePermission(user *models.User, statusCode *int) error {
+	if len(user.Id.Hex()) < 24 {
+		*statusCode = http.StatusBadRequest
+		return errors.New("Invalid User Id")
+	}
+
+	if len(user.Permission) < 4 {
+		*statusCode = http.StatusBadRequest
+		return errors.New("Invalid User Permission")
+	}
+
+	var res models.User
+	if err := s.UserRepository.GetUserById(user.Id, &res); err != nil {
+		*statusCode = http.StatusNotFound
+		return err
+	}
+
+	if res.Permission == user.Permission {
+		*statusCode = http.StatusBadRequest
+		return errors.New("New permission cannot match the past")
+	}
+
+	if err := s.UserRepository.ChangePermission(user.Id, user.Permission); err != nil {
 		*statusCode = http.StatusBadRequest
 		return err
 	}
