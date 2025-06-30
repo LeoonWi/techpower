@@ -12,6 +12,7 @@ type (
 		Create(chat *models.Chat) (int, error)
 		GetRecipient(message *models.Message) []bson.ObjectID
 		GetChatByMember(member1, member2 bson.ObjectID) *models.Chat
+		GetChats(userId bson.ObjectID) *[]models.Chat
 	}
 
 	ChatService struct {
@@ -47,4 +48,12 @@ func (s ChatService) GetChatByMember(member1, member2 bson.ObjectID) *models.Cha
 		return nil
 	}
 	return &chat
+}
+
+func (s ChatService) GetChats(userId bson.ObjectID) *[]models.Chat {
+	var chats []models.Chat
+	if err := s.ChatRepository.GetChats(userId, &chats); err != nil {
+		return &[]models.Chat{}
+	}
+	return &chats
 }

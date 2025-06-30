@@ -34,6 +34,13 @@ func (h Handler) createCategory(c echo.Context) error {
 	return c.JSON(status, category)
 }
 
+func (h Handler) getCategory(c echo.Context) error {
+	return c.JSON(
+		http.StatusOK,
+		h.services.CategoryService.Get(),
+	)
+}
+
 func (h Handler) renameCategory(c echo.Context) error {
 	id, _ := bson.ObjectIDFromHex(c.QueryParam("id"))
 	name := c.QueryParam("name")

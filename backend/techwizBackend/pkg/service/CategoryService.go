@@ -12,6 +12,7 @@ type (
 		Create(category *models.Category, status *int) error
 		Rename(category *models.Category, status *int) error
 		Remove(category *models.Category) (int, error)
+		Get() *[]models.Category
 	}
 
 	CategoryService struct {
@@ -55,6 +56,14 @@ func (s *CategoryService) Create(category *models.Category, status *int) error {
 
 	*status = http.StatusCreated
 	return nil
+}
+
+func (s *CategoryService) Get() *[]models.Category {
+	var categories []models.Category
+	if err := s.CategoryRepository.Get(&categories); err != nil {
+		return &[]models.Category{}
+	}
+	return &categories
 }
 
 func (s *CategoryService) Remove(category *models.Category) (int, error) {

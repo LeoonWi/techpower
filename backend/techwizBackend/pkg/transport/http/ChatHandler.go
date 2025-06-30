@@ -35,3 +35,11 @@ func (h Handler) getChatByMember(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, h.services.ChatService.GetChatByMember(member1, member2))
 }
+
+func (h Handler) getChats(c echo.Context) error {
+	id, err := bson.ObjectIDFromHex(c.Param("userId"))
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, h.services.ChatService.GetChats(id))
+}

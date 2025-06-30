@@ -18,25 +18,29 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	auth.POST("/signin", h.signin)
 
 	category := e.Group("category")
-	category.POST("", h.createCategory)
-	category.PUT("", h.renameCategory)
-	category.DELETE("", h.removeCategory)
+	category.POST("", h.createCategory)   // DONE
+	category.GET("", h.getCategory)       // DONE
+	category.PUT("", h.renameCategory)    // DONE
+	category.DELETE("", h.removeCategory) // DONE
 
 	user := e.Group("user")
-	user.PATCH("/changepassword", h.changePassword)
-	user.PATCH("/changepermission", h.changePermission)
-	user.GET("", h.getUser)
+	user.PATCH("/changepassword", h.changePassword) // DONE
+	user.GET("/:id", h.getUser)
+	user.GET("", h.getUsers)
+	user.PATCH("/category/add", h.addUserCategory)       // DONE
+	user.PATCH("/category/remove", h.removeUserCategory) // DONE
 
 	chat := e.Group("chat")
-	chat.POST("", h.createChat)
-	chat.GET("/:member1/:member2", h.getChatByMember)
+	chat.POST("", h.createChat)                       // DONE
+	chat.GET("/:userId", h.getChats)                  // DONE
+	chat.GET("/:member1/:member2", h.getChatByMember) // DONE
 
 	//request := e.Group("request")
 	//request.POST("/create", h.createRequest)
 
 	e.GET("/ws", func(c echo.Context) error {
 		return websocketConn.Ws(c)
-	})
+	}) // DONE ???
 
 	return &h
 }

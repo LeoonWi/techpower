@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"log"
 	"techwizBackend/pkg/models"
 )
 
@@ -15,6 +16,7 @@ type (
 		GetChatByMembers(member1 bson.ObjectID, member2 bson.ObjectID, chat *models.Chat) error
 		RenameByCategory(id bson.ObjectID, name string) error
 		RemoveByCategory(id bson.ObjectID) error
+		GetChats(idUser bson.ObjectID, chats *[]models.Chat) error
 	}
 
 	ChatRepository struct {
@@ -80,6 +82,35 @@ func (r ChatRepository) RemoveByCategory(id bson.ObjectID) error {
 
 	if _, err := coll.DeleteOne(context.TODO(), filter); err != nil {
 		return errors.New("Failed to remove chat")
+	}
+	return nil
+}
+
+func (r ChatRepository) GetChats(idUser bson.ObjectID, chats *[]models.Chat) error {
+	collChats := r.db.Database("TechPower").Collection("Chats")
+	collUsers := r.db.Database("TechPower").Collection("Users")
+	filter := bson.M{"members_id": idUser}
+	cursor, err := collChats.Find(context.TODO(), filter)
+	defer cursor.Close(context.TODO())
+	if err != nil {
+		return errors.New("Chats not found")
+	}
+
+	if err = cursor.All(context.TODO(), chats); err != nil {
+		return errors.New("Failed to get chats")
+	}
+
+	for i, chat := range *chats {
+		if chat.Name == "" && len(chat.MembersId) == 2 {
+			var user models.User
+			filter := bson.M{"_id": chat.MembersId[1]}
+			err := collUsers.FindOne(context.TODO(), filter).Decode(&user)
+			if err != nil {
+				log.Println(err.Error())
+				continue
+			}
+			(*chats)[i].Name = user.FullName
+		}
 	}
 	return nil
 }

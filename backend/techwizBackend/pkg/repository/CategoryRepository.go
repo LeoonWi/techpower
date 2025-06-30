@@ -15,6 +15,7 @@ type (
 		FindByName(name string, category *models.Category) error
 		Rename(*models.Category) error
 		Remove(id bson.ObjectID) error
+		Get(*[]models.Category) error
 	}
 
 	CategoryRepository struct {
@@ -80,6 +81,20 @@ func (r CategoryRepository) Rename(category *models.Category) error {
 	update := bson.M{"$set": bson.D{{"name", category.Name}}}
 	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
 		return errors.New("Failed to rename category")
+	}
+	return nil
+}
+
+func (r CategoryRepository) Get(categories *[]models.Category) error {
+	coll := r.db.Database("TechPower").Collection("Category")
+	cursor, err := coll.Find(context.TODO(), bson.D{})
+	defer cursor.Close(context.TODO())
+	if err != nil {
+		return errors.New("Categories not found")
+	}
+
+	if err = cursor.All(context.TODO(), categories); err != nil {
+		return errors.New("Failed to get all categories")
 	}
 	return nil
 }

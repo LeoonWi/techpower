@@ -42,10 +42,6 @@ func (s *AuthService) CreateUser(user *models.User) error {
 }
 
 func (s *AuthService) Login(user *models.User) error {
-	if len(user.Permission) != 4 {
-		return errors.New("Invalid string permission")
-	}
-
 	user.PhoneNumber = phonenumber.Parse(user.PhoneNumber, "ru")
 	var res models.User
 	if err := s.UserRepository.GetUserByPhone(user.PhoneNumber, &res); err != nil {
@@ -57,10 +53,6 @@ func (s *AuthService) Login(user *models.User) error {
 		return errors.New("Password does not match")
 	}
 
-	if user.Permission != res.Permission {
-		log.Println(user.Permission, res.Permission)
-		return errors.New("Permission does not match")
-	}
 	user.Id = res.Id
 	return nil
 }
