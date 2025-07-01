@@ -13,6 +13,5 @@ type Message struct {
 	RecipientId *bson.ObjectID  `json:"recipient_id" bson:"recipient_id"`
 	Chat        bson.ObjectID   `json:"chat_id" bson:"chat_id"`
 	Text        string          `json:"text,omitempty" bson:"text,omitempty"`
-	Files       []File          `json:"files,omitempty" bson:"files,omitempty"`
 	CreatedAt   time.Time       `json:"created_at,omitempty" bson:"created_at,omitempty"` // format time.RFC3339
 }

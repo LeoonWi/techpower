@@ -102,6 +102,8 @@ func (s *UserService) AddCategory(idUser bson.ObjectID, idCategory bson.ObjectID
 	if err := s.UserRepository.AddCategory(idUser, idCategory); err != nil {
 		return http.StatusInternalServerError, err
 	}
+
+	// TODO добавить пользователя в чат категории
 	return http.StatusOK, nil
 }
 
@@ -109,5 +111,7 @@ func (s *UserService) RemoveCategory(idUser bson.ObjectID, idCategory bson.Objec
 	if err := s.UserRepository.RemoveCategory(idUser, idCategory); err != nil {
 		return http.StatusInternalServerError, err
 	}
+
+	// TODO удалить пользователя из чата категории
 	return http.StatusOK, nil
 }

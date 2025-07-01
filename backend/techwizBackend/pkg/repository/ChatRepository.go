@@ -103,7 +103,13 @@ func (r ChatRepository) GetChats(idUser bson.ObjectID, chats *[]models.Chat) err
 	for i, chat := range *chats {
 		if chat.Name == "" && len(chat.MembersId) == 2 {
 			var user models.User
-			filter := bson.M{"_id": chat.MembersId[1]}
+			var id bson.ObjectID
+			if idUser == chat.MembersId[0] {
+				id = chat.MembersId[1]
+			} else {
+				id = chat.MembersId[0]
+			}
+			filter := bson.M{"_id": id}
 			err := collUsers.FindOne(context.TODO(), filter).Decode(&user)
 			if err != nil {
 				log.Println(err.Error())

@@ -15,13 +15,9 @@ func (h *Handler) createRequest(c echo.Context) error {
 		)
 	}
 
-	status := 0
-	if err := h.services.RequestService.Create(&request, &status); err != nil {
-		return c.JSON(
-			status,
-			map[string]string{"error": err.Error()},
-		)
+	if status, err := h.services.RequestService.Create(&request); err != nil {
+		return c.JSON(status, map[string]string{"error": err.Error()})
 	}
 
-	return nil
+	return c.JSON(http.StatusCreated, map[string]string{"status": "Request created"})
 }

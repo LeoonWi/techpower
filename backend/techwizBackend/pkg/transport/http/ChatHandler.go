@@ -8,7 +8,8 @@ import (
 )
 
 func (h *Handler) createChat(c echo.Context) error {
-	sender, _ := bson.ObjectIDFromHex(c.Param("sender"))
+	member1, _ := bson.ObjectIDFromHex(c.Param("member1"))
+	member2, _ := bson.ObjectIDFromHex(c.Param("member2"))
 	var chat models.Chat
 	if err := c.Bind(&chat); err != nil {
 		return c.JSON(
@@ -17,7 +18,8 @@ func (h *Handler) createChat(c echo.Context) error {
 		)
 	}
 
-	chat.MembersId = append(chat.MembersId, sender)
+	chat.MembersId = append(chat.MembersId, member1)
+	chat.MembersId = append(chat.MembersId, member2)
 	status, err := h.services.ChatService.Create(&chat)
 	if err != nil {
 		return c.JSON(status, err.Error())
