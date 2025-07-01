@@ -4,14 +4,18 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
-	"techwizBackend/pkg/models/dao"
-	"techwizBackend/pkg/models/dto"
+	"techwizBackend/pkg/models"
 	"techwizBackend/pkg/repository"
 )
 
 type (
 	IUserService interface {
-		ChangePassword(input dto.User, statusCode *int) error
+		GetUser(id string, user *models.User, statusCode *int) error
+		GetUsers() *[]models.User
+		ChangePassword(user *models.User, statusCode *int) error
+		ChangePermission(user *models.User, statusCode *int) error
+		AddCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error)
+		RemoveCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error)
 	}
 
 	UserService struct {
@@ -23,24 +27,91 @@ func NewUserService(userRepository repository.IUserRepository) *UserService {
 	return &UserService{UserRepository: userRepository}
 }
 
-func (s *UserService) ChangePassword(input dto.User, statusCode *int) error {
-	id, _ := bson.ObjectIDFromHex(input.Id)
-	var res dao.User
-	if err := s.UserRepository.GetUserById(id, &res); err != nil {
+func (s UserService) GetUser(id string, user *models.User, statusCode *int) error {
+	objectId, _ := bson.ObjectIDFromHex(id)
+	if err := s.UserRepository.GetUserById(objectId, user); err != nil {
 		*statusCode = http.StatusNotFound
 		return err
 	}
 
-	if res.Password == input.Password {
+	*statusCode = http.StatusOK
+	return nil
+}
+
+func (s *UserService) ChangePassword(user *models.User, statusCode *int) error {
+	var res models.User
+	if err := s.UserRepository.GetUserById(user.Id, &res); err != nil {
+		*statusCode = http.StatusNotFound
+		return err
+	}
+
+	if res.Password == user.Password {
 		*statusCode = http.StatusBadRequest
 		return errors.New("New password cannot match the past")
 	}
 
-	if err := s.UserRepository.ChangePassword(id, input.Password); err != nil {
+	if err := s.UserRepository.ChangePassword(user.Id, user.Password); err != nil {
 		*statusCode = http.StatusBadRequest
 		return err
 	}
 
 	*statusCode = http.StatusOK
 	return nil
+}
+
+func (s *UserService) ChangePermission(user *models.User, statusCode *int) error {
+	if len(user.Id.Hex()) < 24 {
+		*statusCode = http.StatusBadRequest
+		return errors.New("Invalid User Id")
+	}
+
+	if len(user.Permission) < 4 {
+		*statusCode = http.StatusBadRequest
+		return errors.New("Invalid User Permission")
+	}
+
+	var res models.User
+	if err := s.UserRepository.GetUserById(user.Id, &res); err != nil {
+		*statusCode = http.StatusNotFound
+		return err
+	}
+
+	if res.Permission == user.Permission {
+		*statusCode = http.StatusBadRequest
+		return errors.New("New permission cannot match the past")
+	}
+
+	if err := s.UserRepository.ChangePermission(user.Id, user.Permission); err != nil {
+		*statusCode = http.StatusBadRequest
+		return err
+	}
+
+	*statusCode = http.StatusOK
+	return nil
+}
+
+func (s *UserService) GetUsers() *[]models.User {
+	var users []models.User
+	if err := s.UserRepository.GetUsers(&users); err != nil {
+		return &[]models.User{}
+	}
+	return &users
+}
+
+func (s *UserService) AddCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error) {
+	if err := s.UserRepository.AddCategory(idUser, idCategory); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	// TODO добавить пользователя в чат категории
+	return http.StatusOK, nil
+}
+
+func (s *UserService) RemoveCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error) {
+	if err := s.UserRepository.RemoveCategory(idUser, idCategory); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	// TODO удалить пользователя из чата категории
+	return http.StatusOK, nil
 }

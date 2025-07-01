@@ -2,25 +2,21 @@ package http
 
 import (
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
-	"techwizBackend/pkg/models/dao"
-	"techwizBackend/pkg/models/dto"
+	"techwizBackend/pkg/models"
 )
 
-func (h Handler) signup(c echo.Context) error {
-	var input dto.User
-	if err := c.Bind(&input); err != nil {
+func (h *Handler) signup(c echo.Context) error {
+	var user models.User
+	if err := c.Bind(&user); err != nil {
 		return c.JSON(
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 			map[string]string{"error": "Invalid request body"},
 		)
 	}
 
-	var user dao.User
-	user.PhoneNumber = input.PhoneNumber
-	user.Password = input.Password
-	id, err := h.services.Authorization.CreateUser(user)
-	if err != nil {
+	if err := h.services.Authorization.CreateUser(&user); err != nil {
 		return c.JSON(
 			http.StatusBadRequest,
 			map[string]string{"error": err.Error()},
@@ -29,27 +25,20 @@ func (h Handler) signup(c echo.Context) error {
 
 	return c.JSON(
 		http.StatusOK,
-		map[string]string{"id": id},
+		map[string]bson.ObjectID{"id": user.Id},
 	)
 }
 
-func (h Handler) signin(c echo.Context) error {
-	var input dto.User
-	if err := c.Bind(&input); err != nil {
+func (h *Handler) signin(c echo.Context) error {
+	var user models.User
+	if err := c.Bind(&user); err != nil {
 		return c.JSON(
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 			map[string]string{"error": "Invalid request body"},
 		)
 	}
 
-	if len(input.Permission) != 4 {
-		return c.JSON(
-			http.StatusBadRequest,
-			map[string]string{"error": "Invalid string permission"},
-		)
-	}
-
-	if err := h.services.Authorization.Login(&input); err != nil {
+	if err := h.services.Authorization.Login(&user); err != nil {
 		return c.JSON(
 			http.StatusBadRequest,
 			map[string]string{"error": err.Error()},
@@ -57,6 +46,6 @@ func (h Handler) signin(c echo.Context) error {
 	}
 	return c.JSON(
 		http.StatusOK,
-		map[string]string{"phone_number": input.Id},
+		map[string]bson.ObjectID{"id": user.Id},
 	)
 }

@@ -7,6 +7,7 @@ import (
 	"techwizBackend/pkg/repository"
 	"techwizBackend/pkg/service"
 	"techwizBackend/pkg/transport/http"
+	"techwizBackend/pkg/transport/ws"
 )
 
 func main() {
@@ -22,14 +23,32 @@ func main() {
 	}()
 	// Init repositories
 	authRepository := repository.NewAuthRepository(db)
+	chatRepository := repository.NewChatRepository(db)
+	categoryRepository := repository.NewCategoryRepository(db)
 	userRepository := repository.NewUserRepository(db)
+	messageRepository := repository.NewMessageRepository(db)
 	// Create services
 	authService := service.NewAuthService(authRepository, userRepository)
+	chatService := service.NewChatService(chatRepository, userRepository)
+	categoryService := service.NewCategoryService(categoryRepository, chatRepository)
 	userService := service.NewUserService(userRepository)
+	requestService := service.NewRequestService()
+	messageService := service.NewMessageService(messageRepository, chatRepository)
 	// Create general service
-	services := service.NewServices(authService, userService)
+	services := service.NewServices(
+		authService,
+		userService,
+		requestService,
+		categoryService,
+		chatService,
+		messageService,
+	)
+	// Init hub websocket
+	hub := ws.NewHub(services)
+	go hub.Run()
 	// Init handler
-	http.New(e, services)
+	websocket := ws.New(hub)
+	http.New(e, services, websocket)
 	// Start server
 	err := e.Start(":8080")
 	if err != nil {

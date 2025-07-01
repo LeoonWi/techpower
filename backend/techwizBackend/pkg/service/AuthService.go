@@ -3,15 +3,15 @@ package service
 import (
 	"errors"
 	"github.com/dongri/phonenumber"
-	"techwizBackend/pkg/models/dao"
-	"techwizBackend/pkg/models/dto"
+	"log"
+	"techwizBackend/pkg/models"
 	"techwizBackend/pkg/repository"
 )
 
 type (
 	IAuthService interface {
-		CreateUser(value dao.User) (string, error)
-		Login(dto *dto.User) error
+		CreateUser(user *models.User) error
+		Login(user *models.User) error
 	}
 
 	AuthService struct {
@@ -30,30 +30,37 @@ func NewAuthService(
 	}
 }
 
-func (s AuthService) CreateUser(value dao.User) (string, error) {
-	number := phonenumber.Parse(value.PhoneNumber, "ru")
-	var res dao.User
-	if err := s.UserRepository.GetUserByPhone(number, &res); err == nil {
-		return res.Id.Hex(), errors.New("User already exists")
+func (s *AuthService) CreateUser(user *models.User) error {
+	user.PhoneNumber = phonenumber.Parse(user.PhoneNumber, "ru")
+	if err := s.UserRepository.GetUserByPhone(user.PhoneNumber, user); err == nil {
+		return errors.New("User already exists")
 	}
-	res.PhoneNumber = number
-	return s.AuthRepository.CreateUser(res)
-}
-
-func (s AuthService) Login(dto *dto.User) error {
-	number := phonenumber.Parse(dto.PhoneNumber, "ru")
-	var res dao.User
-	if err := s.UserRepository.GetUserByPhone(number, &res); err != nil {
+	if err := s.AuthRepository.CreateUser(user); err != nil {
 		return err
 	}
-	dto.Id = res.Id.Hex()
+	return nil
+}
 
-	if dto.Password != res.Password {
+func (s *AuthService) Login(user *models.User) error {
+	if len(user.Permission) != 4 {
+		return errors.New("Invalid string permission")
+	}
+
+	user.PhoneNumber = phonenumber.Parse(user.PhoneNumber, "ru")
+	var res models.User
+	if err := s.UserRepository.GetUserByPhone(user.PhoneNumber, &res); err != nil {
+		return err
+	}
+
+	if user.Password != res.Password {
+		log.Println(user.Password, res.Password)
 		return errors.New("Password does not match")
 	}
 
-	if dto.Permission != res.Permission {
+	if user.Permission != res.Permission {
+		log.Println(user.Permission, res.Permission)
 		return errors.New("Permission does not match")
 	}
+	user.Id = res.Id
 	return nil
 }

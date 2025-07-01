@@ -5,13 +5,12 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"log"
-	"techwizBackend/pkg/models/dao"
+	"techwizBackend/pkg/models"
 )
 
 type (
 	IAuthRepository interface {
-		CreateUser(val dao.User) (string, error)
+		CreateUser(user *models.User) error
 	}
 	AuthRepository struct {
 		db *mongo.Client
@@ -22,13 +21,13 @@ func NewAuthRepository(db *mongo.Client) *AuthRepository {
 	return &AuthRepository{db: db}
 }
 
-func (r AuthRepository) CreateUser(val dao.User) (string, error) {
+func (r *AuthRepository) CreateUser(user *models.User) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	var result *mongo.InsertOneResult
 	var err error
-	if result, err = coll.InsertOne(context.TODO(), val); err != nil {
-		log.Println(err)
-		return "-1", errors.New("Failed to create user")
+	if result, err = coll.InsertOne(context.TODO(), user); err != nil {
+		return errors.New("Failed to create user")
 	}
-	return result.InsertedID.(bson.ObjectID).Hex(), nil
+	user.Id = result.InsertedID.(bson.ObjectID)
+	return nil
 }

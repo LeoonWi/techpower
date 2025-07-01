@@ -8,7 +8,7 @@ Content-Type: application/json
 }
 
 ### POST login user
-POST http://127.0.0.1:8080/auth/signin
+POST http://127.0.0.1:8080/auth/sign-in
 Content-Type: application/json
 
 {
