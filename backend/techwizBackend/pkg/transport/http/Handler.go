@@ -31,9 +31,11 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	user.PATCH("/category/remove", h.removeUserCategory) // DONE
 
 	chat := e.Group("chat")
-	chat.POST("/create/:member1/:member2", h.createChat) // DONE
-	chat.GET("/:userId", h.getChats)                     // DONE
-	chat.GET("/:member1/:member2", h.getChatByMember)    // DONE
+	chat.POST("/create/:member1/:member2", h.createChat)  // DONE
+	chat.POST("/:idChat/:idUser", h.addUserToChat)        // DONE
+	chat.DELETE("/:idChat/:idUser", h.removeUserFromChat) // DONE
+	chat.GET("/:userId", h.getChats)                      // DONE
+	//chat.GET("/:member1/:member2", h.getChatByMember)     // DONE
 
 	request := e.Group("request")
 	request.POST("/create", h.createRequest)

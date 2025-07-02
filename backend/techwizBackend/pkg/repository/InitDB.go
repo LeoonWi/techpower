@@ -9,10 +9,13 @@ import (
 )
 
 func New() *mongo.Client {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
 	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		if err := godotenv.Load(); err != nil {
+			log.Fatal("Error loading .env file")
+		}
+		uri = os.Getenv("MONGODB_URI")
+	}
 	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	if err != nil {
 		log.Println(err)
