@@ -1,12 +1,30 @@
 services:
-  mongodb:
-    image: mongodb/mongodb-community-server:7.0.20-ubi9
-    restart:
-      on-failure:5
+  backend:
+    container_name: techpower-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
     environment:
-      - MONGODB_INITDB_ROOT_USERNAME=admin
-      - MONGODB_INITDB_ROOT_PASSWORD=admin
+      - MONGODB_URI=mongodb://${MONGODB_USERNAME:-admin}:${MONGODB_PASSWORD:-admin}@mongodb:27017
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  mongodb:
+    container_name: techpower-mongodb
+    image: mongodb/mongodb-community-server:7.0.20-ubi9
+    restart: unless-stopped
+    environment:
+      - MONGODB_INITDB_ROOT_USERNAME=${MONGODB_USERNAME:-admin}
+      - MONGODB_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD:-admin}
     volumes:
       - ./data:/data/db
-    ports:
-      - "27017:27017"
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.runCommand('ping').ok", "--quiet" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
