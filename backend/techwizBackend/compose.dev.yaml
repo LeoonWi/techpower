@@ -1,0 +1,11 @@
+services:
+  mongodb:
+    image: mongodb/mongodb-community-server:7.0.20-ubi9
+    restart: unless-stopped
+    environment:
+      - MONGODB_INITDB_ROOT_USERNAME=admin
+      - MONGODB_INITDB_ROOT_PASSWORD=admin
+    volumes:
+      - ./data:/data/db
+    ports:
+      - "27017:27017"
