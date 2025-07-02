@@ -24,7 +24,8 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	category.DELETE("", h.removeCategory) // DONE
 
 	user := e.Group("user")
-	user.PATCH("/changepassword", h.changePassword) // DONE
+	user.PATCH("/changepassword", h.changePassword)     // DONE
+	user.PATCH("/changepermission", h.changePermission) // DONE
 	user.GET("/:id", h.getUser)
 	user.GET("", h.getUsers)
 	user.PATCH("/category/add", h.addUserCategory)       // DONE
