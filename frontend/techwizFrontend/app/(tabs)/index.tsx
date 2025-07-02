@@ -174,7 +174,6 @@ export default function HomeScreen() {
 
   const renderSupportDashboard = () => (
     <>
-      {/* Support Stats Cards */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <AlertTriangle size={20} color="#EF4444" />
@@ -193,7 +192,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Pending Orders */}
       <View style={styles.pendingOrdersCard}>
         <View style={styles.pendingOrdersHeader}>
           <ClipboardList size={24} color="#2563EB" />
@@ -211,7 +209,6 @@ export default function HomeScreen() {
 
   const renderMasterDashboard = () => (
     <>
-      {/* Master Stats Cards */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{dashboardData.activeOrders}</Text>
@@ -227,7 +224,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Earnings Card */}
       <View style={styles.balanceCard}>
         <View style={styles.balanceHeader}>
           <Wallet size={24} color="#2563EB" />
@@ -245,7 +241,6 @@ export default function HomeScreen() {
 
   const renderDefaultDashboard = () => (
     <>
-      {/* Balance Card */}
       <View style={styles.balanceCard}>
         <View style={styles.balanceHeader}>
           <Wallet size={24} color="#2563EB" />
@@ -259,7 +254,6 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* Stats Cards */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{dashboardData.activeOrders}</Text>
@@ -275,8 +269,10 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent} // Добавляем отступ внизу
+      >
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>{getGreeting()}</Text>
@@ -294,12 +290,10 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Role-specific Dashboard */}
         {user.role === 'support' && renderSupportDashboard()}
         {(user.role === 'master' || user.role === 'premium_master') && renderMasterDashboard()}
         {(user.role === 'admin' || user.role === 'senior_master') && renderDefaultDashboard()}
 
-        {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Быстрые действия</Text>
           <View style={styles.actionsGrid}>
@@ -321,7 +315,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Recent Activity */}
         <View style={styles.recentActivityContainer}>
           <Text style={styles.sectionTitle}>Последняя активность</Text>
           <View style={styles.activityCard}>
@@ -345,6 +338,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  scrollContent: {
+    paddingBottom: 80, // Добавляем отступ внизу для ScrollView
   },
   header: {
     flexDirection: 'row',
