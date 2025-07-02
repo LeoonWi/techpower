@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -100,9 +100,13 @@ export default function MapScreen() {
 
   const selectedOrderData = selectedOrder ? orders.find(o => o.id === selectedOrder) : null;
 
-  // Web fallback component
+  // Web fallback component with ScrollView
   const WebMapFallback = () => (
-    <View style={styles.webMapPlaceholder}>
+    <ScrollView
+      style={styles.webMapPlaceholder}
+      contentContainerStyle={styles.webMapContentContainer}
+      showsVerticalScrollIndicator={true}
+    >
       <MapPin size={48} color="#64748B" />
       <Text style={styles.webMapText}>Карта заказов</Text>
       <Text style={styles.webMapSubtext}>
@@ -120,10 +124,10 @@ export default function MapScreen() {
           </View>
         ))}
       </View>
-    </View>
+    </ScrollView>
   );
 
-  // Native map component
+  // Native map component with scrollable order details
   const NativeMap = () => {
     if (!MapView || !Marker) {
       return (
@@ -162,42 +166,51 @@ export default function MapScreen() {
 
         {selectedOrderData && (
           <View style={styles.orderDetails}>
-            <View style={styles.orderDetailsHeader}>
-              <View style={styles.orderTitleRow}>
-                <Text style={styles.orderDetailsTitle}>{selectedOrderData.title}</Text>
-                {selectedOrderData.isPremium && <Crown size={16} color="#FFD700" />}
+            <ScrollView
+              contentContainerStyle={styles.orderDetailsContentContainer}
+              showsVerticalScrollIndicator={true}
+            >
+              <View style={styles.orderDetailsHeader}>
+                <View style={styles.orderTitleRow}>
+                  <Text style={styles.orderDetailsTitle}>{selectedOrderData.title}</Text>
+                  {selectedOrderData.isPremium && <Crown size={16} color="#FFD700" />}
+                </View>
+                <TouchableOpacity onPress={() => setSelectedOrder(null)}>
+                  <Text style={styles.closeButton}>✕</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => setSelectedOrder(null)}>
-                <Text style={styles.closeButton}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.orderDetailsDescription} numberOfLines={2}>
-              {selectedOrderData.description}
-            </Text>
-            <View style={styles.orderDetailsInfo}>
-              <Text style={styles.orderDetailsAddress}>
-                {selectedOrderData.address}, {selectedOrderData.city}
+              <Text style={styles.orderDetailsDescription}>
+                {selectedOrderData.description}
               </Text>
-              <Text style={styles.orderDetailsPrice}>
-                {selectedOrderData.price.toLocaleString('ru-RU')} ₽
-              </Text>
-            </View>
-            <View style={styles.orderDetailsFooter}>
-              <Text style={styles.orderDetailsClient}>
-                {selectedOrderData.clientName} • {selectedOrderData.clientPhone}
-              </Text>
-              <View style={[
-                styles.orderDetailsStatus,
-                { backgroundColor: `${getMarkerColor(selectedOrderData.status)}20` }
-              ]}>
-                <Text style={[
-                  styles.orderDetailsStatusText,
-                  { color: getMarkerColor(selectedOrderData.status) }
-                ]}>
-                  {selectedOrderData.status}
+              <View style={styles.orderDetailsInfo}>
+                <Text style={styles.orderDetailsAddress}>
+                  {selectedOrderData.address}, {selectedOrderData.city}
+                </Text>
+                <Text style={styles.orderDetailsPrice}>
+                  {selectedOrderData.price.toLocaleString('ru-RU')} ₽
                 </Text>
               </View>
-            </View>
+              <View style={styles.orderDetailsFooter}>
+                <Text style={styles.orderDetailsClient}>
+                  {selectedOrderData.clientName} • {selectedOrderData.clientPhone}
+                </Text>
+                <View
+                  style={[
+                    styles.orderDetailsStatus,
+                    { backgroundColor: `${getMarkerColor(selectedOrderData.status)}20` },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.orderDetailsStatusText,
+                      { color: getMarkerColor(selectedOrderData.status) },
+                    ]}
+                  >
+                    {selectedOrderData.status}
+                  </Text>
+                </View>
+              </View>
+            </ScrollView>
           </View>
         )}
       </View>
@@ -248,6 +261,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+    zIndex: 10,
   },
   title: {
     fontSize: 24,
@@ -287,6 +301,7 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+    zIndex: 0,
   },
   errorContainer: {
     flex: 1,
@@ -313,6 +328,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 8,
+    zIndex: 5,
+    maxHeight: 300, // Limit height to ensure scrolling
+  },
+  orderDetailsContentContainer: {
+    paddingBottom: 100, // Ensure enough space to scroll to the bottom
+    flexGrow: 1,
   },
   orderDetailsHeader: {
     flexDirection: 'row',
@@ -379,23 +400,27 @@ const styles = StyleSheet.create({
   },
   webMapPlaceholder: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 20,
+  },
+  webMapContentContainer: {
+    paddingTop: 20,
+    paddingBottom: 100, // Ensure enough space to scroll to the bottom
+    alignItems: 'center',
+    flexGrow: 1,
   },
   webMapText: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#1E293B',
-    marginTop: 16,
     marginBottom: 8,
+    textAlign: 'center',
   },
   webMapSubtext: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#64748B',
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 20,
   },
   ordersList: {
     width: '100%',

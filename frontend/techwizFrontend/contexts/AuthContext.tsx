@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     admin: {
       id: '1',
       role: 'admin',
-      fullName: 'Администратор Системный',
+      fullName: 'Администратор',
       nickname: 'admin',
       phone: '+7 900 123-45-67',
       city: 'Москва',
