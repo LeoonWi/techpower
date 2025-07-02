@@ -107,7 +107,7 @@ export default function HomeScreen() {
           icon: Pickaxe,
           color: '#F59E0B',
           onPress: () => router.push('/(tabs)/masterscreen'),
-        }
+        },
       );
     } else if (user.role === 'master' || user.role === 'premium_master') {
       baseActions.push(
@@ -153,7 +153,13 @@ export default function HomeScreen() {
             icon: Users,
             color: '#EA580C',
             onPress: () => router.push('/(tabs)/masters'),
-          }
+          },
+          {
+          title: 'Добавить сотрудника',
+          icon: Pickaxe,
+          color: '#F59E0B',
+          onPress: () => router.push('/(tabs)/addemployeescreen'),
+        }
         );
       }
     }
