@@ -44,12 +44,13 @@ func (s *MessageService) Save(message *models.Message) error {
 			}
 		}
 		message.Chat = *chat.Id
+	} else {
+		var user models.User
+		if err := s.UserRepository.GetUserById(message.SenderId, &user); err != nil {
+			return err
+		}
+		message.SenderFullName = user.FullName
 	}
-	var user models.User
-	if err := s.UserRepository.GetUserById(message.SenderId, &user); err != nil {
-		return err
-	}
-	message.SenderFullName = user.FullName
 	if err := s.MessageRepository.Save(message); err != nil {
 		return err
 	}
