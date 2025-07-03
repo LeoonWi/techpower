@@ -1,3 +1,13 @@
+// =========================
+// Интеграция с backend (чаты и сообщения):
+// - Для создания чата используйте POST-запрос на /chat/create/{member1}/{member2}.
+// - Для получения всех чатов пользователя используйте GET-запрос на /chat/{userId}.
+// - Для получения чата между двумя пользователями используйте GET-запрос на /chat/{member1}/{member2}.
+// - Для обмена сообщениями используйте WebSocket /ws.
+// - Типы чата и сообщений должны соответствовать моделям backend.
+// - После успешных операций обновляйте локальное состояние.
+// - Обрабатывайте ошибки backend.
+// =========================
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

@@ -5,6 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { TriangleAlert as AlertTriangle, Search, Filter, Clock, CircleCheck as CheckCircle, User, Phone } from 'lucide-react-native';
 
+// =========================
+// Интеграция с backend (жалобы):
+// - Для создания жалобы реализуйте POST-запрос на соответствующий endpoint (если появится на backend).
+// - Для получения и обновления жалоб реализуйте GET/PATCH/PUT-запросы (если появятся на backend).
+// - Тип жалобы должен соответствовать модели Complaint из backend (если появится).
+// - После успешных операций обновляйте локальное состояние.
+// - Обрабатывайте ошибки backend.
+// =========================
+
 export default function ComplaintsScreen() {
   const { user } = useAuth();
   const { complaints, resolveComplaint } = useData();

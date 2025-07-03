@@ -1,3 +1,9 @@
+// =========================
+// Тип Order должен полностью соответствовать структуре Request из backend (pkg/models/Request.go).
+// Если структура заявки/заказа на backend меняется — обязательно обновить этот тип.
+// Используется для создания, отображения, обновления заказов.
+// =========================
+
 export type OrderStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'rejected' | 'modernization';
 
 export interface Order {

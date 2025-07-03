@@ -4,6 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Phone, MapPin, Camera, CreditCard as Edit3, LogOut, CreditCard, Settings, Star, Crown, Wallet } from 'lucide-react-native';
 
+// =========================
+// Интеграция с backend (профиль пользователя):
+// - Для получения профиля используйте GET-запрос на /user/{id}.
+// - Для смены пароля используйте PATCH-запрос на /user/changepassword с id и новым password.
+// - Для добавления/удаления категории используйте PATCH-запросы /user/category/add и /user/category/remove с параметрами user и category.
+// - Тип пользователя должен соответствовать модели User из backend.
+// - После успешных операций обновляйте локальное состояние.
+// - Обрабатывайте ошибки backend.
+// =========================
+
 export default function ProfileScreen() {
   const { user, logout, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);

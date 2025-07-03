@@ -1,3 +1,12 @@
+// =========================
+// Интеграция с backend (заказы):
+// - Для создания заказа используйте POST-запрос на /request/create с объектом заказа (Request).
+// - Для получения заказов реализуйте GET-запрос (если появится на backend).
+// - Для обновления/удаления заказов реализуйте соответствующие endpoint'ы (если появятся).
+// - Структура заказа должна соответствовать модели Request из backend.
+// - После успешных операций обновляйте локальное состояние.
+// - Обрабатывайте ошибки backend.
+// =========================
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

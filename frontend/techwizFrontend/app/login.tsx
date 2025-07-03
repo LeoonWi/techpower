@@ -6,6 +6,15 @@ import { Shield, Headphones as HeadphonesIcon, Wrench, Star, Crown } from 'lucid
 import { UserRole } from '@/types/user';
 import { useAuth } from '@/contexts/AuthContext';
 
+// =========================
+// Интеграция с backend (авторизация):
+// - Для входа пользователя отправляйте POST-запрос на /auth/signin с phone_number и password.
+// - После успешного входа сохраняйте id пользователя (и токен, если появится) в хранилище (например, AsyncStorage).
+// - Для регистрации используйте /auth/signup.
+// - После входа используйте id для всех запросов, где требуется идентификация.
+// - Обрабатывайте ошибки backend (error в JSON).
+// =========================
+
 const roles = [
   { role: 'admin' as UserRole, title: 'Администратор', description: 'Полный доступ ко всем функциям', icon: Shield, color: '#DC2626' },
   { role: 'support' as UserRole, title: 'Поддержка', description: 'Управление заявками и чатами', icon: HeadphonesIcon, color: '#2563EB' },

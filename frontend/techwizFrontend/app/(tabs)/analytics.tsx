@@ -1,3 +1,10 @@
+// =========================
+// Интеграция с backend (аналитика):
+// - Для получения аналитики реализуйте GET-запрос на соответствующий endpoint (если появится на backend).
+// - Тип аналитики должен соответствовать модели Analytics из backend (если появится).
+// - После успешных операций обновляйте локальное состояние.
+// - Обрабатывайте ошибки backend.
+// =========================
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
