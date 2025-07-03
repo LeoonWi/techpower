@@ -15,16 +15,19 @@ type (
 	MessageService struct {
 		MessageRepository repository.IMessageRepository
 		ChatRepository    repository.IChatRepository
+		UserRepository    repository.IUserRepository
 	}
 )
 
 func NewMessageService(
 	messageRepository repository.IMessageRepository,
 	chatRepository repository.IChatRepository,
+	userRepository repository.IUserRepository,
 ) *MessageService {
 	return &MessageService{
 		MessageRepository: messageRepository,
 		ChatRepository:    chatRepository,
+		UserRepository:    userRepository,
 	}
 }
 
@@ -41,6 +44,12 @@ func (s *MessageService) Save(message *models.Message) error {
 			}
 		}
 		message.Chat = *chat.Id
+	} else {
+		var user models.User
+		if err := s.UserRepository.GetUserById(message.SenderId, &user); err != nil {
+			return err
+		}
+		message.SenderFullName = user.FullName
 	}
 	if err := s.MessageRepository.Save(message); err != nil {
 		return err

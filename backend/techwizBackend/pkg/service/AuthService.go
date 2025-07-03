@@ -42,7 +42,7 @@ func (s *AuthService) CreateUser(user *models.User) error {
 }
 
 func (s *AuthService) Login(user *models.User) error {
-	if len(user.Permission) != 4 {
+	if len(user.Permission) != 3 {
 		return errors.New("Invalid string permission")
 	}
 

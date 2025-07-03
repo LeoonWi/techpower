@@ -45,3 +45,39 @@ func (h Handler) getChats(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, h.services.ChatService.GetChats(id))
 }
+
+func (h Handler) addUserToChat(c echo.Context) error {
+	var err error
+	idChat, err := bson.ObjectIDFromHex(c.Param("idChat"))
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "Invalid idChat"})
+	}
+	idUser, err := bson.ObjectIDFromHex(c.Param("idUser"))
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "Invalid idUser"})
+	}
+
+	if err := h.services.ChatService.AddUser(idChat, idUser); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h Handler) removeUserFromChat(c echo.Context) error {
+	var err error
+	idChat, err := bson.ObjectIDFromHex(c.Param("idChat"))
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "Invalid idChat"})
+	}
+	idUser, err := bson.ObjectIDFromHex(c.Param("idUser"))
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "Invalid idUser"})
+	}
+
+	if err := h.services.ChatService.RemoveUser(idChat, idUser); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+}

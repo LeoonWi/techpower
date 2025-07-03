@@ -17,6 +17,10 @@ type (
 		RenameByCategory(id bson.ObjectID, name string) error
 		RemoveByCategory(id bson.ObjectID) error
 		GetChats(idUser bson.ObjectID, chats *[]models.Chat) error
+		GetChatById(id bson.ObjectID, chat *models.Chat) error
+		GetChatByCategory(id bson.ObjectID, chat *models.Chat) error
+		AddUser(idUser bson.ObjectID, idChat bson.ObjectID) error
+		RemoveUser(idUser bson.ObjectID, idChat bson.ObjectID) error
 	}
 
 	ChatRepository struct {
@@ -49,11 +53,7 @@ func (r ChatRepository) GetRecipient(message *models.Message) []bson.ObjectID {
 	return chat.MembersId
 }
 
-func (r ChatRepository) GetChatByMembers(
-	member1 bson.ObjectID,
-	member2 bson.ObjectID,
-	chat *models.Chat,
-) error {
+func (r ChatRepository) GetChatByMembers(member1 bson.ObjectID, member2 bson.ObjectID, chat *models.Chat) error {
 	coll := r.db.Database("TechPower").Collection("Chats")
 	filter := bson.M{"members_id": bson.M{
 		"$all": []bson.ObjectID{member1, member2},
@@ -118,5 +118,51 @@ func (r ChatRepository) GetChats(idUser bson.ObjectID, chats *[]models.Chat) err
 			(*chats)[i].Name = user.FullName
 		}
 	}
+	return nil
+}
+
+func (r ChatRepository) GetChatById(id bson.ObjectID, chat *models.Chat) error {
+	coll := r.db.Database("TechPower").Collection("Chats")
+	filter := bson.M{"_id": id}
+
+	if err := coll.FindOne(context.TODO(), filter).Decode(chat); err != nil {
+		return errors.New("Chat not found")
+	}
+
+	return nil
+}
+
+func (r ChatRepository) GetChatByCategory(id bson.ObjectID, chat *models.Chat) error {
+	coll := r.db.Database("TechPower").Collection("Chats")
+	filter := bson.M{"category_id": id}
+
+	if err := coll.FindOne(context.TODO(), filter).Decode(chat); err != nil {
+		return errors.New("Chat not found")
+	}
+
+	return nil
+}
+
+func (r ChatRepository) AddUser(idUser bson.ObjectID, idChat bson.ObjectID) error {
+	coll := r.db.Database("TechPower").Collection("Chats")
+	filter := bson.M{"_id": idChat}
+	update := bson.M{"$push": bson.M{"members_id": idUser}}
+
+	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r ChatRepository) RemoveUser(idUser bson.ObjectID, idChat bson.ObjectID) error {
+	coll := r.db.Database("TechPower").Collection("Chats")
+	filter := bson.M{"_id": idChat}
+	update := bson.M{"$pull": bson.M{"members_id": idUser}}
+
+	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
+		return err
+	}
+
 	return nil
 }

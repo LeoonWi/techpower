@@ -20,11 +20,18 @@ type (
 
 	UserService struct {
 		UserRepository repository.IUserRepository
+		ChatRepository repository.IChatRepository
 	}
 )
 
-func NewUserService(userRepository repository.IUserRepository) *UserService {
-	return &UserService{UserRepository: userRepository}
+func NewUserService(
+	userRepository repository.IUserRepository,
+	chatRepository repository.IChatRepository,
+) *UserService {
+	return &UserService{
+		UserRepository: userRepository,
+		ChatRepository: chatRepository,
+	}
 }
 
 func (s UserService) GetUser(id string, user *models.User, statusCode *int) error {
@@ -99,11 +106,30 @@ func (s *UserService) GetUsers() *[]models.User {
 }
 
 func (s *UserService) AddCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error) {
+	var user models.User
+	if err := s.UserRepository.GetUserById(idUser, &user); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	for _, category := range user.CategoryId {
+		if category == idCategory {
+			return http.StatusBadRequest, errors.New("Category already exists")
+		}
+	}
+
 	if err := s.UserRepository.AddCategory(idUser, idCategory); err != nil {
 		return http.StatusInternalServerError, err
 	}
 
-	// TODO добавить пользователя в чат категории
+	var chat models.Chat
+	if err := s.ChatRepository.GetChatByCategory(idCategory, &chat); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	if err := s.ChatRepository.AddUser(idUser, *chat.Id); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
 	return http.StatusOK, nil
 }
 
@@ -112,6 +138,13 @@ func (s *UserService) RemoveCategory(idUser bson.ObjectID, idCategory bson.Objec
 		return http.StatusInternalServerError, err
 	}
 
-	// TODO удалить пользователя из чата категории
+	var chat models.Chat
+	if err := s.ChatRepository.GetChatByCategory(idCategory, &chat); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	if err := s.ChatRepository.RemoveUser(idUser, *chat.Id); err != nil {
+		return http.StatusInternalServerError, err
+	}
 	return http.StatusOK, nil
 }

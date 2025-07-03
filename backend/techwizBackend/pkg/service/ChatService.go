@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
 	"techwizBackend/pkg/models"
@@ -13,6 +14,8 @@ type (
 		GetRecipient(message *models.Message) []bson.ObjectID
 		GetChatByMember(member1, member2 bson.ObjectID) *models.Chat
 		GetChats(userId bson.ObjectID) *[]models.Chat
+		AddUser(idUser bson.ObjectID, idChat bson.ObjectID) error
+		RemoveUser(idUser bson.ObjectID, idChat bson.ObjectID) error
 	}
 
 	ChatService struct {
@@ -31,7 +34,7 @@ func NewChatService(
 	}
 }
 
-func (s *ChatService) Create(chat *models.Chat) (int, error) {
+func (s ChatService) Create(chat *models.Chat) (int, error) {
 	if err := s.ChatRepository.Create(chat); err != nil {
 		return http.StatusBadRequest, err
 	}
@@ -56,4 +59,31 @@ func (s ChatService) GetChats(userId bson.ObjectID) *[]models.Chat {
 		return &[]models.Chat{}
 	}
 	return &chats
+}
+
+func (s ChatService) AddUser(idUser bson.ObjectID, idChat bson.ObjectID) error {
+	var chat models.Chat
+	if err := s.ChatRepository.GetChatById(idChat, &chat); err != nil {
+		return err
+	}
+
+	for _, member := range chat.MembersId {
+		if member == idUser {
+			return errors.New("User already in chat")
+		}
+	}
+
+	if err := s.ChatRepository.AddUser(idUser, idChat); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s ChatService) RemoveUser(idUser bson.ObjectID, idChat bson.ObjectID) error {
+	if err := s.ChatRepository.RemoveUser(idUser, idChat); err != nil {
+		return err
+	}
+
+	return nil
 }
