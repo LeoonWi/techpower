@@ -16,8 +16,11 @@ type (
 		ChangePassword(id bson.ObjectID, password string) error
 		ChangePermission(id bson.ObjectID, permission string) error
 		GetUsers(*[]models.User) error
+		GetMasters(*[]models.User) error
 		AddCategory(idUser bson.ObjectID, idCategory bson.ObjectID) error
 		RemoveCategory(idUser bson.ObjectID, idCategory bson.ObjectID) error
+		ChangeStatus(id bson.ObjectID, status string) error
+		RemoveStatus(id bson.ObjectID) error
 	}
 
 	UserRepository struct {
@@ -29,7 +32,7 @@ func NewUserRepository(db *mongo.Client) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) GetUserByPhone(phone string, res *models.User) error {
+func (r UserRepository) GetUserByPhone(phone string, res *models.User) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	// Определяем агрегационный пайплайн
 	pipeline := mongo.Pipeline{
@@ -93,7 +96,7 @@ func (r *UserRepository) GetUserByPhone(phone string, res *models.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetUserById(id bson.ObjectID, res *models.User) error {
+func (r UserRepository) GetUserById(id bson.ObjectID, res *models.User) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	// Определяем агрегационный пайплайн
 	pipeline := mongo.Pipeline{
@@ -157,7 +160,7 @@ func (r *UserRepository) GetUserById(id bson.ObjectID, res *models.User) error {
 	return nil
 }
 
-func (r *UserRepository) ChangePassword(id bson.ObjectID, password string) error {
+func (r UserRepository) ChangePassword(id bson.ObjectID, password string) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	filter := bson.D{{"_id", id}}
 	update := bson.D{{"$set", bson.D{{"password", password}}}}
@@ -168,7 +171,7 @@ func (r *UserRepository) ChangePassword(id bson.ObjectID, password string) error
 	return nil
 }
 
-func (r *UserRepository) ChangePermission(id bson.ObjectID, permission string) error {
+func (r UserRepository) ChangePermission(id bson.ObjectID, permission string) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	filter := bson.D{{"_id", id}}
 	update := bson.D{{"$set", bson.D{{"permission", permission}}}}
@@ -180,7 +183,7 @@ func (r *UserRepository) ChangePermission(id bson.ObjectID, permission string) e
 	return nil
 }
 
-func (r *UserRepository) GetUsers(users *[]models.User) error {
+func (r UserRepository) GetUsers(users *[]models.User) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	// Определяем агрегационный пайплайн
 	pipeline := mongo.Pipeline{
@@ -227,7 +230,61 @@ func (r *UserRepository) GetUsers(users *[]models.User) error {
 	return nil
 }
 
-func (r *UserRepository) AddCategory(idUser bson.ObjectID, idCategory bson.ObjectID) error {
+func (r UserRepository) GetMasters(users *[]models.User) error {
+	coll := r.db.Database("TechPower").Collection("Users")
+	// Определяем агрегационный пайплайн
+	pipeline := mongo.Pipeline{
+		// Фильтруем документы, у которых есть поле status
+		bson.D{{
+			"$match",
+			bson.M{
+				"status": bson.M{"$exists": true},
+			},
+		}},
+		// Выполняем $lookup для объединения с коллекцией Category
+		bson.D{{
+			"$lookup",
+			bson.M{
+				"from":         "Category",
+				"localField":   "categories_id",
+				"foreignField": "_id",
+				"as":           "categories",
+			},
+		}},
+		// Убедимся, что categories будет пустым массивом, если categories_id пуст
+		bson.D{{
+			"$set",
+			bson.M{
+				"categories": bson.M{
+					"$cond": bson.M{
+						"if":   bson.M{"$eq": []interface{}{"$categories_id", nil}},
+						"then": []interface{}{},
+						"else": "$categories",
+					},
+				},
+			},
+		}},
+		// Удаляем categories_id из результата
+		bson.D{{
+			"$unset",
+			"categories_id",
+		}},
+	}
+
+	// Выполняем агрегацию
+	cursor, err := coll.Aggregate(context.TODO(), pipeline)
+	if err != nil {
+		return fmt.Errorf("failed to find users: %w", err)
+	}
+
+	if err = cursor.All(context.TODO(), users); err != nil {
+		return errors.New("Failed to get users")
+	}
+
+	return nil
+}
+
+func (r UserRepository) AddCategory(idUser bson.ObjectID, idCategory bson.ObjectID) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	filter := bson.D{{"_id", idUser}}
 	update := bson.M{"$push": bson.M{"categories_id": idCategory}}
@@ -249,7 +306,7 @@ func (r *UserRepository) AddCategory(idUser bson.ObjectID, idCategory bson.Objec
 	return nil
 }
 
-func (r *UserRepository) RemoveCategory(idUser bson.ObjectID, idCategory bson.ObjectID) error {
+func (r UserRepository) RemoveCategory(idUser bson.ObjectID, idCategory bson.ObjectID) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	filter := bson.D{{"_id", idUser}}
 	update := bson.M{"$pull": bson.M{"categories_id": idCategory}}
@@ -257,5 +314,29 @@ func (r *UserRepository) RemoveCategory(idUser bson.ObjectID, idCategory bson.Ob
 	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
 		return errors.New("Failed to remove user categories")
 	}
+	return nil
+}
+
+func (r UserRepository) ChangeStatus(id bson.ObjectID, status string) error {
+	coll := r.db.Database("TechPower").Collection("Users")
+	filter := bson.D{{"_id", id}}
+	update := bson.D{{"$set", bson.D{{"status", status}}}}
+
+	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
+		return errors.New("Failed to change status of master")
+	}
+
+	return nil
+}
+
+func (r UserRepository) RemoveStatus(id bson.ObjectID) error {
+	coll := r.db.Database("TechPower").Collection("Users")
+	filter := bson.D{{"_id", id}}
+	update := bson.D{{"$unset", bson.D{{"status", ""}}}}
+
+	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
+		return errors.New("Failed to change status of master")
+	}
+
 	return nil
 }
