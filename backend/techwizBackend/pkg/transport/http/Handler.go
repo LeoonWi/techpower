@@ -24,12 +24,17 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	category.DELETE("", h.removeCategory) // DONE
 
 	user := e.Group("user")
-	user.PATCH("/changepassword", h.changePassword)     // DONE
-	user.PATCH("/changepermission", h.changePermission) // DONE
+	user.PATCH("/changepassword", h.changePassword)                                       // DONE
+	user.PATCH("/changepermission/:id/:permissionOld/:permissionNew", h.changePermission) // DONE
 	user.GET("/:id", h.getUser)
 	user.GET("", h.getUsers)
+	user.GET("/masters", h.getMasters)                   // DONE
 	user.PATCH("/category/add", h.addUserCategory)       // DONE
 	user.PATCH("/category/remove", h.removeUserCategory) // DONE
+	// :id - user id, :event - "add" || "remove", :status - null || "default" || "senior" || "premium"
+	// example /user/master?id=686832fb6fd2db7bc42f0c63&event=add&status=senior
+	// example /user/master?id=686832fb6fd2db7bc42f0c63&event=remove
+	user.PATCH("/master", h.changeStatus)
 
 	chat := e.Group("chat")
 	chat.POST("/create/:member1/:member2", h.createChat)  // DONE
@@ -43,7 +48,7 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 
 	e.GET("/ws", func(c echo.Context) error {
 		return websocketConn.Ws(c)
-	}) // DONE ???
+	}) // DONE
 
 	return &h
 }

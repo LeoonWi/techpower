@@ -7,7 +7,7 @@ import (
 	"techwizBackend/pkg/models"
 )
 
-func (h *Handler) changePassword(c echo.Context) error {
+func (h Handler) changePassword(c echo.Context) error {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(
@@ -36,17 +36,17 @@ func (h *Handler) changePassword(c echo.Context) error {
 }
 
 func (h Handler) changePermission(c echo.Context) error {
-	var user models.User
-	if err := c.Bind(&user); err != nil {
-		return c.JSON(
-			http.StatusUnprocessableEntity,
-			map[string]string{"error": "Invalid request body"},
-		)
+	var err error
+	id, err := bson.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "Invalid id"})
 	}
+	permissionOld := c.Param("permissionOld")
+	permissionNew := c.Param("permissionNew")
 
 	var status int
-	if err := h.services.UserService.ChangePermission(&user, &status); err != nil {
-		return c.JSON(status, err.Error())
+	if err := h.services.UserService.ChangePermission(id, permissionOld, permissionNew, &status); err != nil {
+		return c.JSON(status, map[string]string{"error": err.Error()})
 	}
 
 	return c.JSON(
@@ -55,7 +55,7 @@ func (h Handler) changePermission(c echo.Context) error {
 	)
 }
 
-func (h *Handler) getUser(c echo.Context) error {
+func (h Handler) getUser(c echo.Context) error {
 	id := c.Param("id")
 	if len(id) < 24 {
 		return c.JSON(
@@ -76,14 +76,21 @@ func (h *Handler) getUser(c echo.Context) error {
 	return c.JSON(status, user)
 }
 
-func (h *Handler) getUsers(c echo.Context) error {
+func (h Handler) getUsers(c echo.Context) error {
 	return c.JSON(
 		http.StatusOK,
 		h.services.UserService.GetUsers(),
 	)
 }
 
-func (h *Handler) addUserCategory(c echo.Context) error {
+func (h Handler) getMasters(c echo.Context) error {
+	return c.JSON(
+		http.StatusOK,
+		h.services.UserService.GetMasters(),
+	)
+}
+
+func (h Handler) addUserCategory(c echo.Context) error {
 	idUser, err := bson.ObjectIDFromHex(c.QueryParam("user"))
 	if err != nil {
 		return c.JSON(
@@ -106,7 +113,7 @@ func (h *Handler) addUserCategory(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]bson.ObjectID{"added": idCategory})
 }
 
-func (h *Handler) removeUserCategory(c echo.Context) error {
+func (h Handler) removeUserCategory(c echo.Context) error {
 	idUser, err := bson.ObjectIDFromHex(c.QueryParam("user"))
 	if err != nil {
 		return c.JSON(
@@ -127,4 +134,21 @@ func (h *Handler) removeUserCategory(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]bson.ObjectID{"remove": idCategory})
+}
+
+func (h Handler) changeStatus(c echo.Context) error {
+	var err error
+	id, err := bson.ObjectIDFromHex(c.QueryParam("id"))
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "Invalid id"})
+	}
+	event := c.QueryParam("event")
+	status := c.QueryParam("status")
+
+	code, err := h.services.UserService.ChangeStatus(id, event, status)
+	if err != nil {
+		return c.JSON(code, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(code, map[string]string{"status": "ok"})
 }

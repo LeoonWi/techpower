@@ -32,9 +32,19 @@ func NewAuthService(
 
 func (s *AuthService) CreateUser(user *models.User) error {
 	user.PhoneNumber = phonenumber.Parse(user.PhoneNumber, "ru")
+
+	if len(user.Permission) != 3 {
+		return errors.New("Invalid string permission")
+	}
+
 	if err := s.UserRepository.GetUserByPhone(user.PhoneNumber, user); err == nil {
 		return errors.New("User already exists")
 	}
+
+	if user.Permission == "001" {
+		user.Status = "default"
+	}
+
 	if err := s.AuthRepository.CreateUser(user); err != nil {
 		return err
 	}
