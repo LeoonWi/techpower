@@ -219,7 +219,6 @@ export default function OrdersScreen() {
                     onPress={() => setShowCancelModal(order.id)}
                   >
                     <Text style={styles.cancelButtonText}>Отменить</Text>
-                    <X size={16} color="white" style={styles.cancelButtonIcon} />
                   </TouchableOpacity>
                 )}
               </View>
