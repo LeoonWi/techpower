@@ -4,22 +4,21 @@
 // Используется для авторизации, профиля, работы с заказами, чатами и т.д.
 // =========================
 
-export type UserRole = 'admin' | 'support' | 'master' | 'senior_master' | 'premium_master';
+export type UserStatus  = 'admin' | 'support' | 'master';
+import {Category} from "./category";
 
 export interface User {
-  id: string;
-  role: UserRole;
-  fullName: string;
-  nickname: string;
-  phone: string;
+  id?: string;
+  phone_number: string;
+  full_name: string;
+  password?: string;
+  permission?: string;
+  status?: UserStatus;
+  nickname?: string;
   photo?: string;
-  city: string;
-  category: string;
-  balance: number;
-  commission: number;
-  isActive: boolean;
-  location?: {
-    latitude: number;
-    longitude: number;
-  };
+  categories?: Category[];
+  categories_id?: string[];
+  balance?: number;
+  commission?: number;
+  isActive: boolean;// сказать Веталю,чтоб добавил
 }

@@ -132,12 +132,12 @@ export default function SettingsScreen() {
         <View style={styles.userSection}>
           <View style={styles.userAvatar}>
             <Text style={styles.userAvatarText}>
-              {user?.fullName.split(' ').map(n => n[0]).join('')}
+              {user?.full_name.split(' ').map(n => n[0]).join('')}
             </Text>
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user?.fullName}</Text>
-            <Text style={styles.userRole}>{user?.role}</Text>
+            <Text style={styles.userName}>{user?.full_name}</Text>
+            <Text style={styles.userRole}>{user?.status}</Text>
           </View>
         </View>
 

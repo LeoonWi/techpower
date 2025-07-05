@@ -3,20 +3,20 @@
 // Если структура на backend меняется — обязательно обновить эти типы.
 // Используется для работы с чатами, real-time сообщениями (WebSocket).
 // =========================
-
+import {Category} from "./category";
 export interface ChatMessage {
-  id: string;
+  id?: string;
   senderId: string;
-  senderName: string;
-  content: string;
-  timestamp: Date;
-  category: string;
+  recipientId?: string;
+  chatId: string;
+  text: string;
+  createdAt?: string;
 }
 
 export interface ChatCategory {
   id: string;
   name: string;
-  description: string;
-  participantCount: number;
-  lastMessage?: ChatMessage;
+  MembersId: string[];
+  Category: Category;
+  CategoryId?: string;
 }

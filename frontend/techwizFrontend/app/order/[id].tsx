@@ -86,7 +86,7 @@ export default function OrderDetailScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Order Header */}
+        {/* Request Header */}
         <View style={styles.orderHeader}>
           <View style={styles.titleRow}>
             <Text style={styles.orderTitle}>{order.title}</Text>
@@ -99,7 +99,7 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {/* Order Image */}
+        {/* Request Image */}
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: 'https://images.pexels.com/photos/356056/pexels-photo-356056.jpeg?auto=compress&cs=tinysrgb&w=800' }}
@@ -108,13 +108,13 @@ export default function OrderDetailScreen() {
           />
         </View>
 
-        {/* Order Description */}
+        {/* Request Description */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Описание</Text>
           <Text style={styles.description}>{order.description}</Text>
         </View>
 
-        {/* Order Details */}
+        {/* Request Details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Детали заказа</Text>
           <View style={styles.detailsGrid}>

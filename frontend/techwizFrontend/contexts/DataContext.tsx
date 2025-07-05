@@ -1,233 +1,272 @@
+import api from '../api/axios';
 import React, { createContext, useContext, useState } from 'react';
-import { Order, OrderStatus } from '@/types/order';
+import { Request, Status } from '@/types/request';
 import { ChatCategory, ChatMessage } from '@/types/chat';
 import { Analytics } from '@/types/analytics';
 import { User } from '@/types/user';
 import { Complaint } from '@/types/complaint';
-
+import {Category} from "@/types/category";
+import { useWebSocket } from "@/api/useWebSocket";
 interface DataContextType {
-  orders: Order[];
-  chatCategories: ChatCategory[];
+  orders: Request[];
   messages: ChatMessage[];
   analytics: Analytics;
   masters: User[];
   masterStats: { [key: string]: { orders: number; earnings: number; rating: number } };
   complaints: Complaint[];
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
-  assignOrder: (orderId: string, masterId: string) => void;
-  sendMessage: (categoryId: string, content: string, senderId: string, senderName: string) => void;
+  createOrder: (order: Request) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: Status) => void;
+  //assignOrder: (orderId: string, masterId: string) => void;
+  sendMessage: (chatId: string, text: string, senderId: string, recipientId?: string) => void;
   addComplaint: (title: string, description: string, authorId: string, authorName: string) => void;
   resolveComplaint: (complaintId: string, resolvedBy: string) => void;
+
+  categories: Category[];
+  fetchCategories: () => Promise<void>;
+  createCategory: (name: string) => Promise<void>;
+  renameCategory: (id: string, name: string) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+
+  chatCategories: ChatCategory[];
+  createChat: (member1: string, member2: string, name: string, categoryId: string) => Promise<void>;
+  fetchChats: (userId: string) => Promise<void>;
+  fetchChatBetween: (member1: string, member2: string) => Promise<ChatCategory | null>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [orders, setOrders] = useState<Order[]>([
+  const userId = localStorage.getItem('userId') || '';
+  const { sendMessage: sendSocketMessage } = useWebSocket(userId, (msg) => {
+    setMessages(prev => [...prev, msg]);
+  });
+  const [orders, setOrders] = useState<Request[]>([
     {
       id: '1',
-      title: 'Ремонт ноутбука ASUS',
-      description: 'Не включается, возможно проблема с материнской платой. Требуется диагностика и замена компонентов.',
-      category: 'Компьютеры',
-      city: 'Москва',
-      address: 'ул. Тверская, 12',
-      coordinates: { latitude: 55.7658, longitude: 37.6173 },
+      full_name: 'Ремонт ноутбука ASUS',
+      phone_number: '+7 999 123-45-67',
+      address: 'Москва ул. Тверская, 12',
+      problem: 'Не включается, возможно проблема с материнской платой. Требуется диагностика и замена компонентов.',
       price: 5000,
-      commission: 750,
-      status: 'pending',
-      clientName: 'Иван Петров',
-      clientPhone: '+7 999 123-45-67',
-      createdAt: new Date('2025-01-01'),
-      updatedAt: new Date('2025-01-01'),
+      status: {
+        status_code: 0,
+        reason: ''
+      },
+      files: [],
+      datetime: new Date('2025-01-01'),
+      category:{name: "Ремонт"},
+      category_id: '12',
+      worker: {
+        phone_number: '',
+        full_name: '',
+        password: '',
+        isActive: false
+      },
+      worker_id:'654321',
       isPremium: false,
     },
     {
       id: '2',
-      title: 'Установка умного дома',
-      description: 'Установка системы умного дома в квартире: датчики, камеры, автоматизация освещения.',
-      category: 'Электроника',
-      city: 'Санкт-Петербург',
+      full_name: 'Установка умного дома',
+      phone_number: '+7 999 234-56-78',
       address: 'Невский проспект, 45',
-      coordinates: { latitude: 59.9311, longitude: 30.3609 },
+      problem: 'Установка системы умного дома в квартире: датчики, камеры, автоматизация освещения.',
       price: 15000,
-      commission: 1200,
-      status: 'assigned',
-      clientName: 'Мария Сидорова',
-      clientPhone: '+7 999 234-56-78',
-      assignedMasterId: '5',
-      createdAt: new Date('2025-01-02'),
-      updatedAt: new Date('2025-01-02'),
+      status: {
+        status_code: 0,
+        reason: ''
+      },
+      files: [],
+      datetime: new Date('2025-01-02'),
+      category:{name:"умного дома"},
+      category_id: '12',
+      worker: {
+        phone_number: '',
+        full_name: 'Мария Сидорова',
+        password: '',
+        isActive: false
+      },
+      worker_id:'654321',
       isPremium: true,
     },
     {
       id: '3',
-      title: 'Ремонт iPhone 14',
-      description: 'Замена экрана и батареи. Телефон упал, экран треснул, батарея быстро разряжается.',
-      category: 'Мобильные устройства',
-      city: 'Казань',
+      full_name: 'Ремонт iPhone 14',
+      phone_number: '+7 999 345-67-89',
       address: 'ул. Баумана, 78',
-      coordinates: { latitude: 55.7887, longitude: 49.1221 },
+      problem: 'Замена экрана и батареи. Телефон упал, экран треснул, батарея быстро разряжается.',
       price: 8000,
-      commission: 960,
-      status: 'in_progress',
-      clientName: 'Алексей Смирнов',
-      clientPhone: '+7 999 345-67-89',
-      assignedMasterId: '3',
-      createdAt: new Date('2025-01-03'),
-      updatedAt: new Date('2025-01-03'),
+      status: {
+        status_code: 0,
+        reason: ''
+      },
+      files: [],
+      datetime: new Date('2025-01-03'),
+      category:{name:'Мобильные устройства'},
+      category_id: '12',
+      worker: {
+        phone_number: '',
+        full_name: 'Алексей Смирнов',
+        password: '',
+        isActive: false
+      },
+      worker_id:'654321',
       isPremium: false,
     },
     {
       id: '4',
-      title: 'Настройка сервера',
-      description: 'Настройка и оптимизация сервера для малого бизнеса. Установка ПО, настройка безопасности.',
-      category: 'Компьютеры',
-      city: 'Новосибирск',
+      full_name: 'Настройка сервера',
+      phone_number: '+7 999 456-78-90',
       address: 'ул. Ленина, 25',
-      coordinates: { latitude: 55.0084, longitude: 82.9357 },
+      problem: 'Настройка и оптимизация сервера для малого бизнеса. Установка ПО, настройка безопасности.',
       price: 12000,
-      commission: 1440,
-      status: 'completed',
-      clientName: 'Ольга Козлова',
-      clientPhone: '+7 999 456-78-90',
-      assignedMasterId: '4',
-      createdAt: new Date('2025-01-04'),
-      updatedAt: new Date('2025-01-04'),
+      status: {
+        status_code: 0,
+        reason: ''
+      },
+      files: [],
+      datetime: new Date('2025-01-04'),
+      category:{name:'Компьютеры'},
+      category_id: '12',
+      worker: {
+        phone_number: '',
+        full_name: 'Ольга Козлова',
+        password: '',
+        isActive: false
+      },
+      worker_id:'654321',
       isPremium: true,
     },
     {
       id: '5',
-      title: 'Ремонт стиральной машины',
-      description: 'Не сливает воду, издает странные звуки при отжиме. Требуется диагностика.',
-      category: 'Ремонт техники',
-      city: 'Екатеринбург',
+      full_name: 'Ремонт стиральной машины',
+      phone_number: '+7 999 567-89-01',
       address: 'ул. Малышева, 101',
-      coordinates: { latitude: 56.8431, longitude: 60.6454 },
+      problem: 'Не сливает воду, издает странные звуки при отжиме. Требуется диагностика.',
       price: 3500,
-      commission: 280,
-      status: 'assigned',
-      clientName: 'Дмитрий Волков',
-      clientPhone: '+7 999 567-89-01',
-      assignedMasterId: '5',
-      createdAt: new Date('2025-01-05'),
-      updatedAt: new Date('2025-01-05'),
+      status: {
+        status_code: 0,
+        reason: ''
+      },
+      files: [],
+      datetime: new Date('2025-01-05'),
+      category:{name:'Ремонт техники'},
+      category_id: '12',
+      worker: {
+        phone_number: '',
+        full_name: 'Дмитрий Волков',
+        password: '',
+        isActive: false
+      },
+      worker_id:'654321',
       isPremium: false,
     },
     {
       id: '6',
-      title: 'Ремонт кондиционера',
-      description: 'Кондиционер не охлаждает, требуется заправка фреоном и чистка фильтров.',
-      category: 'Ремонт техники',
-      city: 'Москва',
+      full_name: 'Ремонт кондиционера',
+      phone_number: '+7 999 678-90-12',
       address: 'ул. Арбат, 25',
-      coordinates: { latitude: 55.7522, longitude: 37.5927 },
-      price: 4500,
-      commission: 675,
-      status: 'pending',
-      clientName: 'Елена Васильева',
-      clientPhone: '+7 999 678-90-12',
-      createdAt: new Date('2025-01-06'),
-      updatedAt: new Date('2025-01-06'),
+      problem: 'Кондиционер не охлаждает, требуется заправка фреоном и чистка фильтров.',
+      price: 15000,
+      status: {
+        status_code: 0,
+        reason: ''
+      },
+      files: [],
+      datetime: new Date('2025-01-06'),
+      category:{name:'Ремонт техники'},
+      category_id: '12',
+      worker: {
+        phone_number: '',
+        full_name: 'Елена Васильева',
+        password: '',
+        isActive: false
+      },
+      worker_id:'654321',
       isPremium: false,
     },
     {
       id: '7',
-      title: 'Установка видеонаблюдения',
-      description: 'Установка системы видеонаблюдения в офисе: 8 камер, сервер записи, настройка удаленного доступа.',
-      category: 'Электроника',
-      city: 'Санкт-Петербург',
+      full_name: 'Установка видеонаблюдения',
+      phone_number: '+7 999 789-01-23',
       address: 'ул. Рубинштейна, 15',
-      coordinates: { latitude: 59.9280, longitude: 30.3609 },
-      price: 25000,
-      commission: 2000,
-      status: 'pending',
-      clientName: 'ООО "Бизнес Центр"',
-      clientPhone: '+7 999 789-01-23',
-      createdAt: new Date('2025-01-07'),
-      updatedAt: new Date('2025-01-07'),
+      problem: 'Установка системы видеонаблюдения в офисе: 8 камер, сервер записи, настройка удаленного доступа.',
+      price: 15000,
+      status: {
+        status_code: 0,
+        reason: ''
+      },
+      files: [],
+      datetime: new Date('2025-01-07'),
+      category:{name:'Электроника'},
+      category_id: '12',
+      worker: {
+        phone_number: '',
+        full_name: 'ООО "Бизнес Центр',
+        password: '',
+        isActive: false
+      },
+      worker_id:'754321',
       isPremium: true,
     },
   ]);
 
-  const [chatCategories] = useState<ChatCategory[]>([
+  const [chatCategories, setChatCategories] = useState<ChatCategory[]>([
     {
       id: '1',
       name: 'Компьютеры',
-      description: 'Обсуждение ремонта компьютеров и ноутбуков',
-      participantCount: 45,
-      lastMessage: {
-        id: 'msg1',
-        senderId: '3',
-        senderName: 'Мастер Обычный',
-        content: 'Кто-нибудь сталкивался с проблемой перегрева на ASUS?',
-        timestamp: new Date(),
-        category: '1',
-      },
+      MembersId: [],
+      Category: {id: '1',name: 'Чат Компьютеры'}
     },
     {
       id: '2',
       name: 'Электроника',
-      description: 'Ремонт бытовой техники и электроники',
-      participantCount: 38,
-      lastMessage: {
-        id: 'msg2',
-        senderId: '4',
-        senderName: 'Мастер Старший',
-        content: 'Новые датчики умного дома поступили в продажу',
-        timestamp: new Date(Date.now() - 3600000),
-        category: '2',
-      },
+      MembersId: [],
+      Category: {id: '2',name: 'Чат Электроника'}
     },
     {
       id: '3',
       name: 'Мобильные устройства',
-      description: 'Ремонт телефонов и планшетов',
-      participantCount: 52,
-      lastMessage: {
-        id: 'msg3',
-        senderId: '5',
-        senderName: 'Мастер Премиум',
-        content: 'iPhone 15 - особенности ремонта',
-        timestamp: new Date(Date.now() - 7200000),
-        category: '3',
-      },
+      MembersId: [],
+      Category:{id: '3',name: 'Чат Мобилка'}
     },
     {
       id: '4',
       name: 'Ремонт техники',
-      description: 'Бытовая техника и крупная электроника',
-      participantCount: 29,
+      MembersId: [],
+      Category: {id: '4',name: 'Чат Ремонт'}
     },
     {
       id: 'support',
       name: 'Поддержка',
-      description: 'Чат с технической поддержкой',
-      participantCount: 15,
+      MembersId: [],
+      Category:{id: '5',name: 'Чат Поддержка'}
     },
     {
       id: 'senior_master',
       name: 'Старший мастер',
-      description: 'Чат со старшим мастером',
-      participantCount: 8,
+      MembersId: [],
+      Category: {id: '6',name: 'Чат со старшим мастером'}
     },
   ]);
+
+  const [categories, setCategories] = useState<Category[]>([]);
+
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'msg1',
       senderId: '3',
-      senderName: 'Мастер Обычный',
-      content: 'Кто-нибудь сталкивался с проблемой перегрева на ASUS?',
-      timestamp: new Date(),
-      category: '1',
+      text: 'Кто-нибудь сталкивался с проблемой перегрева на ASUS?',
+      createdAt: new Date(),
+      chatId: '1',
     },
     {
       id: 'msg2',
       senderId: '4',
-      senderName: 'Мастер Старший',
-      content: 'Да, обычно проблема в термопасте или забитых вентиляторах',
-      timestamp: new Date(Date.now() - 300000),
-      category: '1',
+      text: 'Да, обычно проблема в термопасте или забитых вентиляторах',
+      createdAt: new Date(Date.now() - 300000),
+      chatId: '1',
     },
   ]);
 
@@ -266,60 +305,60 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const masters: User[] = [
     {
       id: '3',
-      role: 'master',
-      fullName: 'Мастер Обычный',
+      status: 'master',
+      full_name: 'Мастер Обычный',
+      permission:"001",
       nickname: 'master',
-      phone: '+7 900 345-67-89',
-      city: 'Казань',
-      category: 'Ремонт техники',
+      phone_number: '+7 900 345-67-89',
+      categories: [],
       balance: 25000,
       commission: 15,
       isActive: true,
     },
     {
       id: '4',
-      role: 'senior_master',
-      fullName: 'Мастер Старший',
+      status: 'master',
+      full_name: 'Мастер Старший',
+      permission:"001",
       nickname: 'senior_master',
-      phone: '+7 900 456-78-90',
-      city: 'Новосибирск',
-      category: 'Компьютеры',
+      phone_number: '+7 900 456-78-90',
+      categories: [],
       balance: 75000,
       commission: 12,
       isActive: true,
     },
     {
       id: '5',
-      role: 'premium_master',
-      fullName: 'Мастер Премиум',
+      status: 'master',
+      full_name: 'Мастер Премиум',
+      permission:"001",
       nickname: 'premium_master',
-      phone: '+7 900 567-89-01',
-      city: 'Екатеринбург',
-      category: 'Электроника',
+      phone_number: '+7 900 567-89-01',
+      categories:[],
       balance: 120000,
       commission: 8,
       isActive: true,
     },
     {
       id: '8',
-      role: 'master',
-      fullName: 'Петров Иван Сергеевич',
+      status: 'master',
+      full_name: 'Петров Иван Сергеевич',
+      permission:"001",
       nickname: 'ivan_master',
-      phone: '+7 900 111-22-33',
-      city: 'Москва',
-      category: 'Мобильные устройства',
+      phone_number: '+7 900 111-22-33',
+      categories: [],
       balance: 18000,
       commission: 15,
       isActive: false,
     },
     {
       id: '9',
-      role: 'premium_master',
-      fullName: 'Сидорова Анна Владимировна',
+      status: 'master',
+      full_name: 'Сидорова Анна Владимировна',
+      permission:"001",
       nickname: 'anna_premium',
-      phone: '+7 900 444-55-66',
-      city: 'Санкт-Петербург',
-      category: 'Компьютеры',
+      phone_number: '+7 900 444-55-66',
+      categories: [],
       balance: 95000,
       commission: 8,
       isActive: true,
@@ -362,7 +401,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     ],
   };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
+  const createOrder = async (newOrder: Request) => {
+    try {
+      await api.post('/request/create', newOrder);
+
+      setOrders(prev => [
+        ...prev,
+        {
+          ...newOrder,
+          id: Date.now().toString(), // пока нет реального id из бэка
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]);
+    } catch (err: any) {
+      console.error('Ошибка создания заказа:', err.response?.data || err.message);
+      throw err;
+    }
+  };
+
+
+  const updateOrderStatus = (orderId: string, status: Status) => {
     setOrders(prev => prev.map(order => 
       order.id === orderId 
         ? { ...order, status, updatedAt: new Date() }
@@ -370,24 +429,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     ));
   };
 
-  const assignOrder = (orderId: string, masterId: string) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId 
-        ? { ...order, assignedMasterId: masterId, status: 'assigned', updatedAt: new Date() }
-        : order
-    ));
-  };
+  // const assignOrder = (orderId: string, masterId: string) => {
+  //   setOrders(prev => prev.map(order =>
+  //     order.id === orderId
+  //       ? { ...order, assignedMasterId: masterId, status: 'assigned', updatedAt: new Date() }
+  //       : order
+  //   ));
+  // };
 
-  const sendMessage = (categoryId: string, content: string, senderId: string, senderName: string) => {
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
+  const sendMessage = (
+      chatId: string,
+      text: string,
+      senderId: string,
+      recipientId?:string,
+  ) => {
+    const message: ChatMessage = {
       senderId,
-      senderName,
-      content,
-      timestamp: new Date(),
-      category: categoryId,
+      recipientId,
+      chatId,
+      text,
     };
-    setMessages(prev => [...prev, newMessage]);
+
+    sendSocketMessage(message);
   };
 
   const addComplaint = (title: string, description: string, authorId: string, authorName: string) => {
@@ -415,21 +478,105 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         : complaint
     ));
   };
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/category');
+      setCategories(response.data);
+    } catch (err: any) {
+      console.error('Ошибка загрузки категорий:', err.response?.data || err.message);
+    }
+  };
+
+  const createCategory = async (name: string) => {
+    try {
+      const response = await api.post('/category', { name });
+      setCategories(prev => [...prev, response.data]);
+    } catch (err: any) {
+      console.error('Ошибка создания категории:', err.response?.data || err.message);
+      throw err;
+    }
+  };
+
+  const renameCategory = async (id: string, name: string) => {
+    try {
+      const response = await api.put('/category', null, {
+        params: { id, name }
+      });
+      setCategories(prev => prev.map(c => c.id === id ? response.data : c));
+    } catch (err: any) {
+      console.error('Ошибка переименования категории:', err.response?.data || err.message);
+      throw err;
+    }
+  };
+
+  const deleteCategory = async (id: string) => {
+    try {
+      await api.delete('/category', {
+        data: { id }
+      });
+      setCategories(prev => prev.filter(c => c.id !== id));
+    } catch (err: any) {
+      console.error('Ошибка удаления категории:', err.response?.data || err.message);
+      throw err;
+    }
+  };
+  const createChat = async (member1: string, member2: string, name: string, categoryId: string) => {
+    try {
+      const response = await api.post(`/chat/create/${member1}/${member2}`, {
+        name,
+        category_id: categoryId,
+      });
+      const newChat: ChatCategory = response.data;
+      setChatCategories(prev => [...prev, newChat]);
+    } catch (err: any) {
+      console.error('Ошибка создания чата:', err.response?.data || err.message);
+      throw err;
+    }
+  };
+  const fetchChats = async (userId: string) => {
+    try {
+      const response = await api.get(`/chat/${userId}`);
+      setChatCategories(response.data); // предполагается, что backend возвращает массив чатов
+    } catch (err: any) {
+      console.error('Ошибка загрузки чатов:', err.response?.data || err.message);
+      throw err;
+    }
+  };
+  const fetchChatBetween = async (member1: string, member2: string): Promise<ChatCategory | null> => {
+    try {
+      const response = await api.get(`/chat/${member1}/${member2}`);
+      return response.data; // один чат
+    } catch (err: any) {
+      console.error('Ошибка получения чата между пользователями:', err.response?.data || err.message);
+      return null;
+    }
+  };
 
   return (
     <DataContext.Provider value={{
       orders,
-      chatCategories,
       messages,
       analytics,
       masters,
       masterStats,
       complaints,
+      createOrder,
       updateOrderStatus,
-      assignOrder,
+      //assignOrder,
       sendMessage,
       addComplaint,
       resolveComplaint,
+
+      categories,
+      fetchCategories,
+      createCategory,
+      renameCategory,
+      deleteCategory,
+
+      chatCategories,
+      createChat,
+      fetchChats,
+      fetchChatBetween,
     }}>
       {children}
     </DataContext.Provider>

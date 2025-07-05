@@ -93,7 +93,7 @@ export default function AnalyticsScreen() {
             })}
           </View>
 
-          {/* Order Status Distribution */}
+          {/* Request Status Distribution */}
           <View style={styles.chartContainer}>
             <View style={styles.chartHeader}>
               <BarChart3 size={20} color="#2563EB" />

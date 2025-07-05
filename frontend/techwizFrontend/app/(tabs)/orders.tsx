@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import OrderCard from '@/components/OrderCard';
 import { Search, Filter, Plus, User, Trash2 } from 'lucide-react-native';
-import { OrderStatus } from '@/types/order';
+import { OrderStatus } from '@/types/request';
 
 const statusFilters = [
   { key: 'all', label: 'Все' },
@@ -224,7 +224,7 @@ export default function OrdersScreen() {
         )}
       </ScrollView>
 
-      {/* Add Order Modal */}
+      {/* Add Request Modal */}
       <Modal
         visible={showAddOrderModal}
         transparent={true}

@@ -1,13 +1,19 @@
+import api from "../api/axios";
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, UserRole } from '@/types/user';
+import { User, UserStatus } from '@/types/user';
+import id from "ajv/lib/vocabularies/core/id";
 
 interface AuthContextType {
   user: User | null;
-  login: (role: UserRole) => void;
+  login: (permission: string, phone: string, password: string) => Promise<void>;
+  signup: (phone: string, password: string) => Promise<string>;
+  changePassword: (id: string, newPassword: string) => Promise<void>; // <- добавили
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   isLoading: boolean;
 }
+
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -16,71 +22,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Mock user data for different roles
-  const mockUsers: Record<UserRole, User> = {
+  const mockUsers: Record<UserStatus, User> = {
     admin: {
       id: '1',
-      role: 'admin',
-      fullName: 'Администратор',
-      nickname: 'admin',
-      phone: '+7 900 123-45-67',
-      city: 'Москва',
-      category: 'Все категории',
-      balance: 150000,
+      phone_number: '+7 900 123-45-67',
+      full_name: 'Админ',
+      password: '123',
+      permission: 'permission',
+      status: 'admin',
+      nickname: 'Danya_Loch',
+      categories: [],
+      categories_id:[],
+      balance: 69,
       commission: 10,
       isActive: true,
     },
     support: {
       id: '2',
-      role: 'support',
-      fullName: 'Поддержка Техническая',
-      nickname: 'support',
-      phone: '+7 900 234-56-78',
-      city: 'Санкт-Петербург',
-      category: 'Поддержка',
-      balance: 45000,
-      commission: 8,
+      phone_number: '+7 900 123-45-67',
+      full_name: 'Поддержка',
+      password: '123',
+      permission: 'permission',
+      status: 'support',
+      nickname: 'Edem_Loch',
+      categories: [],
+      categories_id:[],
+      balance: 11111,
+      commission: 10,
       isActive: true,
     },
     master: {
       id: '3',
-      role: 'master',
-      fullName: 'Мастер Обычный',
-      nickname: 'master',
-      phone: '+7 900 345-67-89',
-      city: 'Казань',
-      category: 'Ремонт техники',
-      balance: 25000,
-      commission: 15,
+      phone_number: '+7 900 123-45-67',
+      full_name: 'Мастер',
+      password: '123',
+      permission: 'permission',
+      status: 'master',
+      nickname: 'UWU',
+      categories: [],
+      categories_id:[],
+      balance: 123,
+      commission: 10,
       isActive: true,
-    },
-    senior_master: {
-      id: '4',
-      role: 'senior_master',
-      fullName: 'Мастер Старший',
-      nickname: 'senior_master',
-      phone: '+7 900 456-78-90',
-      city: 'Новосибирск',
-      category: 'Компьютеры',
-      balance: 75000,
-      commission: 12,
-      isActive: true,
-    },
-    premium_master: {
-      id: '5',
-      role: 'premium_master',
-      fullName: 'Мастер Премиум',
-      nickname: 'premium_master',
-      phone: '+7 900 567-89-01',
-      city: 'Екатеринбург',
-      category: 'Электроника',
-      balance: 120000,
-      commission: 8,
-      isActive: true,
-    },
+    }
   };
 
-  const login = (role: UserRole) => {
-    setUser(mockUsers[role]);
+  const login = async (permission: string, phone_number: string, password: string) => {
+    try {
+      const response = await api.post('/auth/signin', {
+        permission,
+        phone_number,
+        password,
+      });
+      const userId = response.data.id;
+      const profile = await api.get(`/user/${userId}`);
+      setUser(profile.data);
+      localStorage.setItem('userId', userId);
+    } catch (err: any) {
+      console.error('Login error:', err.response?.data || err.message);
+      throw err;
+    }
+  };
+
+  const signup = async (phone_number: string, password: string) => {
+    try {
+      const response = await api.post('/auth/signup', {
+        phone_number,
+        password,
+      });
+      const userId = response.data.id;
+      return userId;
+    } catch (err: any) {
+      console.error('Signup error:', err.response?.data || err.message);
+      throw err;
+    }
+  };
+
+  const changePassword = async (id: string, newPassword: string) => {
+    try {
+      await api.patch('/user/changepassword', {
+        id,
+        password: newPassword,
+      });
+    } catch (err: any) {
+      console.error('Change password error:', err.response?.data || err.message);
+      throw err;
+    }
   };
 
   const logout = () => {
@@ -101,9 +128,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading }}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{ user, login, signup,changePassword, logout, updateUser, isLoading }}>
+        {children}
+      </AuthContext.Provider>
   );
 }
 

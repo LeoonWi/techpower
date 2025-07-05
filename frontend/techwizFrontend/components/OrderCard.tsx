@@ -1,113 +1,105 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { Order, OrderStatus } from '@/types/order';
+import { Request, Status } from '@/types/request';
 import { MapPin, Clock, DollarSign, Crown } from 'lucide-react-native';
 
 interface OrderCardProps {
-  order: Order;
+  request: Request;
   onPress?: () => void;
   showActions?: boolean;
-  onStatusChange?: (orderId: string, status: OrderStatus) => void;
+  onStatusChange?: (orderId: string | undefined, status: Status | undefined) => void;
 }
 
-export default function OrderCard({ order, onPress, showActions, onStatusChange }: OrderCardProps) {
-  const getStatusColor = (status: OrderStatus) => {
-    const colors = {
-      pending: '#F59E0B',
-      assigned: '#2563EB',
-      in_progress: '#059669',
-      completed: '#10B981',
-      cancelled: '#EF4444',
-      rejected: '#DC2626',
-      modernization: '#7C3AED',
+export default function OrderCard({ request, onPress, showActions, onStatusChange }: OrderCardProps) {
+  const getStatusColor = (status: Status | undefined) => {
+    const colorMap: Record<number, string> = {
+      0: '#F59E0B', // pending
+      1: '#2563EB', // assigned
+      2: '#059669', // in_progress
+      3: '#10B981', // completed
+      4: '#EF4444', // cancelled
+      5: '#DC2626', // rejected
+      6: '#7C3AED', // modernization
     };
-    return colors[status] || '#64748B';
+    // @ts-ignore
+    return colorMap[status.status_code] || '#64748B';
   };
 
-  const getStatusText = (status: OrderStatus) => {
-    const texts = {
-      pending: 'Ожидает',
-      assigned: 'Назначен',
-      in_progress: 'В работе',
-      completed: 'Выполнен',
-      cancelled: 'Отменен',
-      rejected: 'Отказ',
-      modernization: 'Модернизация',
-    };
-    return texts[status] || status;
-  };
+  // @ts-ignore
+  const getStatusText = (status: Status | undefined) => status.reason;
+
 
   const handleCardPress = () => {
     if (onPress) {
       onPress();
     } else {
-      router.push(`/order/${order.id}`);
+      router.push(`/order/${request.id}`);
     }
   };
 
   const statusActions = [
-    { status: 'completed' as OrderStatus, title: 'Сдать', color: '#10B981' },
-    { status: 'modernization' as OrderStatus, title: 'Модернизация', color: '#7C3AED' },
-    { status: 'cancelled' as OrderStatus, title: 'Отмена', color: '#F59E0B' },
-    { status: 'rejected' as OrderStatus, title: 'Отказ', color: '#EF4444' },
+    { status_code: 3, reason: 'completed', color: '#10B981' },
+    { status_code: 6, reason: 'modernization', color: '#7C3AED' },
+    { status_code: 4, reason: 'cancelled', color: '#F59E0B' },
+    { status_code: 5, reason: 'rejected', color: '#EF4444' },
   ];
 
   return (
     <TouchableOpacity style={styles.container} onPress={handleCardPress}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>{order.title}</Text>
-          {order.isPremium && (
+          <Text style={styles.title} numberOfLines={1}>{request.full_name}</Text>
+          {request.isPremium && (
             <Crown size={16} color="#FFD700" style={styles.premiumIcon} />
           )}
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(order.status)}20` }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
-            {getStatusText(order.status)}
+        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(request.status)}20` }]}>
+          <Text style={[styles.statusText, { color: getStatusColor(request.status)}]}>
+            {getStatusText(request.status)}
           </Text>
         </View>
       </View>
 
       <Text style={styles.description} numberOfLines={2}>
-        {order.description}
+        {request.problem}
       </Text>
 
       <View style={styles.infoRow}>
-        <View style={styles.infoItem}>
-          <MapPin size={14} color="#64748B" />
-          <Text style={styles.infoText}>{order.city}</Text>
-        </View>
+        {/*<View style={styles.infoItem}>*/}
+        {/*  <MapPin size={14} color="#64748B" />*/}
+        {/*  <Text style={styles.infoText}>{order.city}</Text>*/}
+        {/*</View>*/}
         <View style={styles.infoItem}>
           <DollarSign size={14} color="#64748B" />
-          <Text style={styles.infoText}>{order.price.toLocaleString('ru-RU')} ₽</Text>
+          <Text style={styles.infoText}>{request.price?.toLocaleString('ru-RU')} ₽</Text>
         </View>
         <View style={styles.infoItem}>
           <Clock size={14} color="#64748B" />
           <Text style={styles.infoText}>
-            {order.createdAt.toLocaleDateString('ru-RU')}
+            {request.datetime?.toLocaleDateString('ru-RU')}
           </Text>
         </View>
       </View>
 
       <View style={styles.clientInfo}>
-        <Text style={styles.clientName}>{order.clientName}</Text>
-        <Text style={styles.clientPhone}>{order.clientPhone}</Text>
+        <Text style={styles.clientName}>{request.worker?.full_name}</Text>
+        <Text style={styles.clientPhone}>{request.worker?.phone_number}</Text>
       </View>
 
-      {showActions && order.status === 'assigned' && (
+      {showActions && request.status?.status_code === 1 && (
         <View style={styles.actionsContainer}>
           {statusActions.map((action) => (
             <TouchableOpacity
-              key={action.status}
+              key={action.status_code}
               style={[styles.actionButton, { backgroundColor: `${action.color}20` }]}
               onPress={(e) => {
                 e.stopPropagation();
-                onStatusChange?.(order.id, action.status);
+                onStatusChange?.(request.id, request.status);
               }}
             >
               <Text style={[styles.actionText, { color: action.color }]}>
-                {action.title}
+                {action.reason}
               </Text>
             </TouchableOpacity>
           ))}

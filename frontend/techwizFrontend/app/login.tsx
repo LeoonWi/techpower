@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Shield, Headphones as HeadphonesIcon, Wrench, Star, Crown } from 'lucide-react-native';
-import { UserRole } from '@/types/user';
+import { UserStatus } from '@/types/user';
 import { useAuth } from '@/contexts/AuthContext';
 
 // =========================
@@ -16,11 +16,9 @@ import { useAuth } from '@/contexts/AuthContext';
 // =========================
 
 const roles = [
-  { role: 'admin' as UserRole, title: 'Администратор', description: 'Полный доступ ко всем функциям', icon: Shield, color: '#DC2626' },
-  { role: 'support' as UserRole, title: 'Поддержка', description: 'Управление заявками и чатами', icon: HeadphonesIcon, color: '#2563EB' },
-  { role: 'master' as UserRole, title: 'Мастер', description: 'Календарь смен и статусы заказов', icon: Wrench, color: '#059669' },
-  { role: 'senior_master' as UserRole, title: 'Старший мастер', description: 'Выбор заказов и управление мастерами', icon: Star, color: '#EA580C' },
-  { role: 'premium_master' as UserRole, title: 'Премиум мастер', description: 'Пониженная комиссия и премиум заказы', icon: Crown, color: '#7C3AED' },
+  { role: 'admin' as UserStatus, title: 'Администратор', description: 'Полный доступ ко всем функциям', icon: Shield, color: '#DC2626' },
+  { role: 'support' as UserStatus, title: 'Поддержка', description: 'Управление заявками и чатами', icon: HeadphonesIcon, color: '#2563EB' },
+  { role: 'master' as UserStatus, title: 'Мастер', description: 'Календарь смен и статусы заказов', icon: Wrench, color: '#059669' },
 ];
 
 const testUsers = [
@@ -32,8 +30,8 @@ const testUsers = [
 export default function LoginScreen() {
   const { login } = useAuth();
 
-  const handleRoleSelect = (role: UserRole) => {
-    login(role);
+  const handleRoleSelect = (permission: string,phone: string,password: string) => {
+    login(permission,phone,password) //ВОТ ЭТИ параметры должны быть и в roles на 18 строке,иначе 52 строка не заработает
     router.replace('/(tabs)');
   };
 

@@ -12,7 +12,7 @@ export default function ReportsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [reportType, setReportType] = useState('earnings');
 
-  if (user?.role !== 'admin' && user?.role !== 'senior_master') {
+  if (user?.status !== 'admin' && user?.status !== 'master') {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.accessDenied}>
