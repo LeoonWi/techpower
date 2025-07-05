@@ -15,6 +15,7 @@ import { Plus, Search, X, Edit, Trash2, UserCheck, ArrowLeft } from 'lucide-reac
 import { Picker } from '@react-native-picker/picker';
 import { router } from 'expo-router';
 import RoleGuard from '@/components/RoleGuard';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Employee {
   id: number;
@@ -25,6 +26,7 @@ interface Employee {
 }
 
 export default function AddEmployeeScreen() {
+  const { user } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([
     { id: 1, name: 'Иван Иванов', phone: '+7 900 123-45-67', role: 'support', status: 'active' },
     { id: 2, name: 'Петр Петров', phone: '+7 900 234-56-78', role: 'master', status: 'active' },
@@ -141,7 +143,7 @@ export default function AddEmployeeScreen() {
   );
 
   return (
-    <RoleGuard allowedRoles={['admin']} fallbackRoute="/login">
+    <RoleGuard allowedRoles={['admin', 'limitedAdmin']} fallbackRoute="/login">
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -151,7 +153,9 @@ export default function AddEmployeeScreen() {
           >
             <ArrowLeft size={24} color="#64748B" />
           </TouchableOpacity>
-          <Text style={styles.title}>Управление сотрудниками</Text>
+          <Text style={styles.title}>
+            {user?.role === 'limitedAdmin' ? 'Создание сотрудников' : 'Управление сотрудниками'}
+          </Text>
           <TouchableOpacity style={styles.addButton} onPress={openModal}>
             <Plus size={20} color="white" />
           </TouchableOpacity>
@@ -194,28 +198,30 @@ export default function AddEmployeeScreen() {
                     </Text>
                   </View>
                 </View>
-                <View style={styles.cardActions}>
-                  {employee.role === 'master' && (
+                {user?.role !== 'limitedAdmin' && (
+                  <View style={styles.cardActions}>
+                    {employee.role === 'master' && (
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.statusButton]} 
+                        onPress={() => openActionModal(employee)}
+                      >
+                        <UserCheck size={16} color="#2563EB" />
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity 
-                      style={[styles.actionButton, styles.statusButton]} 
+                      style={[styles.actionButton, styles.roleButton]} 
                       onPress={() => openActionModal(employee)}
                     >
-                      <UserCheck size={16} color="#2563EB" />
+                      <Edit size={16} color="#F59E0B" />
                     </TouchableOpacity>
-                  )}
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.roleButton]} 
-                    onPress={() => openActionModal(employee)}
-                  >
-                    <Edit size={16} color="#F59E0B" />
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.fireButton]} 
-                    onPress={() => openActionModal(employee)}
-                  >
-                    <Trash2 size={16} color="#EF4444" />
-                  </TouchableOpacity>
-                </View>
+                    <TouchableOpacity 
+                      style={[styles.actionButton, styles.fireButton]} 
+                      onPress={() => openActionModal(employee)}
+                    >
+                      <Trash2 size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             ))
           )}

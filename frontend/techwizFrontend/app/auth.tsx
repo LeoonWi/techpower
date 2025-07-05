@@ -20,7 +20,7 @@ export default function AuthScreen() {
           description: 'Полный доступ ко всем функциям',
           icon: Shield,
           color: '#DC2626',
-          placeholder: 'Введите логин администратора'
+          placeholder: 'Введите номер телефона'
         };
       case 'support':
         return {
@@ -28,7 +28,7 @@ export default function AuthScreen() {
           description: 'Управление заявками и чатами',
           icon: Headphones,
           color: '#2563EB',
-          placeholder: 'Введите логин поддержки'
+          placeholder: 'Введите номер телефона'
         };
       case 'master':
         return {
@@ -36,7 +36,7 @@ export default function AuthScreen() {
           description: 'Календарь смен и статусы заказов',
           icon: Wrench,
           color: '#059669',
-          placeholder: 'Введите логин мастера'
+          placeholder: 'Введите номер телефона'
         };
       default:
         return {
@@ -44,7 +44,7 @@ export default function AuthScreen() {
           description: 'Базовый доступ',
           icon: Shield,
           color: '#6B7280',
-          placeholder: 'Введите логин'
+          placeholder: 'Введите номер телефона'
         };
     }
   };
@@ -97,15 +97,15 @@ export default function AuthScreen() {
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.label}>Логин</Text>
-        <TextInput
-          style={styles.input}
-          value={username}
-          onChangeText={setUsername}
-          placeholder={roleInfo.placeholder}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <Text style={styles.label}>Номер телефона</Text>
+                  <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="79XXXXXXXXX"
+            keyboardType="phone-pad"
+            maxLength={11}
+          />
 
         <Text style={styles.label}>Пароль</Text>
         <TextInput
@@ -126,9 +126,9 @@ export default function AuthScreen() {
       <View style={styles.adminHint}>
         <Text style={styles.hintText}>
           💡 Демо аккаунты:{'\n'}
-          {role === 'admin' && 'admin / admin'}{'\n'}
-          {role === 'support' && 'support / support123'}{'\n'}
-          {role === 'master' && 'master / master123'}
+          {role === 'admin' && '79001234567 / admin123 (ограниченный доступ)'}{'\n'}
+          {role === 'support' && '79002345678 / support123'}{'\n'}
+          {role === 'master' && '79003456789 / master123'}
         </Text>
       </View>
     </SafeAreaView>

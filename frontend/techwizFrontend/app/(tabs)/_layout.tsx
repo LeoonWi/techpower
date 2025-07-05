@@ -35,7 +35,7 @@ export default function TabLayout() {
           icon: MessageSquare,
         }
       );
-    } else if (user?.role === 'admin') {
+    } else if (user?.role === 'admin' || user?.role === 'limitedAdmin') {
       // Админ: только экран добавления сотрудников
       baseTabs.push(
         {

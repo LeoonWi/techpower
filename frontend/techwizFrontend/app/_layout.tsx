@@ -7,6 +7,7 @@ import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
 import AuthCheck from '@/components/AuthCheck';
+import LimitedAdminGuard from '@/components/LimitedAdminGuard';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,14 +34,16 @@ export default function RootLayout() {
     <AuthProvider>
       <DataProvider>
         <AuthCheck>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="login" />
-            <Stack.Screen name="auth" />
-            <Stack.Screen name="addemployeescreen" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
+          <LimitedAdminGuard>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="login" />
+              <Stack.Screen name="auth" />
+              <Stack.Screen name="addemployeescreen" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+          </LimitedAdminGuard>
         </AuthCheck>
       </DataProvider>
     </AuthProvider>

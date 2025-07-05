@@ -31,6 +31,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       commission: 10,
       isActive: true,
     },
+    // Ограниченный админ - только для создания сотрудников
+    limitedAdmin: {
+      id: '1-limited',
+      role: 'admin',
+      fullName: 'Администратор (Ограниченный)',
+      nickname: 'limited_admin',
+      phone: '+7 900 123-45-67',
+      city: 'Москва',
+      category: 'Все категории',
+      balance: 150000,
+      commission: 10,
+      isActive: true,
+    },
     support: {
       id: '2',
       role: 'support',
@@ -59,9 +72,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Фейк-аккаунты для демо
   const demoCredentials = {
-    admin: { username: 'admin', password: 'admin' },
-    support: { username: 'support', password: 'support123' },
-    master: { username: 'master', password: 'master123' },
+    limitedAdmin: { username: '79001234567', password: 'admin123' },
+    support: { username: '79002345678', password: 'support123' },
+    master: { username: '79003456789', password: 'master123' },
   };
 
   const authenticate = async (username: string, password: string): Promise<boolean> => {

@@ -4,7 +4,7 @@
 // Используется для авторизации, профиля, работы с заказами, чатами и т.д.
 // =========================
 
-export type UserRole = 'admin' | 'support' | 'master';
+export type UserRole = 'admin' | 'limitedAdmin' | 'support' | 'master';
 
 export interface User {
   id: string;
