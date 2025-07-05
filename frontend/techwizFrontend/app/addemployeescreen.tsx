@@ -93,7 +93,21 @@ export default function AddEmployeeScreen() {
 
   const changeEmployeeRole = () => {
     if (selectedEmployee) {
-      const newRole = selectedEmployee.role === 'master' ? 'support' : 'master';
+      let newRole: string;
+      switch (selectedEmployee.role) {
+        case 'admin':
+          newRole = 'support';
+          break;
+        case 'support':
+          newRole = 'master';
+          break;
+        case 'master':
+          newRole = 'admin';
+          break;
+        default:
+          newRole = 'support';
+      }
+      
       setEmployees(prev => 
         prev.map(emp => 
           emp.id === selectedEmployee.id 
@@ -102,7 +116,7 @@ export default function AddEmployeeScreen() {
         )
       );
       closeActionModal();
-      Alert.alert('Успех', `Роль сотрудника изменена на ${newRole === 'master' ? 'Мастер' : 'Поддержка'}`);
+      Alert.alert('Успех', `Роль сотрудника изменена на ${getRoleTitle(newRole)}`);
     }
   };
 
@@ -128,7 +142,16 @@ export default function AddEmployeeScreen() {
   };
 
   const getRoleTitle = (role: string) => {
-    return role === 'master' ? 'Мастер' : 'Поддержка';
+    switch (role) {
+      case 'admin':
+        return 'Администратор';
+      case 'master':
+        return 'Мастер';
+      case 'support':
+        return 'Поддержка';
+      default:
+        return role;
+    }
   };
 
   const getStatusTitle = (status?: string) => {
@@ -214,12 +237,6 @@ export default function AddEmployeeScreen() {
                     >
                       <Edit size={16} color="#F59E0B" />
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.actionButton, styles.fireButton]} 
-                      onPress={() => openActionModal(employee)}
-                    >
-                      <Trash2 size={16} color="#EF4444" />
-                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -273,6 +290,7 @@ export default function AddEmployeeScreen() {
                 onValueChange={setRole}
                 style={styles.picker}
               >
+                <Picker.Item label="Администратор" value="admin" />
                 <Picker.Item label="Поддержка" value="support" />
                 <Picker.Item label="Мастер" value="master" />
               </Picker>
@@ -320,7 +338,7 @@ export default function AddEmployeeScreen() {
                     onPress={changeEmployeeRole}
                   >
                     <Text style={[styles.actionModalButtonText, { color: '#F59E0B' }]}>
-                      Изменить роль на {selectedEmployee.role === 'master' ? 'Поддержка' : 'Мастер'}
+                      Изменить роль
                     </Text>
                   </TouchableOpacity>
                   
