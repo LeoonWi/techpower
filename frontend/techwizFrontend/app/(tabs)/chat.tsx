@@ -29,13 +29,8 @@ export default function ChatScreen() {
   const [messageText, setMessageText] = useState('');
   const [complaintText, setComplaintText] = useState('');
   const [showComplaintForm, setShowComplaintForm] = useState(false);
-  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showCreateChatModal, setShowCreateChatModal] = useState(false);
-  const [selectedUserFilter, setSelectedUserFilter] = useState<string>('all');
-  const [newCategory, setNewCategory] = useState({
-    name: '',
-    description: '',
-  });
+  const [selectedUserFilter, setSelectedUserFilter] = useState<string>(user?.id || 'all');
   
   // Мок-данные пользователей для демонстрации
   const mockUsers: User[] = [
@@ -74,14 +69,7 @@ export default function ChatScreen() {
     }
   };
 
-  const handleAddCategory = () => {
-    if (newCategory.name.trim()) {
-      // Здесь будет логика добавления категории
-      Alert.alert('Успех', 'Категория создана успешно');
-      setNewCategory({ name: '', description: '' });
-      setShowAddCategoryModal(false);
-    }
-  };
+
 
   const handleCreateChat = () => {
     if (createChatForm.user1 && createChatForm.user2) {
@@ -133,9 +121,14 @@ export default function ChatScreen() {
       return availableCategories;
     }
     
-    // Здесь можно добавить логику фильтрации по пользователю
-    // Пока возвращаем все категории
-    return availableCategories;
+    // Фильтруем категории, где участвует выбранный пользователь
+    return availableCategories.filter(category => {
+      // Проверяем, есть ли сообщения от выбранного пользователя в этой категории
+      return messages.some(message => 
+        message.category === category.id && 
+        message.senderId === selectedUserFilter
+      );
+    });
   };
 
   const filteredCategories = getFilteredCategories();
@@ -295,14 +288,6 @@ export default function ChatScreen() {
               <Plus size={20} color="white" />
             </TouchableOpacity>
           )}
-          {(user?.role === 'admin' || user?.role === 'support') && (
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setShowAddCategoryModal(true)}
-            >
-              <Plus size={20} color="white" />
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
@@ -318,11 +303,15 @@ export default function ChatScreen() {
             onValueChange={(itemValue) => setSelectedUserFilter(itemValue)}
             style={styles.filterPicker}
           >
-            <Picker.Item label="Все пользователи" value="all" />
-            {mockUsers.map((user) => (
+            <Picker.Item label="Все чаты" value="all" />
+            <Picker.Item 
+              label={`Мои чаты (${user?.fullName})`} 
+              value={user?.id || 'all'} 
+            />
+            {mockUsers.filter(u => u.id !== user?.id).map((user) => (
               <Picker.Item 
                 key={user.id} 
-                label={`${user.fullName} (${user.role === 'master' ? 'Мастер' : 'Поддержка'})`} 
+                label={`Чаты ${user.fullName} (${user.role === 'master' ? 'Мастер' : 'Поддержка'})`} 
                 value={user.id} 
               />
             ))}
@@ -377,9 +366,6 @@ export default function ChatScreen() {
                 </Text>
               </View>
             </View>
-            <Text style={styles.categoryDescription} numberOfLines={2}>
-              {category.description}
-            </Text>
             {category.lastMessage && (
               <View style={styles.lastMessage}>
                 <Text style={styles.lastMessageText} numberOfLines={1}>
@@ -487,62 +473,7 @@ export default function ChatScreen() {
         </View>
       </Modal>
 
-      {/* Add Category Modal */}
-      <Modal
-        visible={showAddCategoryModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowAddCategoryModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Создать новую категорию чата</Text>
-            <ScrollView 
-              style={styles.formContainer}
-              contentContainerStyle={styles.formContent}
-              showsVerticalScrollIndicator={true}
-            >
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Название категории</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={newCategory.name}
-                  onChangeText={(text) => setNewCategory({ ...newCategory, name: text })}
-                  placeholder="Введите название категории"
-                  maxLength={50}
-                />
-              </View>
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Описание</Text>
-                <TextInput
-                  style={[styles.formInput, styles.multilineInput]}
-                  value={newCategory.description}
-                  onChangeText={(text) => setNewCategory({ ...newCategory, description: text })}
-                  placeholder="Введите описание категории"
-                  multiline
-                  numberOfLines={4}
-                  maxLength={200}
-                />
-              </View>
-            </ScrollView>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.cancelButton}
-                onPress={() => setShowAddCategoryModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Отмена</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.submitButton, !newCategory.name.trim() && styles.submitButtonDisabled]}
-                onPress={handleAddCategory}
-                disabled={!newCategory.name.trim()}
-              >
-                <Text style={styles.submitButtonText}>Создать</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+
     </SafeAreaView>
   );
 }
