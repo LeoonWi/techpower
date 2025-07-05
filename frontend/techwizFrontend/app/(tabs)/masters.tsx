@@ -24,6 +24,7 @@ export default function MastersScreen() {
   const filters = [
     { key: 'all', label: 'Все' },
     { key: 'active', label: 'Активные' },
+    { key: 'inactive', label: 'Неактивные' },
   ];
 
   const filteredMasters = masters.filter(master => {
@@ -35,6 +36,8 @@ export default function MastersScreen() {
       switch (selectedFilter) {
         case 'active':
           return master.isActive;
+        case 'inactive':
+          return !master.isActive;
         default:
           return true;
       }
@@ -52,7 +55,16 @@ export default function MastersScreen() {
   };
 
   const getRoleTitle = (role: string) => {
-    return 'Мастер';
+    switch (role) {
+      case 'senior_master':
+        return 'Старший мастер';
+      case 'premium_master':
+        return 'Премиум мастер';
+      case 'master':
+        return 'Мастер';
+      default:
+        return 'Мастер';
+    }
   };
 
   const handleMasterAction = (masterId: string, action: string) => {
@@ -87,6 +99,11 @@ export default function MastersScreen() {
           <User size={20} color="#059669" />
           <Text style={styles.statNumber}>{masters.filter(m => m.isActive).length}</Text>
           <Text style={styles.statLabel}>Активных</Text>
+        </View>
+        <View style={styles.statCard}>
+          <User size={20} color="#DC2626" />
+          <Text style={styles.statNumber}>{masters.filter(m => !m.isActive).length}</Text>
+          <Text style={styles.statLabel}>Неактивных</Text>
         </View>
 
       </View>
@@ -157,23 +174,30 @@ export default function MastersScreen() {
                     <View style={styles.masterNameRow}>
                       <Text style={styles.masterName}>{master.fullName}</Text>
                     </View>
-                    <Text style={styles.masterRole}>{getRoleTitle(master.role)}</Text>
+                    <Text style={styles.masterRole}>
+                      {getRoleTitle(master.role)}
+                      {(master.role === 'senior_master' || master.role === 'premium_master') && (
+                        <Text style={styles.masterStatus}> • {master.isActive ? 'Активен' : 'Неактивен'}</Text>
+                      )}
+                    </Text>
                     <View style={styles.masterLocation}>
                       <MapPin size={12} color="#64748B" />
                       <Text style={styles.masterLocationText}>{master.city}</Text>
                     </View>
                   </View>
-                  <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: master.isActive ? '#D1FAE5' : '#FEE2E2' }
-                  ]}>
-                    <Text style={[
-                      styles.statusText,
-                      { color: master.isActive ? '#059669' : '#DC2626' }
+                  {master.role === 'master' && (
+                    <View style={[
+                      styles.statusBadge,
+                      { backgroundColor: master.isActive ? '#D1FAE5' : '#FEE2E2' }
                     ]}>
-                      {master.isActive ? 'Активен' : 'Неактивен'}
-                    </Text>
-                  </View>
+                      <Text style={[
+                        styles.statusText,
+                        { color: master.isActive ? '#059669' : '#DC2626' }
+                      ]}>
+                        {master.isActive ? 'Активен' : 'Неактивен'}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.masterDetails}>
@@ -415,6 +439,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#2563EB',
     marginBottom: 4,
+  },
+  masterStatus: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
   },
   masterLocation: {
     flexDirection: 'row',
