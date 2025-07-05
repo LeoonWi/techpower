@@ -218,8 +218,8 @@ export default function OrdersScreen() {
                     style={styles.cancelButton}
                     onPress={() => setShowCancelModal(order.id)}
                   >
-                    <X size={16} color="white" />
                     <Text style={styles.cancelButtonText}>Отменить</Text>
+                    <X size={16} color="white" style={styles.cancelButtonIcon} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -397,23 +397,41 @@ export default function OrdersScreen() {
                 contentContainerStyle={styles.mastersListContent}
                 showsVerticalScrollIndicator={true}
               >
-                {availableMasters.map((master) => (
-                  <TouchableOpacity
-                    key={master.id}
-                    style={styles.masterItem}
-                    onPress={() => handleAssignOrder(showMasterSelection, master.id)}
-                  >
-                    <Text style={styles.masterName}>{master.fullName}</Text>
-                    <Text style={styles.masterRole}>{master.category}</Text>
-                  </TouchableOpacity>
-                ))}
+                {availableMasters.length === 0 ? (
+                  <View style={styles.emptyMastersState}>
+                    <Text style={styles.emptyMastersText}>Нет доступных мастеров</Text>
+                    <Text style={styles.emptyMastersSubtext}>
+                      Все мастера либо неактивны, либо уже заняты
+                    </Text>
+                  </View>
+                ) : (
+                  availableMasters.map((master) => (
+                    <TouchableOpacity
+                      key={master.id}
+                      style={styles.masterItem}
+                      onPress={() => handleAssignOrder(showMasterSelection, master.id)}
+                    >
+                      <View style={styles.masterInfo}>
+                        <Text style={styles.masterName}>{master.fullName}</Text>
+                        <Text style={styles.masterCategory}>{master.category}</Text>
+                        <Text style={styles.masterCity}>{master.city}</Text>
+                      </View>
+                      <View style={styles.masterStats}>
+                        <Text style={styles.masterRating}>⭐ 4.8</Text>
+                        <Text style={styles.masterOrders}>24 заказа</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
               </ScrollView>
-              <TouchableOpacity 
-                style={styles.cancelButton}
-                onPress={() => setShowMasterSelection(null)}
-              >
-                <Text style={styles.cancelButtonText}>Отмена</Text>
-              </TouchableOpacity>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.cancelButton}
+                  onPress={() => setShowMasterSelection(null)}
+                >
+                  <Text style={styles.cancelButtonText}>Отмена</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -743,6 +761,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#64748B',
   },
+  cancelButtonIcon: {
+    marginLeft: 6,
+  },
   formPicker: {
     backgroundColor: '#F1F5F9',
     borderRadius: 8,
@@ -757,5 +778,24 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     marginBottom: 16,
+  },
+  emptyMastersState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyMastersText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#64748B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyMastersSubtext: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#94A3B8',
+    textAlign: 'center',
   },
 });
