@@ -7,6 +7,7 @@ interface AuthContextType {
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   isLoading: boolean;
+  authenticate: (username: string, password: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,30 +54,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       commission: 15,
       isActive: true,
     },
-    senior_master: {
-      id: '4',
-      role: 'senior_master',
-      fullName: 'Мастер Старший',
-      nickname: 'senior_master',
-      phone: '+7 900 456-78-90',
-      city: 'Новосибирск',
-      category: 'Компьютеры',
-      balance: 75000,
-      commission: 12,
-      isActive: true,
-    },
-    premium_master: {
-      id: '5',
-      role: 'premium_master',
-      fullName: 'Мастер Премиум',
-      nickname: 'premium_master',
-      phone: '+7 900 567-89-01',
-      city: 'Екатеринбург',
-      category: 'Электроника',
-      balance: 120000,
-      commission: 8,
-      isActive: true,
-    },
+  };
+
+  // Фейк-аккаунт для админа
+  const adminCredentials = {
+    username: 'admin',
+    password: 'admin',
+  };
+
+  const authenticate = async (username: string, password: string): Promise<boolean> => {
+    // Проверяем фейк-аккаунт админа
+    if (username === adminCredentials.username && password === adminCredentials.password) {
+      setUser(mockUsers.admin);
+      return true;
+    }
+    
+    // Здесь можно добавить проверку других ролей или интеграцию с backend
+    return false;
   };
 
   const login = (role: UserRole) => {
@@ -101,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading, authenticate }}>
       {children}
     </AuthContext.Provider>
   );

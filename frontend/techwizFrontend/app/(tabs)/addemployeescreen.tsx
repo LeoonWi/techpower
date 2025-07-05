@@ -129,8 +129,6 @@ export default function EmployeeScreen() {
 >
   <Picker.Item label="Саппорт" value="Саппорт" />
   <Picker.Item label="Мастер" value="Мастер" />
-  <Picker.Item label="Старший мастер" value="Старший мастер" />
-  <Picker.Item label="Премиум мастер" value="Премиум мастер" />
 </Picker>
 
             <TouchableOpacity style={styles.modalButton} onPress={addEmployee}>

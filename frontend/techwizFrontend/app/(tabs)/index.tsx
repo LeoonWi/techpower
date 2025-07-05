@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { router } from 'expo-router';
-import { Wallet, Pickaxe, TrendingUp, ClipboardList, Users, MessageSquare, Calendar, MapPin, Crown, Settings, FileText, TriangleAlert as AlertTriangle, Clock, CircleCheck as CheckCircle, ChartBar as BarChart3 } from 'lucide-react-native';
+import { Wallet, Pickaxe, TrendingUp, ClipboardList, Users, MessageSquare, Calendar, MapPin, Settings, FileText, TriangleAlert as AlertTriangle, Clock, CircleCheck as CheckCircle, ChartBar as BarChart3 } from 'lucide-react-native';
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -13,6 +13,9 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!user) {
       router.replace('/login');
+    } else if (user.role === 'admin') {
+      // Админ может видеть только экран добавления сотрудников
+      router.replace('/(tabs)/addemployeescreen');
     }
   }, [user]);
 
@@ -32,8 +35,6 @@ export default function HomeScreen() {
       admin: 'Администратор',
       support: 'Поддержка',
       master: 'Мастер',
-      senior_master: 'Старший мастер',
-      premium_master: 'Премиум мастер',
     };
     return roleTitles[user.role];
   };
@@ -48,7 +49,7 @@ export default function HomeScreen() {
       };
     }
 
-    if (user.role === 'master' || user.role === 'premium_master') {
+    if (user.role === 'master') {
       const userOrders = orders.filter(order => order.assignedMasterId === user.id);
       const stats = masterStats[user.id] || { orders: 0, earnings: 0, rating: 0 };
       
@@ -57,7 +58,7 @@ export default function HomeScreen() {
           ['assigned', 'in_progress'].includes(order.status)
         ).length,
         completedOrders: userOrders.filter(order => order.status === 'completed').length,
-        totalEarnings: stats.earnings,
+        totalEarnings: stats.earnings || 0,
         rating: stats.rating,
       };
     }
@@ -109,7 +110,7 @@ export default function HomeScreen() {
           onPress: () => router.push('/(tabs)/masterscreen'),
         },
       );
-    } else if (user.role === 'master' || user.role === 'premium_master') {
+    } else if (user.role === 'master') {
       baseActions.push(
         {
           title: 'Статистика',
@@ -140,7 +141,7 @@ export default function HomeScreen() {
         }
       );
 
-      if (user.role === 'admin' || user.role === 'senior_master') {
+      if (user.role === 'admin') {
         baseActions.push(
           {
             title: 'Аналитика',
@@ -236,7 +237,7 @@ export default function HomeScreen() {
           <Text style={styles.balanceTitle}>Доходы</Text>
         </View>
         <Text style={styles.balanceAmount}>
-          {dashboardData.totalEarnings.toLocaleString('ru-RU')} ₽
+          {(dashboardData.totalEarnings || 0).toLocaleString('ru-RU')} ₽
         </Text>
         <Text style={styles.commissionText}>
           Комиссия: {user.commission}%
@@ -284,9 +285,6 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>{getGreeting()}</Text>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{user.fullName}</Text>
-              {user.role === 'premium_master' && (
-                <Crown size={20} color="#FFD700" style={styles.crownIcon} />
-              )}
             </View>
             <Text style={styles.userRole}>{getRoleTitle()}</Text>
           </View>
@@ -297,8 +295,8 @@ export default function HomeScreen() {
         </View>
 
         {user.role === 'support' && renderSupportDashboard()}
-        {(user.role === 'master' || user.role === 'premium_master') && renderMasterDashboard()}
-        {(user.role === 'admin' || user.role === 'senior_master') && renderDefaultDashboard()}
+        {user.role === 'master' && renderMasterDashboard()}
+        {user.role === 'admin' && renderDefaultDashboard()}
 
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Быстрые действия</Text>
@@ -371,9 +369,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#1E293B',
   },
-  crownIcon: {
-    marginLeft: 8,
-  },
+
   userRole: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
