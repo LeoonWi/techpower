@@ -40,7 +40,7 @@ export default function TabLayout() {
       baseTabs.push(
         {
           name: 'addemployeescreen',
-          title: 'Добавить сотрудника',
+          title: 'Сотрудники',
           icon: Users,
         }
       );

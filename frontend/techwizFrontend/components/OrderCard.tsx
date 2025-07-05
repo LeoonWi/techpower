@@ -1,17 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Order, OrderStatus } from '@/types/order';
-import { MapPin, Clock, DollarSign, Crown } from 'lucide-react-native';
+import { MapPin, Clock, DollarSign } from 'lucide-react-native';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface OrderCardProps {
   order: Order;
   onPress?: () => void;
   showActions?: boolean;
   onStatusChange?: (orderId: string, status: OrderStatus) => void;
+  onCancel?: (orderId: string, reason: string) => void;
 }
 
-export default function OrderCard({ order, onPress, showActions, onStatusChange }: OrderCardProps) {
+export default function OrderCard({ order, onPress, showActions, onStatusChange, onCancel }: OrderCardProps) {
+  const { user } = useAuth();
+  const [showClientInfo, setShowClientInfo] = useState(false);
+
   const getStatusColor = (status: OrderStatus) => {
     const colors = {
       pending: '#F59E0B',
@@ -46,21 +51,31 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange 
     }
   };
 
+  const handleOnSite = () => {
+    setShowClientInfo(true);
+  };
+
   const statusActions = [
     { status: 'completed' as OrderStatus, title: 'Сдать', color: '#10B981' },
     { status: 'modernization' as OrderStatus, title: 'Модернизация', color: '#7C3AED' },
-    { status: 'cancelled' as OrderStatus, title: 'Отмена', color: '#F59E0B' },
     { status: 'rejected' as OrderStatus, title: 'Отказ', color: '#EF4444' },
   ];
+
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
     <TouchableOpacity style={styles.container} onPress={handleCardPress}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>{order.title}</Text>
-          {order.isPremium && (
-            <Crown size={16} color="#FFD700" style={styles.premiumIcon} />
-          )}
         </View>
         <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(order.status)}20` }]}>
           <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
@@ -75,28 +90,44 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange 
 
       <View style={styles.infoRow}>
         <View style={styles.infoItem}>
-          <MapPin size={14} color="#64748B" />
-          <Text style={styles.infoText}>{order.city}</Text>
-        </View>
-        <View style={styles.infoItem}>
           <DollarSign size={14} color="#64748B" />
           <Text style={styles.infoText}>{order.price.toLocaleString('ru-RU')} ₽</Text>
         </View>
         <View style={styles.infoItem}>
+          <MapPin size={14} color="#64748B" />
+          <Text style={styles.infoText}>{order.city}</Text>
+        </View>
+        <View style={styles.infoItem}>
           <Clock size={14} color="#64748B" />
           <Text style={styles.infoText}>
-            {order.createdAt.toLocaleDateString('ru-RU')}
+            {formatDateTime(order.createdAt)}
           </Text>
         </View>
       </View>
 
-      <View style={styles.clientInfo}>
-        <Text style={styles.clientName}>{order.clientName}</Text>
-        <Text style={styles.clientPhone}>{order.clientPhone}</Text>
-      </View>
+      {showClientInfo && (
+        <View style={styles.clientInfo}>
+          <Text style={styles.clientName}>{order.clientName}</Text>
+          <Text style={styles.clientPhone}>{order.clientPhone}</Text>
+          <Text style={styles.orderPrice}>{order.price.toLocaleString('ru-RU')} ₽</Text>
+        </View>
+      )}
 
       {showActions && order.status === 'assigned' && (
         <View style={styles.actionsContainer}>
+          {user?.role === 'master' && (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#2563EB20' }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleOnSite();
+              }}
+            >
+              <Text style={[styles.actionText, { color: '#2563EB' }]}>
+                На месте
+              </Text>
+            </TouchableOpacity>
+          )}
           {statusActions.map((action) => (
             <TouchableOpacity
               key={action.status}
@@ -148,9 +179,6 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     flex: 1,
   },
-  premiumIcon: {
-    marginLeft: 8,
-  },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -186,6 +214,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
+    marginBottom: 12,
   },
   clientName: {
     fontSize: 14,
@@ -197,12 +226,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#64748B',
+    marginBottom: 4,
+  },
+  orderPrice: {
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
+    color: '#059669',
   },
   actionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
@@ -210,7 +244,7 @@ const styles = StyleSheet.create({
   actionButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   actionText: {
     fontSize: 12,

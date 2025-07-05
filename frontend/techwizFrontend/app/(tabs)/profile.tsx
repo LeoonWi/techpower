@@ -25,7 +25,13 @@ export default function ProfileScreen() {
 
   const handleSave = () => {
     if (editedUser) {
-      updateUser(editedUser);
+      // Не отправляем полное имя и категорию при обновлении
+      const userToUpdate = {
+        ...editedUser,
+        fullName: user.fullName, // Оставляем оригинальное значение
+        category: user.category, // Оставляем оригинальное значение
+      };
+      updateUser(userToUpdate);
       setIsEditing(false);
       Alert.alert('Успешно', 'Профиль обновлен');
     }
@@ -59,8 +65,6 @@ export default function ProfileScreen() {
       admin: 'Администратор',
       support: 'Поддержка',
       master: 'Мастер',
-      senior_master: 'Старший мастер',
-      premium_master: 'Премиум мастер',
     };
     return roleTitles[user.role];
   };
@@ -70,8 +74,6 @@ export default function ProfileScreen() {
       admin: '#DC2626',
       support: '#2563EB',
       master: '#059669',
-      senior_master: '#EA580C',
-      premium_master: '#7C3AED',
     };
     return colors[user.role];
   };
@@ -96,7 +98,6 @@ export default function ProfileScreen() {
           <View style={styles.userInfo}>
             <View style={styles.nameRow}>
               <Text style={styles.userName}>{user.fullName}</Text>
-              {user.role === 'premium_master' && <Crown size={20} color="#FFD700" />}
             </View>
             <View style={[styles.roleBadge, { backgroundColor: `${getRoleBadgeColor()}20` }]}>
               <Text style={[styles.roleText, { color: getRoleBadgeColor() }]}>{getRoleTitle()}</Text>
@@ -129,16 +130,10 @@ export default function ProfileScreen() {
           <Text style={styles.formTitle}>Личная информация</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Полное имя *</Text>
-            <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Полное имя</Text>
+            <View style={[styles.inputContainer, styles.readOnlyInput]}>
               <User size={20} color="#64748B" />
-              <TextInput
-                style={styles.input}
-                value={isEditing ? editedUser?.fullName : user.fullName}
-                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, fullName: text } : null))}
-                editable={isEditing}
-                placeholder="Введите полное имя"
-              />
+              <Text style={styles.readOnlyText}>{user.fullName}</Text>
             </View>
           </View>
 
@@ -172,30 +167,10 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Город</Text>
-            <View style={styles.inputContainer}>
-              <MapPin size={20} color="#64748B" />
-              <TextInput
-                style={styles.input}
-                value={isEditing ? editedUser?.city : user.city}
-                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, city: text } : null))}
-                editable={isEditing}
-                placeholder="Введите город"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Категория</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, styles.readOnlyInput]}>
               <Star size={20} color="#64748B" />
-              <TextInput
-                style={styles.input}
-                value={isEditing ? editedUser?.category : user.category}
-                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, category: text } : null))}
-                editable={isEditing}
-                placeholder="Введите категорию"
-              />
+              <Text style={styles.readOnlyText}>{user.category}</Text>
             </View>
           </View>
 
@@ -219,11 +194,6 @@ export default function ProfileScreen() {
 
         {/* Settings */}
         <View style={styles.settingsContainer}>
-          <TouchableOpacity style={styles.settingItem}>
-            <Settings size={20} color="#64748B" />
-            <Text style={styles.settingText}>Настройки приложения</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.settingItem} onPress={handlePayment}>
             <CreditCard size={20} color="#64748B" />
             <Text style={styles.settingText}>Платежи и СБП</Text>
@@ -392,11 +362,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
+  readOnlyInput: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+  },
   input: {
     flex: 1,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#1E293B',
+    marginLeft: 12,
+  },
+  readOnlyText: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
     marginLeft: 12,
   },
   actionButtons: {

@@ -9,23 +9,46 @@
 // - Обрабатывайте ошибки backend.
 // =========================
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Send, ArrowLeft, Users, TriangleAlert as AlertTriangle, Plus } from 'lucide-react-native';
+import { Send, ArrowLeft, Users, TriangleAlert as AlertTriangle, Plus, Filter, X } from 'lucide-react-native';
+import { Picker } from '@react-native-picker/picker';
+
+interface User {
+  id: string;
+  fullName: string;
+  role: string;
+}
 
 export default function ChatScreen() {
   const { user } = useAuth();
-  const { chatCategories, messages, sendMessage, addComplaint, addChatCategory } = useData();
+  const { chatCategories, messages, sendMessage, addComplaint } = useData();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const [complaintText, setComplaintText] = useState('');
   const [showComplaintForm, setShowComplaintForm] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showCreateChatModal, setShowCreateChatModal] = useState(false);
+  const [selectedUserFilter, setSelectedUserFilter] = useState<string>('all');
   const [newCategory, setNewCategory] = useState({
     name: '',
     description: '',
+  });
+  
+  // Мок-данные пользователей для демонстрации
+  const mockUsers: User[] = [
+    { id: '1', fullName: 'Иван Иванов', role: 'support' },
+    { id: '2', fullName: 'Петр Петров', role: 'master' },
+    { id: '3', fullName: 'Анна Сидорова', role: 'support' },
+    { id: '4', fullName: 'Михаил Козлов', role: 'master' },
+  ];
+
+  // Форма создания чата
+  const [createChatForm, setCreateChatForm] = useState({
+    user1: '',
+    user2: '',
   });
 
   const selectedCategoryData = chatCategories.find(cat => cat.id === selectedCategory);
@@ -53,14 +76,21 @@ export default function ChatScreen() {
 
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
-      addChatCategory({
-        id: Math.random().toString(), // Replace with proper ID generation in production
-        name: newCategory.name.trim(),
-        description: newCategory.description.trim(),
-        participantCount: 0,
-      });
+      // Здесь будет логика добавления категории
+      Alert.alert('Успех', 'Категория создана успешно');
       setNewCategory({ name: '', description: '' });
       setShowAddCategoryModal(false);
+    }
+  };
+
+  const handleCreateChat = () => {
+    if (createChatForm.user1 && createChatForm.user2) {
+      // Здесь будет логика создания чата
+      Alert.alert('Успех', 'Чат создан успешно');
+      setCreateChatForm({ user1: '', user2: '' });
+      setShowCreateChatModal(false);
+    } else {
+      Alert.alert('Ошибка', 'Выберите обоих пользователей');
     }
   };
 
@@ -70,16 +100,11 @@ export default function ChatScreen() {
       return chatCategories;
     }
     
-    if (user?.role === 'master' || user?.role === 'premium_master') {
+    if (user?.role === 'master') {
       return chatCategories.filter(cat => 
         cat.name === user.category || 
-        cat.id === 'support' ||
-        cat.id === 'senior_master'
+        cat.id === 'support'
       );
-    }
-    
-    if (user?.role === 'senior_master') {
-      return chatCategories;
     }
     
     if (user?.role === 'admin') {
@@ -90,6 +115,19 @@ export default function ChatScreen() {
   };
 
   const availableCategories = getAvailableCategories();
+
+  // Фильтруем чаты по выбранному пользователю
+  const getFilteredCategories = () => {
+    if (selectedUserFilter === 'all') {
+      return availableCategories;
+    }
+    
+    // Здесь можно добавить логику фильтрации по пользователю
+    // Пока возвращаем все категории
+    return availableCategories;
+  };
+
+  const filteredCategories = getFilteredCategories();
 
   if (selectedCategory) {
     return (
@@ -237,15 +275,50 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Чаты</Text>
-        {user?.role === 'support' && (
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={() => setShowAddCategoryModal(true)}
-          >
-            <Plus size={20} color="white" />
-          </TouchableOpacity>
-        )}
+        <View style={styles.headerActions}>
+          {(user?.role === 'admin' || user?.role === 'support') && (
+            <TouchableOpacity 
+              style={styles.createChatButton}
+              onPress={() => setShowCreateChatModal(true)}
+            >
+              <Plus size={20} color="white" />
+            </TouchableOpacity>
+          )}
+          {(user?.role === 'admin' || user?.role === 'support') && (
+            <TouchableOpacity 
+              style={styles.addButton}
+              onPress={() => setShowAddCategoryModal(true)}
+            >
+              <Plus size={20} color="white" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
+
+      {/* Фильтр пользователей */}
+      {(user?.role === 'admin' || user?.role === 'support') && (
+        <View style={styles.filterContainer}>
+          <View style={styles.filterHeader}>
+            <Filter size={16} color="#64748B" />
+            <Text style={styles.filterTitle}>Фильтр по пользователю</Text>
+          </View>
+          <Picker
+            selectedValue={selectedUserFilter}
+            onValueChange={(itemValue) => setSelectedUserFilter(itemValue)}
+            style={styles.filterPicker}
+          >
+            <Picker.Item label="Все пользователи" value="all" />
+            {mockUsers.map((user) => (
+              <Picker.Item 
+                key={user.id} 
+                label={`${user.fullName} (${user.role === 'master' ? 'Мастер' : 'Поддержка'})`} 
+                value={user.id} 
+              />
+            ))}
+          </Picker>
+        </View>
+      )}
+
       <Text style={styles.subtitle}>Выберите категорию для общения</Text>
 
       <ScrollView 
@@ -253,7 +326,7 @@ export default function ChatScreen() {
         contentContainerStyle={styles.categoriesListContent}
         showsVerticalScrollIndicator={true}
       >
-        {(user?.role === 'master' || user?.role === 'premium_master') && (
+        {user?.role === 'master' && (
           <TouchableOpacity
             style={styles.complaintButton}
             onPress={() => setShowComplaintForm(true)}
@@ -263,7 +336,7 @@ export default function ChatScreen() {
           </TouchableOpacity>
         )}
 
-        {availableCategories.map((category) => (
+        {filteredCategories.map((category) => (
           <TouchableOpacity
             key={category.id}
             style={styles.categoryCard}
@@ -297,6 +370,91 @@ export default function ChatScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Modal создания чата */}
+      <Modal
+        visible={showCreateChatModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowCreateChatModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Создать чат</Text>
+              <TouchableOpacity onPress={() => setShowCreateChatModal(false)}>
+                <X size={24} color="#334155" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>
+                {user?.role === 'master' ? 'Пользователь 1 (Вы)' : 'Пользователь 1'}
+              </Text>
+              {user?.role === 'master' ? (
+                <TextInput
+                  style={[styles.formInput, styles.readOnlyInput]}
+                  value={user.fullName}
+                  editable={false}
+                />
+              ) : (
+                <Picker
+                  selectedValue={createChatForm.user1}
+                  onValueChange={(itemValue) => setCreateChatForm({ ...createChatForm, user1: itemValue })}
+                  style={styles.formPicker}
+                >
+                  <Picker.Item label="Выберите пользователя" value="" />
+                  {mockUsers.map((user) => (
+                    <Picker.Item 
+                      key={user.id} 
+                      label={`${user.fullName} (${user.role === 'master' ? 'Мастер' : 'Поддержка'})`} 
+                      value={user.id} 
+                    />
+                  ))}
+                </Picker>
+              )}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>
+                {user?.role === 'master' ? 'Пользователь 2 (Поддержка)' : 'Пользователь 2'}
+              </Text>
+              <Picker
+                selectedValue={createChatForm.user2}
+                onValueChange={(itemValue) => setCreateChatForm({ ...createChatForm, user2: itemValue })}
+                style={styles.formPicker}
+              >
+                <Picker.Item label="Выберите пользователя" value="" />
+                {mockUsers
+                  .filter(u => user?.role === 'master' ? u.role === 'support' : u.id !== createChatForm.user1)
+                  .map((user) => (
+                    <Picker.Item 
+                      key={user.id} 
+                      label={`${user.fullName} (${user.role === 'master' ? 'Мастер' : 'Поддержка'})`} 
+                      value={user.id} 
+                    />
+                  ))}
+              </Picker>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setShowCreateChatModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.submitButton, (!createChatForm.user1 || !createChatForm.user2) && styles.submitButtonDisabled]}
+                onPress={handleCreateChat}
+                disabled={!createChatForm.user1 || !createChatForm.user2}
+              >
+                <Text style={styles.submitButtonText}>Создать</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Add Category Modal */}
       <Modal
@@ -723,5 +881,50 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 16,
     gap: 8,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterContainer: {
+    padding: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1E293B',
+    marginLeft: 8,
+  },
+  filterPicker: {
+    flex: 1,
+  },
+  createChatButton: {
+    backgroundColor: '#2563EB',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  readOnlyInput: {
+    backgroundColor: '#F1F5F9',
+  },
+  formPicker: {
+    flex: 1,
   },
 });

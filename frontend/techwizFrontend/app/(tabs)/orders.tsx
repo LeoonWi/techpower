@@ -13,8 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import OrderCard from '@/components/OrderCard';
-import { Search, Filter, Plus, User, Trash2 } from 'lucide-react-native';
+import { Search, Filter, Plus, User, X } from 'lucide-react-native';
 import { OrderStatus } from '@/types/order';
+import { Picker } from '@react-native-picker/picker';
 
 const statusFilters = [
   { key: 'all', label: 'Все' },
@@ -24,6 +25,13 @@ const statusFilters = [
   { key: 'completed', label: 'Выполнены' },
 ];
 
+const categories = [
+  { id: '1', name: 'Компьютеры' },
+  { id: '2', name: 'Электроника' },
+  { id: '3', name: 'Мобильные устройства' },
+  { id: '4', name: 'Ремонт техники' },
+];
+
 export default function OrdersScreen() {
   const { user } = useAuth();
   const { orders, updateOrderStatus, assignOrder, masters } = useData();
@@ -31,17 +39,16 @@ export default function OrdersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showMasterSelection, setShowMasterSelection] = useState<string | null>(null);
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
   const [newOrder, setNewOrder] = useState({
     name: '',
     phone_number: '',
     address: '',
     comment: '',
     price: '',
-    status_code: '',
-    reason: '',
     category_id: '',
-    worker_id: '',
+    date_time: '',
   });
 
   const filteredOrders = orders.filter(order => {
@@ -57,10 +64,6 @@ export default function OrdersScreen() {
           return true;
         case 'support':
           return true;
-        case 'senior_master':
-          return order.status === 'pending' || order.assignedMasterId === user.id;
-        case 'premium_master':
-          return order.assignedMasterId === user.id || (order.isPremium && order.status === 'pending');
         case 'master':
           return order.assignedMasterId === user.id;
         default:
@@ -80,8 +83,6 @@ export default function OrdersScreen() {
       } else {
         setShowMasterSelection(orderId);
       }
-    } else if (user && (user.role === 'senior_master' || user.role === 'premium_master')) {
-      assignOrder(orderId, user.id);
     }
   };
 
@@ -95,25 +96,28 @@ export default function OrdersScreen() {
       address: '',
       comment: '',
       price: '',
-      status_code: '',
-      reason: '',
       category_id: '',
-      worker_id: '',
+      date_time: '',
     });
   };
 
-  const handleDeleteOrder = (orderId: string) => {
-    // Placeholder logic for deleting an order
-    Alert.alert('Успешно', 'Заказ удалён');
-    setShowDeleteConfirm(null);
+  const handleCancelOrder = (orderId: string) => {
+    if (cancelReason.trim()) {
+      // Placeholder logic for canceling an order
+      Alert.alert('Успешно', 'Заказ отменен');
+      setShowCancelModal(null);
+      setCancelReason('');
+    } else {
+      Alert.alert('Ошибка', 'Укажите причину отмены');
+    }
   };
 
-  const canShowActions = user?.role === 'master' || user?.role === 'senior_master' || user?.role === 'premium_master';
+  const canShowActions = user?.role === 'master';
   const canAssignOrders = user?.role === 'support' || user?.role === 'admin';
   const canManageOrders = user?.role === 'support' || user?.role === 'admin';
 
   const availableMasters = masters.filter(master => 
-    master.isActive && (master.role === 'master' || master.role === 'premium_master' || master.role === 'senior_master')
+    master.isActive && master.role === 'master'
   );
 
   return (
@@ -198,7 +202,7 @@ export default function OrdersScreen() {
                 }}
               />
               
-              {/* Support assignment and delete buttons */}
+              {/* Support assignment and cancel buttons */}
               <View style={styles.orderActions}>
                 {canAssignOrders && order.status === 'pending' && (
                   <TouchableOpacity 
@@ -209,13 +213,13 @@ export default function OrdersScreen() {
                     <Text style={styles.assignButtonText}>Назначить мастера</Text>
                   </TouchableOpacity>
                 )}
-                {canManageOrders && (
+                {canManageOrders && order.status !== 'completed' && (
                   <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => setShowDeleteConfirm(order.id)}
+                    style={styles.cancelButton}
+                    onPress={() => setShowCancelModal(order.id)}
                   >
-                    <Trash2 size={16} color="white" />
-                    <Text style={styles.deleteButtonText}>Удалить</Text>
+                    <X size={16} color="white" />
+                    <Text style={styles.cancelButtonText}>Отменить</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -293,43 +297,26 @@ export default function OrdersScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Код статуса</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={newOrder.status_code}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, status_code: text })}
-                  placeholder="Введите код статуса"
-                  keyboardType="numeric"
-                />
+                <Text style={styles.formLabel}>Категория</Text>
+                <Picker
+                  selectedValue={newOrder.category_id}
+                  onValueChange={(itemValue) => setNewOrder({ ...newOrder, category_id: itemValue })}
+                  style={styles.formPicker}
+                >
+                  <Picker.Item label="Выберите категорию" value="" />
+                  {categories.map((category) => (
+                    <Picker.Item key={category.id} label={category.name} value={category.id} />
+                  ))}
+                </Picker>
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Причина статуса</Text>
+                <Text style={styles.formLabel}>Дата и время</Text>
                 <TextInput
                   style={styles.formInput}
-                  value={newOrder.reason}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, reason: text })}
-                  placeholder="Введите причину"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>ID категории</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={newOrder.category_id}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, category_id: text })}
-                  placeholder="Введите ID категории"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>ID мастера</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={newOrder.worker_id}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, worker_id: text })}
-                  placeholder="Введите ID мастера"
+                  value={newOrder.date_time}
+                  onChangeText={(text) => setNewOrder({ ...newOrder, date_time: text })}
+                  placeholder="Введите дату и время"
                 />
               </View>
             </ScrollView>
@@ -352,31 +339,42 @@ export default function OrdersScreen() {
         </View>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Cancel Confirmation Modal */}
       <Modal
-        visible={!!showDeleteConfirm}
+        visible={!!showCancelModal}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowDeleteConfirm(null)}
+        onRequestClose={() => setShowCancelModal(null)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Удалить заказ?</Text>
-            <Text style={styles.deleteConfirmText}>
-              Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить.
+            <Text style={styles.modalTitle}>Отменить заказ?</Text>
+            <Text style={styles.cancelConfirmText}>
+              Укажите причину отмены заказа:
             </Text>
+            <TextInput
+              style={[styles.formInput, styles.multilineInput]}
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              placeholder="Введите причину отмены"
+              multiline
+              numberOfLines={3}
+            />
             <View style={styles.modalButtons}>
               <TouchableOpacity 
                 style={styles.cancelButton}
-                onPress={() => setShowDeleteConfirm(null)}
+                onPress={() => {
+                  setShowCancelModal(null);
+                  setCancelReason('');
+                }}
               >
                 <Text style={styles.cancelButtonText}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.deleteConfirmButton}
-                onPress={() => handleDeleteOrder(showDeleteConfirm!)}
+                onPress={() => handleCancelOrder(showCancelModal!)}
               >
-                <Text style={styles.deleteConfirmButtonText}>Удалить</Text>
+                <Text style={styles.deleteConfirmButtonText}>Отменить заказ</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -405,15 +403,8 @@ export default function OrdersScreen() {
                     style={styles.masterItem}
                     onPress={() => handleAssignOrder(showMasterSelection, master.id)}
                   >
-                    <View style={styles.masterInfo}>
-                      <Text style={styles.masterName}>{master.fullName}</Text>
-                      <Text style={styles.masterCategory}>{master.category}</Text>
-                      <Text style={styles.masterCity}>{master.city}</Text>
-                    </View>
-                    <View style={styles.masterStats}>
-                      <Text style={styles.masterRating}>★ 4.8</Text>
-                      <Text style={styles.masterOrders}>24 заказа</Text>
-                    </View>
+                    <Text style={styles.masterName}>{master.fullName}</Text>
+                    <Text style={styles.masterRole}>{master.category}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -710,6 +701,11 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginBottom: 2,
   },
+  masterRole: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+  },
   masterCategory: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
@@ -746,5 +742,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#64748B',
+  },
+  formPicker: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#1E293B',
+  },
+  cancelConfirmText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 16,
   },
 });

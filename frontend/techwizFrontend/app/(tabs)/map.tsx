@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { MapPin, Navigation, Filter, Crown } from 'lucide-react-native';
+import { MapPin, Navigation, Filter } from 'lucide-react-native';
 
 // Conditionally import MapView only for native platforms
 let MapView: any = null;
@@ -117,7 +117,6 @@ export default function MapScreen() {
           <View key={order.id} style={styles.orderItem}>
             <View style={styles.orderHeader}>
               <Text style={styles.orderTitle}>{order.title}</Text>
-              {order.isPremium && <Crown size={16} color="#FFD700" />}
             </View>
             <Text style={styles.orderAddress}>{order.address}, {order.city}</Text>
             <Text style={styles.orderPrice}>{order.price.toLocaleString('ru-RU')} ₽</Text>
@@ -173,7 +172,6 @@ export default function MapScreen() {
               <View style={styles.orderDetailsHeader}>
                 <View style={styles.orderTitleRow}>
                   <Text style={styles.orderDetailsTitle}>{selectedOrderData.title}</Text>
-                  {selectedOrderData.isPremium && <Crown size={16} color="#FFD700" />}
                 </View>
                 <TouchableOpacity onPress={() => setSelectedOrder(null)}>
                   <Text style={styles.closeButton}>✕</Text>

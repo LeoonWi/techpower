@@ -156,7 +156,7 @@ export default function HomeScreen() {
             onPress: () => router.push('/(tabs)/masters'),
           },
           {
-          title: 'Добавить сотрудника',
+          title: 'Сотрудники',
           icon: Pickaxe,
           color: '#F59E0B',
           onPress: () => router.push('/(tabs)/addemployeescreen'),
@@ -288,10 +288,7 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.userRole}>{getRoleTitle()}</Text>
           </View>
-          <TouchableOpacity style={styles.locationContainer}>
-            <MapPin size={16} color="#64748B" />
-            <Text style={styles.locationText}>{user.city}</Text>
-          </TouchableOpacity>
+
         </View>
 
         {user.role === 'support' && renderSupportDashboard()}
@@ -319,20 +316,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.recentActivityContainer}>
-          <Text style={styles.sectionTitle}>Последняя активность</Text>
-          <View style={styles.activityCard}>
-            <Text style={styles.activityText}>
-              {user.role === 'support' 
-                ? `Открытых жалоб: ${dashboardData.openComplaints}, Ожидающих заказов: ${dashboardData.pendingOrders}`
-                : user.role === 'admin' 
-                ? `Всего заказов в системе: ${orders.length}`
-                : `Заказов назначено: ${orders.filter(o => o.assignedMasterId === user.id).length}`
-              }
-            </Text>
-            <Text style={styles.activityTime}>Обновлено только что</Text>
-          </View>
-        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -376,20 +360,7 @@ const styles = StyleSheet.create({
     color: '#2563EB',
     marginTop: 2,
   },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  locationText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#64748B',
-    marginLeft: 4,
-  },
+
   balanceCard: {
     backgroundColor: 'white',
     marginHorizontal: 20,
@@ -531,31 +502,5 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     textAlign: 'center',
   },
-  recentActivityContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  activityCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2563EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  activityText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  activityTime: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#64748B',
-  },
+
 });
