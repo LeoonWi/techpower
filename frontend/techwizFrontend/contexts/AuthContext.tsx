@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types/user';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
   user: User | null;
@@ -56,20 +57,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   };
 
-  // Фейк-аккаунт для админа
-  const adminCredentials = {
-    username: 'admin',
-    password: 'admin',
+  // Фейк-аккаунты для демо
+  const demoCredentials = {
+    admin: { username: 'admin', password: 'admin' },
+    support: { username: 'support', password: 'support123' },
+    master: { username: 'master', password: 'master123' },
   };
 
   const authenticate = async (username: string, password: string): Promise<boolean> => {
-    // Проверяем фейк-аккаунт админа
-    if (username === adminCredentials.username && password === adminCredentials.password) {
-      setUser(mockUsers.admin);
-      return true;
+    // Проверяем фейк-аккаунты
+    for (const [role, credentials] of Object.entries(demoCredentials)) {
+      if (username === credentials.username && password === credentials.password) {
+        setUser(mockUsers[role as UserRole]);
+        return true;
+      }
     }
     
-    // Здесь можно добавить проверку других ролей или интеграцию с backend
+    // Здесь можно добавить интеграцию с backend
     return false;
   };
 
@@ -77,8 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(mockUsers[role]);
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
+    // Очищаем сохраненные данные пользователя
+    try {
+      await AsyncStorage.removeItem('userId');
+    } catch (error) {
+      console.error('Error clearing user data:', error);
+    }
   };
 
   const updateUser = (updates: Partial<User>) => {

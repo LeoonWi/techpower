@@ -1,49 +1,66 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Shield, Headphones as HeadphonesIcon, Wrench } from 'lucide-react-native';
+import { ArrowLeft, Shield, Headphones, Wrench } from 'lucide-react-native';
 import { UserRole } from '@/types/user';
 import { useAuth } from '@/contexts/AuthContext';
 
-const roleIcons = {
-  admin: Shield,
-  support: HeadphonesIcon,
-  master: Wrench,
-};
-
-const roleTitles = {
-  admin: 'Администратор',
-  support: 'Поддержка',
-  master: 'Мастер',
-};
-
 export default function AuthScreen() {
   const { role } = useLocalSearchParams<{ role: UserRole }>();
-  const { authenticate } = useAuth();
+  const { authenticate, login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
-  if (!role || !roleIcons[role]) {
-    router.replace('/login');
-    return null;
-  }
-
-  const IconComponent = roleIcons[role];
+  const getRoleInfo = (role: UserRole) => {
+    switch (role) {
+      case 'admin':
+        return {
+          title: 'Администратор',
+          description: 'Полный доступ ко всем функциям',
+          icon: Shield,
+          color: '#DC2626',
+          placeholder: 'Введите логин администратора'
+        };
+      case 'support':
+        return {
+          title: 'Поддержка',
+          description: 'Управление заявками и чатами',
+          icon: Headphones,
+          color: '#2563EB',
+          placeholder: 'Введите логин поддержки'
+        };
+      case 'master':
+        return {
+          title: 'Мастер',
+          description: 'Календарь смен и статусы заказов',
+          icon: Wrench,
+          color: '#059669',
+          placeholder: 'Введите логин мастера'
+        };
+      default:
+        return {
+          title: 'Пользователь',
+          description: 'Базовый доступ',
+          icon: Shield,
+          color: '#6B7280',
+          placeholder: 'Введите логин'
+        };
+    }
+  };
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      Alert.alert('Ошибка', 'Заполните все поля');
+      Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
       return;
     }
 
-    setIsLoading(true);
     try {
       const success = await authenticate(username, password);
       if (success) {
+        login(role);
         if (role === 'admin') {
-          router.replace('/(tabs)/addemployeescreen');
+          router.replace('/addemployeescreen');
         } else {
           router.replace('/(tabs)');
         }
@@ -52,10 +69,10 @@ export default function AuthScreen() {
       }
     } catch (error) {
       Alert.alert('Ошибка', 'Произошла ошибка при входе');
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  const roleInfo = getRoleInfo(role);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -66,61 +83,54 @@ export default function AuthScreen() {
         >
           <ArrowLeft size={24} color="#64748B" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Вход в систему</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.title}>Авторизация</Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.roleCard}>
-          <View style={[styles.roleIcon, { backgroundColor: '#2563EB20' }]}>
-            <IconComponent size={32} color="#2563EB" />
-          </View>
-          <Text style={styles.roleTitle}>{roleTitles[role]}</Text>
+      <View style={styles.roleCard}>
+        <View style={[styles.iconContainer, { backgroundColor: `${roleInfo.color}20` }]}>
+          <roleInfo.icon size={32} color={roleInfo.color} />
         </View>
-
-        <View style={styles.form}>
-          <Text style={styles.formTitle}>Введите данные для входа</Text>
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Логин"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Пароль"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          <TouchableOpacity 
-            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            <Text style={styles.loginButtonText}>
-              {isLoading ? 'Вход...' : 'Войти'}
-            </Text>
-          </TouchableOpacity>
-
-          {role === 'admin' && (
-            <View style={styles.adminHint}>
-              <Text style={styles.hintText}>
-                Для демо-версии используйте:{'\n'}
-                Логин: admin{'\n'}
-                Пароль: admin
-              </Text>
-            </View>
-          )}
+        <View style={styles.roleInfo}>
+          <Text style={styles.roleTitle}>{roleInfo.title}</Text>
+          <Text style={styles.roleDescription}>{roleInfo.description}</Text>
         </View>
-      </ScrollView>
+      </View>
+
+      <View style={styles.form}>
+        <Text style={styles.label}>Логин</Text>
+        <TextInput
+          style={styles.input}
+          value={username}
+          onChangeText={setUsername}
+          placeholder={roleInfo.placeholder}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.label}>Пароль</Text>
+        <TextInput
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Введите пароль"
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Войти</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.adminHint}>
+        <Text style={styles.hintText}>
+          💡 Демо аккаунты:{'\n'}
+          {role === 'admin' && 'admin / admin'}{'\n'}
+          {role === 'support' && 'support / support123'}{'\n'}
+          {role === 'master' && 'master / master123'}
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
@@ -133,87 +143,79 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   backButton: {
-    padding: 8,
+    marginRight: 16,
   },
-  headerTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 20,
     fontFamily: 'Inter-SemiBold',
     color: '#1E293B',
-  },
-  placeholder: {
-    width: 40,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
   },
   roleCard: {
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    padding: 32,
-    borderRadius: 16,
-    marginBottom: 32,
+    margin: 20,
+    padding: 20,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  roleIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginRight: 16,
+  },
+  roleInfo: {
+    flex: 1,
   },
   roleTitle: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#1E293B',
-  },
-  form: {
-    backgroundColor: 'white',
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  formTitle: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
     color: '#1E293B',
-    marginBottom: 24,
-    textAlign: 'center',
+    marginBottom: 4,
+  },
+  roleDescription: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+  },
+  form: {
+    paddingHorizontal: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+    marginBottom: 8,
+    marginTop: 16,
   },
   input: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: 'white',
+    borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#1E293B',
-    marginBottom: 16,
+    borderColor: '#D1D5DB',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    fontFamily: 'Inter-Regular',
   },
   loginButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 16,
+    borderRadius: 8,
+    marginTop: 24,
     alignItems: 'center',
-    marginTop: 8,
-  },
-  loginButtonDisabled: {
-    backgroundColor: '#94A3B8',
   },
   loginButtonText: {
     color: 'white',
@@ -221,10 +223,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
   },
   adminHint: {
-    backgroundColor: '#FEF3C7',
+    margin: 20,
     padding: 16,
-    borderRadius: 12,
-    marginTop: 24,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
     borderLeftWidth: 4,
     borderLeftColor: '#F59E0B',
   },
@@ -232,6 +234,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#92400E',
-    lineHeight: 20,
   },
 }); 

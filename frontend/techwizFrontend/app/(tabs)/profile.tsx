@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Phone, MapPin, Camera, CreditCard as Edit3, LogOut, CreditCard, Settings, Star, Crown, Wallet } from 'lucide-react-native';
 
@@ -46,8 +47,10 @@ export default function ProfileScreen() {
         {
           text: 'Выйти',
           style: 'destructive',
-          onPress: () => {
-            logout();
+          onPress: async () => {
+            await logout();
+            // Перенаправляем на экран логина после выхода
+            router.replace('/login');
           },
         },
       ]

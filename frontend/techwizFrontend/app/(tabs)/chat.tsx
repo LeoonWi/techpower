@@ -47,7 +47,7 @@ export default function ChatScreen() {
 
   // Форма создания чата
   const [createChatForm, setCreateChatForm] = useState({
-    user1: '',
+    user1: user?.id || '',
     user2: '',
   });
 
@@ -86,11 +86,22 @@ export default function ChatScreen() {
   const handleCreateChat = () => {
     if (createChatForm.user1 && createChatForm.user2) {
       // Здесь будет логика создания чата
-      Alert.alert('Успех', 'Чат создан успешно');
-      setCreateChatForm({ user1: '', user2: '' });
+      const user1Name = user?.role === 'master' ? user.fullName : mockUsers.find(u => u.id === createChatForm.user1)?.fullName;
+      const user2Name = mockUsers.find(u => u.id === createChatForm.user2)?.fullName;
+      
+      Alert.alert(
+        'Чат создан успешно', 
+        `Чат между ${user1Name} и ${user2Name} создан.\n\nID чата: ${createChatForm.user1}_${createChatForm.user2}`
+      );
+      
+      // Сбрасываем форму
+      setCreateChatForm({ 
+        user1: user?.id || '', 
+        user2: '' 
+      });
       setShowCreateChatModal(false);
     } else {
-      Alert.alert('Ошибка', 'Выберите обоих пользователей');
+      Alert.alert('Ошибка', 'Выберите пользователя поддержки');
     }
   };
 
@@ -276,7 +287,7 @@ export default function ChatScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Чаты</Text>
         <View style={styles.headerActions}>
-          {(user?.role === 'admin' || user?.role === 'support') && (
+          {(user?.role === 'admin' || user?.role === 'support' || user?.role === 'master') && (
             <TouchableOpacity 
               style={styles.createChatButton}
               onPress={() => setShowCreateChatModal(true)}
@@ -319,7 +330,12 @@ export default function ChatScreen() {
         </View>
       )}
 
-      <Text style={styles.subtitle}>Выберите категорию для общения</Text>
+      <Text style={styles.subtitle}>
+        {user?.role === 'master' 
+          ? 'Выберите категорию для общения или создайте чат с поддержкой' 
+          : 'Выберите категорию для общения'
+        }
+      </Text>
 
       <ScrollView 
         style={styles.categoriesList}
@@ -327,13 +343,23 @@ export default function ChatScreen() {
         showsVerticalScrollIndicator={true}
       >
         {user?.role === 'master' && (
-          <TouchableOpacity
-            style={styles.complaintButton}
-            onPress={() => setShowComplaintForm(true)}
-          >
-            <AlertTriangle size={20} color="#EF4444" />
-            <Text style={styles.complaintButtonText}>Подать жалобу</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.createSupportChatButton}
+              onPress={() => setShowCreateChatModal(true)}
+            >
+              <Users size={20} color="#2563EB" />
+              <Text style={styles.createSupportChatButtonText}>Создать чат с поддержкой</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.complaintButton}
+              onPress={() => setShowComplaintForm(true)}
+            >
+              <AlertTriangle size={20} color="#EF4444" />
+              <Text style={styles.complaintButtonText}>Подать жалобу</Text>
+            </TouchableOpacity>
+          </>
         )}
 
         {filteredCategories.map((category) => (
@@ -381,7 +407,9 @@ export default function ChatScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Создать чат</Text>
+              <Text style={styles.modalTitle}>
+                {user?.role === 'master' ? 'Создать чат с поддержкой' : 'Создать чат'}
+              </Text>
               <TouchableOpacity onPress={() => setShowCreateChatModal(false)}>
                 <X size={24} color="#334155" />
               </TouchableOpacity>
@@ -392,11 +420,14 @@ export default function ChatScreen() {
                 {user?.role === 'master' ? 'Пользователь 1 (Вы)' : 'Пользователь 1'}
               </Text>
               {user?.role === 'master' ? (
-                <TextInput
-                  style={[styles.formInput, styles.readOnlyInput]}
-                  value={user.fullName}
-                  editable={false}
-                />
+                <View style={styles.userInfoContainer}>
+                  <TextInput
+                    style={[styles.formInput, styles.readOnlyInput]}
+                    value={`${user.fullName} (ID: ${user.id})`}
+                    editable={false}
+                  />
+                  <Text style={styles.userIdText}>ID: {user.id}</Text>
+                </View>
               ) : (
                 <Picker
                   selectedValue={createChatForm.user1}
@@ -445,9 +476,9 @@ export default function ChatScreen() {
                 <Text style={styles.cancelButtonText}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.submitButton, (!createChatForm.user1 || !createChatForm.user2) && styles.submitButtonDisabled]}
+                style={[styles.submitButton, !createChatForm.user2 && styles.submitButtonDisabled]}
                 onPress={handleCreateChat}
-                disabled={!createChatForm.user1 || !createChatForm.user2}
+                disabled={!createChatForm.user2}
               >
                 <Text style={styles.submitButtonText}>Создать</Text>
               </TouchableOpacity>
@@ -926,5 +957,34 @@ const styles = StyleSheet.create({
   },
   formPicker: {
     flex: 1,
+  },
+  userInfoContainer: {
+    position: 'relative',
+  },
+  userIdText: {
+    position: 'absolute',
+    top: -8,
+    right: 12,
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+    backgroundColor: 'white',
+    paddingHorizontal: 4,
+  },
+  createSupportChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  createSupportChatButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#2563EB',
+    marginLeft: 8,
   },
 });
