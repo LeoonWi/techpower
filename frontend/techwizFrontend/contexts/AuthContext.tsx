@@ -1,7 +1,7 @@
 import api from "../api/axios";
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserStatus } from '@/types/user';
-import id from "ajv/lib/vocabularies/core/id";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
   user: User | null;
@@ -69,6 +69,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (permission: string, phone_number: string, password: string) => {
     try {
+      // Для демо версии используем mock данные
+      const mockUser = mockUsers[permission as UserStatus];
+      if (mockUser && mockUser.id) {
+        setUser(mockUser);
+        await AsyncStorage.setItem('userId', mockUser.id);
+        return;
+      }
+
       const response = await api.post('/auth/signin', {
         permission,
         phone_number,
@@ -77,9 +85,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userId = response.data.id;
       const profile = await api.get(`/user/${userId}`);
       setUser(profile.data);
-      localStorage.setItem('userId', userId);
+      await AsyncStorage.setItem('userId', userId);
     } catch (err: any) {
       console.error('Login error:', err.response?.data || err.message);
+      
+      // Если backend недоступен, используем mock данные
+      if (err.message === 'Network Error') {
+        const mockUser = mockUsers[permission as UserStatus];
+        if (mockUser && mockUser.id) {
+          console.log('Backend недоступен, используем демо данные');
+          setUser(mockUser);
+          await AsyncStorage.setItem('userId', mockUser.id);
+          return;
+        }
+      }
+      
       throw err;
     }
   };
@@ -110,8 +130,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
+    await AsyncStorage.removeItem('userId');
   };
 
   const updateUser = (updates: Partial<User>) => {
@@ -121,10 +142,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    const loadUser = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        if (userId) {
+          // Попробуем загрузить пользователя из backend
+          try {
+            const profile = await api.get(`/user/${userId}`);
+            setUser(profile.data);
+          } catch (err) {
+            // Если backend недоступен, используем mock данные
+            console.log('Backend недоступен при загрузке пользователя');
+          }
+        }
+      } catch (err) {
+        console.error('Error loading user:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUser();
   }, []);
 
   return (

@@ -22,17 +22,21 @@ const roles = [
 ];
 
 const testUsers = [
-  { username: 'admin', password: 'admin123', status: 'admin' },
-  { username: 'support', password: 'support123', status: 'support' },
-  { username: 'senior', password: 'senior123', status: 'senior_master' },
+  { username: '+7 900 123-45-67', password: '123', status: 'admin' },
+  { username: '+7 900 123-45-67', password: '123', status: 'support' },
+  { username: '+7 900 123-45-67', password: '123', status: 'master' },
 ];
 
 export default function LoginScreen() {
   const { login } = useAuth();
 
-  const handleRoleSelect = (permission: string,phone: string,password: string) => {
-    login(permission,phone,password) //ВОТ ЭТИ параметры должны быть и в roles на 18 строке,иначе 52 строка не заработает
-    router.replace('/(tabs)');
+  const handleRoleSelect = (permission: string) => {
+    // Используем тестовые данные для демо
+    const testUser = testUsers.find(user => user.status === permission);
+    if (testUser) {
+      login(permission, testUser.username, testUser.password);
+      router.replace('/(tabs)');
+    }
   };
 
   return (
