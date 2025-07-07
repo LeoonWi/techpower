@@ -34,7 +34,7 @@ const categories = [
 
 export default function OrdersScreen() {
   const { user } = useAuth();
-  const { orders, updateOrderStatus, assignOrder, masters } = useData();
+  const { orders, updateOrderStatus, assignOrder, createOrder, deleteOrder, masters } = useData();
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showMasterSelection, setShowMasterSelection] = useState<string | null>(null);
@@ -86,27 +86,43 @@ export default function OrdersScreen() {
     }
   };
 
-  const handleAddOrder = () => {
-    // Placeholder logic for adding an order
-    Alert.alert('Успешно', 'Заказ создан');
-    setShowAddOrderModal(false);
-    setNewOrder({
-      name: '',
-      phone_number: '',
-      address: '',
-      comment: '',
-      price: '',
-      category_id: '',
-      date_time: '',
-    });
+  const handleAddOrder = async () => {
+    try {
+      await createOrder({
+        title: newOrder.comment || 'Новый заказ',
+        clientName: newOrder.name,
+        clientPhone: newOrder.phone_number,
+        address: newOrder.address,
+        description: newOrder.comment,
+        price: Number(newOrder.price),
+        category: newOrder.category_id,
+        city: '',
+        coordinates: { latitude: 0, longitude: 0 },
+        commission: 0,
+        status: 'pending',
+        assignedMasterId: undefined,
+        createdAt: new Date(newOrder.date_time),
+        updatedAt: new Date(newOrder.date_time),
+        isPremium: false,
+      });
+      Alert.alert('Успешно', 'Заказ создан');
+      setShowAddOrderModal(false);
+      setNewOrder({ name: '', phone_number: '', address: '', comment: '', price: '', category_id: '', date_time: '' });
+    } catch (e) {
+      Alert.alert('Ошибка', 'Не удалось создать заказ');
+    }
   };
 
-  const handleCancelOrder = (orderId: string) => {
+  const handleCancelOrder = async (orderId: string) => {
     if (cancelReason.trim()) {
-      // Placeholder logic for canceling an order
-      Alert.alert('Успешно', 'Заказ отменен');
-      setShowCancelModal(null);
-      setCancelReason('');
+      try {
+        await deleteOrder(orderId);
+        Alert.alert('Успешно', 'Заказ отменён');
+        setShowCancelModal(null);
+        setCancelReason('');
+      } catch (e) {
+        Alert.alert('Ошибка', 'Не удалось отменить заказ');
+      }
     } else {
       Alert.alert('Ошибка', 'Укажите причину отмены');
     }

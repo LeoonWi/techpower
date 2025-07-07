@@ -7,7 +7,7 @@ import { Search, Filter, User, Crown, MapPin, Phone, TrendingUp, DollarSign, Cli
 
 export default function MastersScreen() {
   const { user } = useAuth();
-  const { masters, masterStats } = useData();
+  const { masters } = useData();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
 
@@ -162,7 +162,7 @@ export default function MastersScreen() {
         ) : (
           filteredMasters.map((master) => {
             const IconComponent = getRoleIcon(master.role);
-            const stats = masterStats[master.id] || { orders: 0, earnings: 0 };
+            const stats = { orders: 0, earnings: 0 };
             
             return (
               <View key={master.id} style={styles.masterCard}>

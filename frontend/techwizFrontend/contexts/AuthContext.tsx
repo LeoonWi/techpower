@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient, AuthRequest, AuthResponse } from '@/api/client';
 
 interface AuthContextType {
   user: User | null;
@@ -68,6 +69,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       commission: 15,
       isActive: true,
     },
+    senior_master: {
+      id: '4',
+      role: 'senior_master',
+      fullName: 'Мастер Старший',
+      nickname: 'senior_master',
+      phone: '+7 900 456-78-90',
+      city: 'Новосибирск',
+      category: 'Компьютеры',
+      balance: 75000,
+      commission: 12,
+      isActive: true,
+    },
+    premium_master: {
+      id: '5',
+      role: 'premium_master',
+      fullName: 'Мастер Премиум',
+      nickname: 'premium_master',
+      phone: '+7 900 567-89-01',
+      city: 'Екатеринбург',
+      category: 'Электроника',
+      balance: 120000,
+      commission: 8,
+      isActive: true,
+    },
   };
 
   // Фейк-аккаунты для демо
@@ -78,16 +103,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const authenticate = async (username: string, password: string): Promise<boolean> => {
-    // Проверяем фейк-аккаунты
-    for (const [role, credentials] of Object.entries(demoCredentials)) {
-      if (username === credentials.username && password === credentials.password) {
-        setUser(mockUsers[role as UserRole]);
+    try {
+      // Сначала пробуем подключиться к бэкенду
+      try {
+        const credentials: AuthRequest = {
+          phone_number: username,
+          password: password,
+        };
+
+        const response: AuthResponse = await apiClient.signIn(credentials);
+        
+        // Преобразуем данные пользователя в формат фронтенда
+        const frontendUser: User = {
+          id: response.user.id,
+          role: response.user.permission as UserRole,
+          fullName: response.user.full_name || '',
+          nickname: response.user.nickname || '',
+          phone: response.user.phone_number,
+          city: '', // Бэкенд не предоставляет город
+          category: response.user.categories?.[0]?.name || '',
+          balance: response.user.balance || 0,
+          commission: response.user.commission || 0,
+          isActive: true, // Бэкенд не предоставляет статус активности
+        };
+
+        // Сохраняем токен и пользователя
+        if (response.token) {
+          await AsyncStorage.setItem('authToken', response.token);
+        }
+        setUser(frontendUser);
+        await AsyncStorage.setItem('user', JSON.stringify(frontendUser));
+        await AsyncStorage.setItem('userId', frontendUser.id);
+
         return true;
+      } catch (backendError) {
+        console.warn('Backend connection failed, falling back to mock data:', backendError);
+        
+        // Fallback к mock данным
+        for (const [role, credentials] of Object.entries(demoCredentials)) {
+          if (username === credentials.username && password === credentials.password) {
+            setUser(mockUsers[role as UserRole]);
+            return true;
+          }
+        }
+        
+        return false;
       }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      return false;
     }
-    
-    // Здесь можно добавить интеграцию с backend
-    return false;
   };
 
   const login = (role: UserRole) => {

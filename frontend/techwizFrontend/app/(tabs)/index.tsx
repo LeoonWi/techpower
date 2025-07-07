@@ -8,7 +8,7 @@ import { Wallet, Pickaxe, TrendingUp, ClipboardList, Users, MessageSquare, Calen
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const { orders, analytics, complaints, masterStats } = useData();
+  const { orders, complaints } = useData();
 
   useEffect(() => {
     if (!user) {
@@ -35,8 +35,11 @@ export default function HomeScreen() {
       admin: 'Администратор',
       support: 'Поддержка',
       master: 'Мастер',
+      limitedAdmin: 'Ограниченный администратор',
+      senior_master: 'Старший мастер',
+      premium_master: 'Премиум мастер',
     };
-    return roleTitles[user.role];
+    return roleTitles[user.role] || user.role;
   };
 
   const getDashboardData = () => {
@@ -51,7 +54,7 @@ export default function HomeScreen() {
 
     if (user.role === 'master') {
       const userOrders = orders.filter(order => order.assignedMasterId === user.id);
-      const stats = masterStats[user.id] || { orders: 0, earnings: 0, rating: 0 };
+      const stats = { orders: 0, earnings: 0, rating: 0 };
       
       return {
         activeOrders: userOrders.filter(order => 
@@ -71,9 +74,9 @@ export default function HomeScreen() {
       activeOrders: userOrders.filter(order => 
         ['assigned', 'in_progress'].includes(order.status)
       ).length,
-      completedOrders: user.role === 'admin' ? analytics.completedOrders : 
+      completedOrders: user.role === 'admin' ? 0 : 
         userOrders.filter(order => order.status === 'completed').length,
-      totalEarnings: user.role === 'admin' ? analytics.earnings : user.balance,
+      totalEarnings: user.role === 'admin' ? 0 : user.balance,
     };
   };
 

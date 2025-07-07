@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,25 +16,15 @@ import { Picker } from '@react-native-picker/picker';
 import { router } from 'expo-router';
 import RoleGuard from '@/components/RoleGuard';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface Employee {
-  id: number;
-  name: string;
-  phone: string;
-  role: string;
-  status?: string;
-}
+import { apiClient, User } from '@/api/client';
 
 export default function AddEmployeeScreen() {
   const { user } = useAuth();
-  const [employees, setEmployees] = useState<Employee[]>([
-    { id: 1, name: 'Иван Иванов', phone: '+7 900 123-45-67', role: 'support', status: 'active' },
-    { id: 2, name: 'Петр Петров', phone: '+7 900 234-56-78', role: 'master', status: 'active' },
-  ]);
+  const [employees, setEmployees] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalVisible, setModalVisible] = useState(false);
   const [isActionModalVisible, setActionModalVisible] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -49,7 +39,7 @@ export default function AddEmployeeScreen() {
     setRole('support');
   };
 
-  const openActionModal = (employee: Employee) => {
+  const openActionModal = (employee: User) => {
     setSelectedEmployee(employee);
     setActionModalVisible(true);
   };
@@ -59,18 +49,21 @@ export default function AddEmployeeScreen() {
     setSelectedEmployee(null);
   };
 
-  const addEmployee = () => {
+  const loadEmployees = async () => {
+    const users = await apiClient.getUsers();
+    setEmployees(users);
+  };
+
+  const addEmployee = async () => {
     if (name.trim() && phone.trim() && password.trim()) {
-      const newEmployee: Employee = {
-        id: Date.now(),
-        name,
-        phone,
-        role,
-        status: 'active',
-      };
-      setEmployees((prev) => [...prev, newEmployee]);
-      closeModal();
-      Alert.alert('Успех', 'Сотрудник добавлен');
+      try {
+        await apiClient.signUp({ full_name: name, phone_number: phone, password, permission: role });
+        await loadEmployees();
+        closeModal();
+        Alert.alert('Успех', 'Сотрудник добавлен');
+      } catch (e) {
+        Alert.alert('Ошибка', 'Не удалось добавить сотрудника');
+      }
     } else {
       Alert.alert('Ошибка', 'Заполните все поля');
     }
@@ -91,10 +84,10 @@ export default function AddEmployeeScreen() {
     }
   };
 
-  const changeEmployeeRole = () => {
+  const changeEmployeeRole = async () => {
     if (selectedEmployee) {
       let newRole: string;
-      switch (selectedEmployee.role) {
+      switch (selectedEmployee.permission) {
         case 'admin':
           newRole = 'support';
           break;
@@ -107,37 +100,27 @@ export default function AddEmployeeScreen() {
         default:
           newRole = 'support';
       }
-      
-      setEmployees(prev => 
-        prev.map(emp => 
-          emp.id === selectedEmployee.id 
-            ? { ...emp, role: newRole }
-            : emp
-        )
-      );
-      closeActionModal();
-      Alert.alert('Успех', `Роль сотрудника изменена на ${getRoleTitle(newRole)}`);
+      try {
+        await apiClient.changePermission(String(selectedEmployee.id), selectedEmployee.permission, newRole);
+        await loadEmployees();
+        closeActionModal();
+        Alert.alert('Успех', `Роль сотрудника изменена на ${getRoleTitle(newRole)}`);
+      } catch (e) {
+        Alert.alert('Ошибка', 'Не удалось изменить роль');
+      }
     }
   };
 
-  const fireEmployee = () => {
+  const fireEmployee = async () => {
     if (selectedEmployee) {
-      Alert.alert(
-        'Уволить сотрудника',
-        `Вы уверены, что хотите уволить ${selectedEmployee.name}?`,
-        [
-          { text: 'Отмена', style: 'cancel' },
-          {
-            text: 'Уволить',
-            style: 'destructive',
-            onPress: () => {
-              setEmployees(prev => prev.filter(emp => emp.id !== selectedEmployee.id));
-              closeActionModal();
-              Alert.alert('Успех', 'Сотрудник уволен');
-            }
-          }
-        ]
-      );
+      try {
+        await apiClient.changeMasterStatus(String(selectedEmployee.id), 'remove');
+        await loadEmployees();
+        closeActionModal();
+        Alert.alert('Успех', 'Сотрудник уволен');
+      } catch (e) {
+        Alert.alert('Ошибка', 'Не удалось уволить сотрудника');
+      }
     }
   };
 
@@ -160,10 +143,14 @@ export default function AddEmployeeScreen() {
 
   const filteredEmployees = employees.filter(
     (e) =>
-      e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.phone.includes(searchQuery) ||
-      getRoleTitle(e.role).toLowerCase().includes(searchQuery.toLowerCase())
+      (e.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (e.phone_number || '').includes(searchQuery) ||
+      getRoleTitle(e.permission).toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    loadEmployees();
+  }, []);
 
   return (
     <RoleGuard allowedRoles={['admin', 'limitedAdmin']} fallbackRoute="/login">
@@ -212,10 +199,10 @@ export default function AddEmployeeScreen() {
             filteredEmployees.map((employee) => (
               <View key={employee.id} style={styles.card}>
                 <View style={styles.cardInfo}>
-                  <Text style={styles.employeeName}>{employee.name}</Text>
-                  <Text style={styles.employeePhone}>{employee.phone}</Text>
+                  <Text style={styles.employeeName}>{employee.full_name}</Text>
+                  <Text style={styles.employeePhone}>{employee.phone_number}</Text>
                   <View style={styles.employeeDetails}>
-                    <Text style={styles.employeeRole}>{getRoleTitle(employee.role)}</Text>
+                    <Text style={styles.employeeRole}>{getRoleTitle(employee.permission)}</Text>
                     <Text style={[styles.employeeStatus, { color: employee.status === 'active' ? '#10B981' : '#EF4444' }]}>
                       {getStatusTitle(employee.status)}
                     </Text>
@@ -223,7 +210,7 @@ export default function AddEmployeeScreen() {
                 </View>
                 {user?.role !== 'limitedAdmin' && (
                   <View style={styles.cardActions}>
-                    {employee.role === 'master' && (
+                    {employee.permission === 'master' && (
                       <TouchableOpacity 
                         style={[styles.actionButton, styles.statusButton]} 
                         onPress={() => openActionModal(employee)}
@@ -319,7 +306,7 @@ export default function AddEmployeeScreen() {
               </View>
               
               <Text style={styles.modalSubtitle}>
-                {selectedEmployee?.name} - {getRoleTitle(selectedEmployee?.role || '')}
+                {selectedEmployee?.full_name} - {getRoleTitle(selectedEmployee?.permission || '')}
               </Text>
               
               {selectedEmployee && (

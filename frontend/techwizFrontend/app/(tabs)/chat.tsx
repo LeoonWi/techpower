@@ -32,20 +32,6 @@ export default function ChatScreen() {
   const [showCreateChatModal, setShowCreateChatModal] = useState(false);
   const [selectedUserFilter, setSelectedUserFilter] = useState<string>(user?.id || 'all');
   
-  // Мок-данные пользователей для демонстрации
-  const mockUsers: User[] = [
-    { id: '1', fullName: 'Иван Иванов', role: 'support' },
-    { id: '2', fullName: 'Петр Петров', role: 'master' },
-    { id: '3', fullName: 'Анна Сидорова', role: 'support' },
-    { id: '4', fullName: 'Михаил Козлов', role: 'master' },
-  ];
-
-  // Форма создания чата
-  const [createChatForm, setCreateChatForm] = useState({
-    user1: user?.id || '',
-    user2: '',
-  });
-
   const selectedCategoryData = chatCategories.find(cat => cat.id === selectedCategory);
   const categoryMessages = messages.filter(msg => msg.category === selectedCategory);
 
@@ -69,24 +55,18 @@ export default function ChatScreen() {
     }
   };
 
-
-
   const handleCreateChat = () => {
-    if (createChatForm.user1 && createChatForm.user2) {
+    if (selectedUserFilter !== 'all') {
       // Здесь будет логика создания чата
-      const user1Name = user?.role === 'master' ? user.fullName : mockUsers.find(u => u.id === createChatForm.user1)?.fullName;
-      const user2Name = mockUsers.find(u => u.id === createChatForm.user2)?.fullName;
+      const user1Name = user?.role === 'master' ? user.fullName : chatCategories.find(cat => cat.id === selectedUserFilter)?.name;
+      const user2Name = chatCategories.find(cat => cat.id === selectedUserFilter)?.name;
       
       Alert.alert(
         'Чат создан успешно', 
-        `Чат между ${user1Name} и ${user2Name} создан.\n\nID чата: ${createChatForm.user1}_${createChatForm.user2}`
+        `Чат между ${user1Name} и ${user2Name} создан.\n\nID чата: ${selectedUserFilter}`
       );
       
-      // Сбрасываем форму
-      setCreateChatForm({ 
-        user1: user?.id || '', 
-        user2: '' 
-      });
+      setSelectedUserFilter('all');
       setShowCreateChatModal(false);
     } else {
       Alert.alert('Ошибка', 'Выберите пользователя поддержки');
@@ -308,11 +288,11 @@ export default function ChatScreen() {
               label={`Мои чаты (${user?.fullName})`} 
               value={user?.id || 'all'} 
             />
-            {mockUsers.filter(u => u.id !== user?.id).map((user) => (
+            {chatCategories.filter(cat => cat.id !== user?.id).map((category) => (
               <Picker.Item 
-                key={user.id} 
-                label={`Чаты ${user.fullName} (${user.role === 'master' ? 'Мастер' : 'Поддержка'})`} 
-                value={user.id} 
+                key={category.id} 
+                label={`Чаты ${category.name} (${category.id === 'support' ? 'Поддержка' : 'Мастер'})`} 
+                value={category.id} 
               />
             ))}
           </Picker>
@@ -416,42 +396,20 @@ export default function ChatScreen() {
                 </View>
               ) : (
                 <Picker
-                  selectedValue={createChatForm.user1}
-                  onValueChange={(itemValue) => setCreateChatForm({ ...createChatForm, user1: itemValue })}
+                  selectedValue={selectedUserFilter}
+                  onValueChange={(itemValue) => setSelectedUserFilter(itemValue)}
                   style={styles.formPicker}
                 >
                   <Picker.Item label="Выберите пользователя" value="" />
-                  {mockUsers.map((user) => (
+                  {chatCategories.filter(cat => cat.id !== user?.id).map((category) => (
                     <Picker.Item 
-                      key={user.id} 
-                      label={`${user.fullName} (${user.role === 'master' ? 'Мастер' : 'Поддержка'})`} 
-                      value={user.id} 
+                      key={category.id} 
+                      label={`${category.name} (${category.id === 'support' ? 'Поддержка' : 'Мастер'})`} 
+                      value={category.id} 
                     />
                   ))}
                 </Picker>
               )}
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>
-                {user?.role === 'master' ? 'Пользователь 2 (Поддержка)' : 'Пользователь 2'}
-              </Text>
-              <Picker
-                selectedValue={createChatForm.user2}
-                onValueChange={(itemValue) => setCreateChatForm({ ...createChatForm, user2: itemValue })}
-                style={styles.formPicker}
-              >
-                <Picker.Item label="Выберите пользователя" value="" />
-                {mockUsers
-                  .filter(u => user?.role === 'master' ? u.role === 'support' : u.id !== createChatForm.user1)
-                  .map((user) => (
-                    <Picker.Item 
-                      key={user.id} 
-                      label={`${user.fullName} (${user.role === 'master' ? 'Мастер' : 'Поддержка'})`} 
-                      value={user.id} 
-                    />
-                  ))}
-              </Picker>
             </View>
 
             <View style={styles.modalButtons}>
@@ -462,9 +420,9 @@ export default function ChatScreen() {
                 <Text style={styles.cancelButtonText}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.submitButton, !createChatForm.user2 && styles.submitButtonDisabled]}
+                style={[styles.submitButton, !selectedUserFilter && styles.submitButtonDisabled]}
                 onPress={handleCreateChat}
-                disabled={!createChatForm.user2}
+                disabled={!selectedUserFilter}
               >
                 <Text style={styles.submitButtonText}>Создать</Text>
               </TouchableOpacity>
@@ -472,7 +430,6 @@ export default function ChatScreen() {
           </View>
         </View>
       </Modal>
-
 
     </SafeAreaView>
   );
