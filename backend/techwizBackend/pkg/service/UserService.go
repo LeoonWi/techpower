@@ -18,6 +18,7 @@ type (
 		AddCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error)
 		RemoveCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error)
 		ChangeStatus(id bson.ObjectID, event string, status string) (int, error)
+		DismissUser(id bson.ObjectID) (int, error)
 	}
 
 	UserService struct {
@@ -184,6 +185,14 @@ func (s UserService) ChangeStatus(id bson.ObjectID, event string, status string)
 		}
 	} else {
 		return http.StatusBadRequest, errors.New("Invalid event")
+	}
+
+	return http.StatusOK, nil
+}
+
+func (s UserService) DismissUser(id bson.ObjectID) (int, error) {
+	if err := s.UserRepository.DismissUserById(id); err != nil {
+		return http.StatusBadRequest, err
 	}
 
 	return http.StatusOK, nil

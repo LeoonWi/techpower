@@ -21,6 +21,7 @@ type (
 		RemoveCategory(idUser bson.ObjectID, idCategory bson.ObjectID) error
 		ChangeStatus(id bson.ObjectID, status string) error
 		RemoveStatus(id bson.ObjectID) error
+		DismissUserById(id bson.ObjectID) error
 	}
 
 	UserRepository struct {
@@ -336,6 +337,18 @@ func (r UserRepository) RemoveStatus(id bson.ObjectID) error {
 
 	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
 		return errors.New("Failed to change status of master")
+	}
+
+	return nil
+}
+
+func (r UserRepository) DismissUserById(id bson.ObjectID) error {
+	coll := r.db.Database("TechPower").Collection("Users")
+	filter := bson.D{{"_id", id}}
+	update := bson.D{{"$set", bson.D{{"dismissed", true}}}}
+
+	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
+		return errors.New("Failed to dismiss user")
 	}
 
 	return nil
