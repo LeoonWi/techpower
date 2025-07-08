@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient, AuthRequest, AuthResponse } from '@/api/client';
+import { getUsers, addUser, findUser, findUserByPhone, LocalUser } from '../data/users';
 
 interface AuthContextType {
   user: User | null;
@@ -10,6 +11,7 @@ interface AuthContextType {
   updateUser: (updates: Partial<User>) => void;
   isLoading: boolean;
   authenticate: (username: string, password: string) => Promise<boolean>;
+  registerUser: (user: { phone: string; password: string; role: UserRole; fullName?: string }) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -112,7 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         const response: AuthResponse = await apiClient.signIn(credentials);
-        
         // Преобразуем данные пользователя в формат фронтенда
         const frontendUser: User = {
           id: response.user.id,
@@ -120,33 +121,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           fullName: response.user.full_name || '',
           nickname: response.user.nickname || '',
           phone: response.user.phone_number,
-          city: '', // Бэкенд не предоставляет город
+          city: '',
           category: response.user.categories?.[0]?.name || '',
           balance: response.user.balance || 0,
           commission: response.user.commission || 0,
-          isActive: true, // Бэкенд не предоставляет статус активности
+          isActive: true,
         };
-
-        // Сохраняем токен и пользователя
         if (response.token) {
           await AsyncStorage.setItem('authToken', response.token);
         }
         setUser(frontendUser);
         await AsyncStorage.setItem('user', JSON.stringify(frontendUser));
         await AsyncStorage.setItem('userId', frontendUser.id);
-
         return true;
       } catch (backendError) {
-        console.warn('Backend connection failed, falling back to mock data:', backendError);
-        
-        // Fallback к mock данным
-        for (const [role, credentials] of Object.entries(demoCredentials)) {
-          if (username === credentials.username && password === credentials.password) {
-            setUser(mockUsers[role as UserRole]);
-            return true;
-          }
+        // Fallback к локальным пользователям
+        const localUser = findUser(username, password);
+        if (localUser) {
+          setUser({
+            id: localUser.id,
+            role: localUser.role,
+            fullName: localUser.fullName || '',
+            nickname: '',
+            phone: localUser.phone,
+            city: '',
+            category: '',
+            balance: 0,
+            commission: 0,
+            isActive: true,
+          });
+          return true;
         }
-        
         return false;
       }
     } catch (error) {
@@ -175,6 +180,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Регистрация пользователя: сначала backend, если не получилось — локально
+  const registerUser = async (user: { phone: string; password: string; role: UserRole; fullName?: string }) => {
+    try {
+      // Пробуем зарегистрировать через backend
+      try {
+        await apiClient.signUp({
+          phone_number: user.phone,
+          password: user.password,
+          permission: user.role,
+          full_name: user.fullName || '',
+        });
+        return true;
+      } catch (backendError) {
+        // Если backend не отвечает или ошибка — fallback на локальных пользователей
+        if (findUserByPhone(user.phone)) {
+          return false;
+        }
+        addUser({
+          phone: user.phone,
+          password: user.password,
+          role: (user.role === 'admin' || user.role === 'support' || user.role === 'master') ? user.role : 'support',
+          fullName: user.fullName || '',
+        });
+        return true;
+      }
+    } catch (error) {
+      return false;
+    }
+  };
+
   useEffect(() => {
     // Simulate loading
     setTimeout(() => {
@@ -183,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading, authenticate }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading, authenticate, registerUser }}>
       {children}
     </AuthContext.Provider>
   );

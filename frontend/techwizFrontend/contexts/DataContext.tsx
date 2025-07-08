@@ -55,14 +55,210 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Загрузка мастеров с frontend (локально)
+  // Загрузка заказов с backend, fallback на локальные
+  const loadOrders = async () => {
+    setIsLoading(true);
+    try {
+      try {
+        const apiOrders = await apiClient.getOrders();
+        setOrders(apiOrders.map(apiOrder => ({
+          id: String(apiOrder.id || ''),
+          title: apiOrder.problem,
+          description: apiOrder.problem,
+          category: '',
+          city: '',
+          address: apiOrder.address,
+          coordinates: { latitude: 0 as number, longitude: 0 as number },
+          price: Number(apiOrder.price),
+          commission: 0,
+          status: mapStatusCodeToOrderStatus(apiOrder.status.status_code),
+          clientName: apiOrder.full_name,
+          clientPhone: apiOrder.phone_number,
+          assignedMasterId: apiOrder.worker_id ? String(apiOrder.worker_id) : undefined,
+          createdAt: new Date(apiOrder.datetime),
+          updatedAt: new Date(apiOrder.datetime),
+          isPremium: false,
+        })));
+      } catch (backendError) {
+        // fallback на локальные
+        const localOrders = getLocalOrders();
+        setOrders(localOrders as unknown as Order[]);
+      }
+    } catch (error) {
+      setOrders([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Создание заказа через backend, fallback на локальные
+  const createOrder = async (orderData: Omit<Order, 'id'>): Promise<void> => {
+    setIsLoading(true);
+    try {
+      try {
+        const apiRequest: Omit<ApiRequest, 'id'> = {
+          full_name: orderData.clientName,
+          phone_number: orderData.clientPhone,
+          address: orderData.address,
+          problem: orderData.description,
+          price: orderData.price,
+          status: { status_code: 1, reason: '' },
+          datetime: orderData.createdAt.toISOString(),
+          category_id: '1',
+        };
+        await apiClient.createRequest(apiRequest);
+      } catch (backendError) {
+        addLocalOrder({ ...orderData, createdAt: orderData.createdAt || new Date(), updatedAt: orderData.updatedAt || new Date() });
+      }
+      await loadOrders();
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Обновление статуса заказа через backend, fallback на локальные
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    setIsLoading(true);
+    try {
+      try {
+        await apiClient.updateOrder(orderId, { status: { status_code: status } });
+      } catch (backendError) {
+        updateLocalOrder(orderId, { status });
+      }
+      await loadOrders();
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Удаление заказа через backend, fallback на локальные
+  const deleteOrder = async (orderId: string) => {
+    setIsLoading(true);
+    try {
+      try {
+        await apiClient.deleteOrder(orderId);
+      } catch (backendError) {
+        deleteLocalOrder(orderId);
+      }
+      await loadOrders();
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Загрузка мастеров с backend, fallback на локальные
   const loadMasters = async () => {
     setIsLoading(true);
     try {
-      const localMasters = getLocalMasters();
-      setMasters(localMasters as unknown as User[]);
+      try {
+        const apiMasters = await apiClient.getMasters();
+        setMasters(apiMasters.map(apiMaster => ({
+          id: String(apiMaster.id),
+          role: apiMaster.permission as any,
+          fullName: apiMaster.full_name || '',
+          nickname: apiMaster.nickname || '',
+          phone: String(apiMaster.phone_number),
+          photo: apiMaster.photo || '',
+          city: '',
+          category: apiMaster.categories?.[0]?.name || '',
+          balance: apiMaster.balance ? Number(apiMaster.balance) : 0,
+          commission: apiMaster.commission ? Number(apiMaster.commission) : 0,
+          isActive: true,
+        })));
+      } catch (backendError) {
+        const localMasters = getLocalMasters();
+        setMasters(localMasters as unknown as User[]);
+      }
     } catch (error) {
       setMasters([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Создание мастера через backend, fallback на локальные
+  const addMaster = async (masterData: Partial<User>) => {
+    setIsLoading(true);
+    try {
+      try {
+        await apiClient.signUp({
+          phone_number: String(masterData.phone),
+          password: 'defaultpass',
+          permission: '100',
+        });
+      } catch (backendError) {
+        addLocalMaster({
+          fullName: String(masterData.fullName || ''),
+          phone: String(masterData.phone || ''),
+          city: String(masterData.city || ''),
+          category: String(masterData.category || ''),
+          isActive: masterData.isActive !== undefined ? masterData.isActive : true,
+        });
+      }
+      await loadMasters();
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Удаление мастера через backend, fallback на локальные
+  const deleteMaster = async (masterId: string) => {
+    setIsLoading(true);
+    try {
+      try {
+        await apiClient.changeMasterStatus(masterId, 'remove');
+      } catch (backendError) {
+        deleteLocalMaster(masterId);
+      }
+      await loadMasters();
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Загрузка сотрудников с backend, fallback на локальные
+  const loadEmployees = async () => {
+    setIsLoading(true);
+    try {
+      try {
+        const apiUsers = await apiClient.getUsers();
+        setEmployees(apiUsers.map(apiUser => ({
+          id: String(apiUser.id),
+          role: apiUser.permission as any,
+          fullName: apiUser.full_name || '',
+          nickname: apiUser.nickname || '',
+          phone: String(apiUser.phone_number),
+          photo: apiUser.photo || '',
+          city: '',
+          category: apiUser.categories?.[0]?.name || '',
+          balance: apiUser.balance ? Number(apiUser.balance) : 0,
+          commission: apiUser.commission ? Number(apiUser.commission) : 0,
+          isActive: true,
+        })));
+      } catch (backendError) {
+        const localUsers = getUsers();
+        setEmployees(localUsers.map(u => ({
+          id: u.id,
+          role: u.role,
+          fullName: u.fullName || '',
+          nickname: '',
+          phone: u.phone,
+          city: '',
+          category: '',
+          balance: 0,
+          commission: 0,
+          isActive: true,
+        })));
+      }
+    } catch (error) {
+      setEmployees([]);
     } finally {
       setIsLoading(false);
     }
@@ -82,75 +278,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.warn('Failed to load categories from backend, using mock data:', error);
       setChatCategories([]);
-    }
-  };
-
-  // Загрузка заказов с frontend (локально)
-  const loadOrders = async () => {
-    setIsLoading(true);
-    try {
-      const localOrders = getLocalOrders();
-      setOrders(localOrders as unknown as Order[]);
-    } catch (error) {
-      setOrders([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Создание заказа только на фронте
-  const createOrder = async (orderData: Omit<Order, 'id'>): Promise<void> => {
-    setIsLoading(true);
-    try {
-      addLocalOrder({ ...orderData, createdAt: orderData.createdAt || new Date(), updatedAt: orderData.updatedAt || new Date() });
-      await loadOrders();
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Удаление заказа только на фронте
-  const deleteOrder = async (orderId: string) => {
-    setIsLoading(true);
-    try {
-      deleteLocalOrder(orderId);
-      await loadOrders();
-    } catch (error) {
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Создание мастера только на фронте
-  const addMaster = async (masterData: Partial<User>) => {
-    setIsLoading(true);
-    try {
-      addLocalMaster({
-        fullName: String(masterData.fullName || ''),
-        phone: String(masterData.phone || ''),
-        city: String(masterData.city || ''),
-        category: String(masterData.category || ''),
-        isActive: masterData.isActive !== undefined ? masterData.isActive : true,
-      });
-      await loadMasters();
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Удаление мастера только на фронте
-  const deleteMaster = async (masterId: string) => {
-    setIsLoading(true);
-    try {
-      deleteLocalMaster(masterId);
-      await loadMasters();
-    } catch (error) {
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -234,18 +361,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
         : complaint
     ));
-  };
-
-  // Обновление статуса заказа только на фронте
-  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
-    setIsLoading(true);
-    try {
-      updateLocalOrder(orderId, { status });
-      await loadOrders();
-    } catch (error) {
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
