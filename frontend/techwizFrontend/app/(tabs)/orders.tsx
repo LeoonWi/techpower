@@ -87,6 +87,10 @@ export default function OrdersScreen() {
   };
 
   const handleAddOrder = async () => {
+    if (!newOrder.name.trim() || !newOrder.phone_number.trim() || !newOrder.address.trim() || !newOrder.price.trim()) {
+      Alert.alert('Ошибка', 'Пожалуйста, заполните все обязательные поля');
+      return;
+    }
     try {
       await createOrder({
         title: newOrder.comment || 'Новый заказ',
@@ -101,8 +105,8 @@ export default function OrdersScreen() {
         commission: 0,
         status: 'pending',
         assignedMasterId: undefined,
-        createdAt: new Date(newOrder.date_time),
-        updatedAt: new Date(newOrder.date_time),
+        createdAt: newOrder.date_time ? new Date(newOrder.date_time) : new Date(),
+        updatedAt: newOrder.date_time ? new Date(newOrder.date_time) : new Date(),
         isPremium: false,
       });
       Alert.alert('Успешно', 'Заказ создан');

@@ -63,12 +63,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         role: apiMaster.permission as any,
         fullName: apiMaster.full_name || '',
         nickname: apiMaster.nickname || '',
-        phone: apiMaster.phone_number,
+        phone: String(apiMaster.phone_number),
         photo: apiMaster.photo || '',
         city: '',
         category: apiMaster.categories?.[0]?.name || '',
-        balance: Number(apiMaster.balance) || 0,
-        commission: Number(apiMaster.commission) || 0,
+        balance: apiMaster.balance ? Number(apiMaster.balance) : 0,
+        commission: apiMaster.commission ? Number(apiMaster.commission) : 0,
         isActive: true,
       })));
     } catch (error) {
@@ -181,8 +181,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addMaster = async (masterData: Partial<User>) => {
     setIsLoading(true);
     try {
-      // Используем только поля, которые есть в User
-      await apiClient.signUp({ ...masterData, password: 'defaultpass' });
+      await apiClient.signUp({
+        phone_number: String(masterData.phone),
+        password: 'defaultpass',
+        permission: '100',
+      });
       await loadMasters();
     } catch (error) {
       console.error('Failed to add master:', error);

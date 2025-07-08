@@ -57,7 +57,16 @@ export default function AddEmployeeScreen() {
   const addEmployee = async () => {
     if (name.trim() && phone.trim() && password.trim()) {
       try {
-        await apiClient.signUp({ full_name: name, phone_number: phone, password, permission: role });
+        const permissionMap: Record<string, string> = {
+          admin: '001',
+          support: '010',
+          master: '100',
+        };
+        await apiClient.signUp({
+          phone_number: phone,
+          password,
+          permission: (permissionMap[role] || '010').trim(),
+        });
         await loadEmployees();
         closeModal();
         Alert.alert('Успех', 'Сотрудник добавлен');
