@@ -137,7 +137,7 @@ export default function OrdersScreen() {
   const canManageOrders = user?.role === 'support' || user?.role === 'admin';
 
   const availableMasters = masters.filter(master => 
-    master.isActive && master.role === 'master'
+    master.isActive
   );
 
   return (

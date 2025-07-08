@@ -6,6 +6,8 @@ import { User } from '@/types/user';
 import { Complaint } from '@/types/complaint';
 import { apiClient, User as ApiUser, Category as ApiCategory, Request as ApiRequest, Chat as ApiChat, Message as ApiMessage } from '@/api/client';
 import { useAuth } from './AuthContext';
+import { getOrders as getLocalOrders, addOrder as addLocalOrder, deleteOrder as deleteLocalOrder, updateOrder as updateLocalOrder, LocalOrder } from '../data/orders';
+import { getMasters as getLocalMasters, addMaster as addLocalMaster, deleteMaster as deleteLocalMaster, updateMaster as updateLocalMaster, LocalMaster } from '../data/masters';
 
 interface DataContextType {
   orders: Order[];
@@ -53,26 +55,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Загрузка мастеров с backend
+  // Загрузка мастеров с frontend (локально)
   const loadMasters = async () => {
     setIsLoading(true);
     try {
-      const apiMasters = await apiClient.getMasters();
-      setMasters(apiMasters.map(apiMaster => ({
-        id: String(apiMaster.id),
-        role: apiMaster.permission as any,
-        fullName: apiMaster.full_name || '',
-        nickname: apiMaster.nickname || '',
-        phone: String(apiMaster.phone_number),
-        photo: apiMaster.photo || '',
-        city: '',
-        category: apiMaster.categories?.[0]?.name || '',
-        balance: apiMaster.balance ? Number(apiMaster.balance) : 0,
-        commission: apiMaster.commission ? Number(apiMaster.commission) : 0,
-        isActive: true,
-      })));
+      const localMasters = getLocalMasters();
+      setMasters(localMasters as unknown as User[]);
     } catch (error) {
-      console.warn('Failed to load masters from backend:', error);
       setMasters([]);
     } finally {
       setIsLoading(false);
@@ -96,114 +85,70 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Загрузка заказов с backend
+  // Загрузка заказов с frontend (локально)
   const loadOrders = async () => {
     setIsLoading(true);
     try {
-      const apiOrders = await apiClient.getOrders();
-      setOrders(apiOrders.map(apiOrder => ({
-        id: String(apiOrder.id || ''),
-        title: apiOrder.problem,
-        description: apiOrder.problem,
-        category: '',
-        city: '', // TODO: добавить если появится
-        address: apiOrder.address,
-        coordinates: { latitude: 0 as number, longitude: 0 as number },
-        price: Number(apiOrder.price),
-        commission: 0, // TODO: добавить если появится
-        status: mapStatusCodeToOrderStatus(apiOrder.status.status_code),
-        clientName: apiOrder.full_name,
-        clientPhone: apiOrder.phone_number,
-        assignedMasterId: apiOrder.worker_id ? String(apiOrder.worker_id) : undefined,
-        createdAt: new Date(apiOrder.datetime),
-        updatedAt: new Date(apiOrder.datetime),
-        isPremium: false, // TODO: добавить если появится
-      })));
+      const localOrders = getLocalOrders();
+      setOrders(localOrders as unknown as Order[]);
     } catch (error) {
-      console.error('Failed to load orders from backend:', error);
       setOrders([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Создание заказа через backend
+  // Создание заказа только на фронте
   const createOrder = async (orderData: Omit<Order, 'id'>): Promise<void> => {
     setIsLoading(true);
     try {
-      const apiRequest: Omit<ApiRequest, 'id'> = {
-        full_name: orderData.clientName,
-        phone_number: orderData.clientPhone,
-        address: orderData.address,
-        problem: orderData.description,
-        price: orderData.price,
-        status: { status_code: 1, reason: '' },
-        datetime: orderData.createdAt.toISOString(),
-        category_id: '1', // TODO: маппинг категорий
-      };
-      await apiClient.createRequest(apiRequest);
+      addLocalOrder({ ...orderData, createdAt: orderData.createdAt || new Date(), updatedAt: orderData.updatedAt || new Date() });
       await loadOrders();
     } catch (error) {
-      console.error('Failed to create order:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Обновление заказа через backend
-  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
-    setIsLoading(true);
-    try {
-      await apiClient.updateOrder(orderId, { status: { status_code: status } });
-      await loadOrders();
-    } catch (error) {
-      console.error('Failed to update order:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Удаление заказа через backend
+  // Удаление заказа только на фронте
   const deleteOrder = async (orderId: string) => {
     setIsLoading(true);
     try {
-      await apiClient.deleteOrder(orderId);
+      deleteLocalOrder(orderId);
       await loadOrders();
     } catch (error) {
-      console.error('Failed to delete order:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Методы для мастеров
+  // Создание мастера только на фронте
   const addMaster = async (masterData: Partial<User>) => {
     setIsLoading(true);
     try {
-      await apiClient.signUp({
-        phone_number: String(masterData.phone),
-        password: 'defaultpass',
-        permission: '100',
+      addLocalMaster({
+        fullName: String(masterData.fullName || ''),
+        phone: String(masterData.phone || ''),
+        city: String(masterData.city || ''),
+        category: String(masterData.category || ''),
+        isActive: masterData.isActive !== undefined ? masterData.isActive : true,
       });
       await loadMasters();
     } catch (error) {
-      console.error('Failed to add master:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Удаление мастера только на фронте
   const deleteMaster = async (masterId: string) => {
     setIsLoading(true);
     try {
-      // Используем changeMasterStatus с event remove
-      await apiClient.changeMasterStatus(masterId, 'remove');
+      deleteLocalMaster(masterId);
       await loadMasters();
     } catch (error) {
-      console.error('Failed to delete master:', error);
-      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -241,12 +186,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     initializeData();
   }, []);
 
-  const assignOrder = (orderId: string, masterId: string) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId 
-        ? { ...order, assignedMasterId: masterId, status: 'assigned', updatedAt: new Date() }
-        : order
-    ));
+  // Назначение мастера заказу только на фронте
+  const assignOrder = async (orderId: string, masterId: string) => {
+    setIsLoading(true);
+    try {
+      updateLocalOrder(orderId, { assignedMasterId: masterId, status: 'assigned' });
+      await loadOrders();
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const sendMessage = (categoryId: string, content: string, senderId: string, senderName: string) => {
@@ -285,6 +234,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
         : complaint
     ));
+  };
+
+  // Обновление статуса заказа только на фронте
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    setIsLoading(true);
+    try {
+      updateLocalOrder(orderId, { status });
+      await loadOrders();
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
