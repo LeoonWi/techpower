@@ -7,7 +7,7 @@ import (
 	"techwizBackend/pkg/models"
 )
 
-func (h *Handler) signup(c echo.Context) error {
+func (h Handler) signup(c echo.Context) error {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(
@@ -29,7 +29,7 @@ func (h *Handler) signup(c echo.Context) error {
 	)
 }
 
-func (h *Handler) signin(c echo.Context) error {
+func (h Handler) signin(c echo.Context) error {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(

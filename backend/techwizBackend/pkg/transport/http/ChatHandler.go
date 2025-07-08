@@ -7,7 +7,7 @@ import (
 	"techwizBackend/pkg/models"
 )
 
-func (h *Handler) createChat(c echo.Context) error {
+func (h Handler) createChat(c echo.Context) error {
 	member1, _ := bson.ObjectIDFromHex(c.Param("member1"))
 	member2, _ := bson.ObjectIDFromHex(c.Param("member2"))
 	var chat models.Chat

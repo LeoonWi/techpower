@@ -44,7 +44,8 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	//chat.GET("/:member1/:member2", h.getChatByMember)     // DONE
 
 	request := e.Group("request")
-	request.POST("/create", h.createRequest)
+	request.POST("", h.createRequest)
+	request.GET("", h.getRequests)
 
 	e.GET("/ws", func(c echo.Context) error {
 		return websocketConn.Ws(c)
