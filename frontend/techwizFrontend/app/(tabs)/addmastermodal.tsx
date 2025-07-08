@@ -15,7 +15,7 @@ interface AddMasterModalProps {
   onClose: () => void;
   onAddMaster: (master: {
     fullName: string;
-    phone_number: string;
+    phone: string;
     city: string;
     category: string;
     isActive: boolean;
@@ -32,7 +32,13 @@ export default function AddMasterModal({ visible, onClose, onAddMaster }: AddMas
   });
 
   const handleAddMaster = () => {
-    onAddMaster(newMaster);
+    onAddMaster({
+      phone: newMaster.phone_number,
+      fullName: newMaster.fullName,
+      city: newMaster.city,
+      category: newMaster.category,
+      isActive: newMaster.isActive,
+    });
     setNewMaster({
       fullName: '',
       phone_number: '',
