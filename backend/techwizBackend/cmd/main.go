@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"log"
 	"techwizBackend/pkg/repository"
 	"techwizBackend/pkg/service"
@@ -13,6 +14,7 @@ import (
 func main() {
 	// Init Web Server
 	e := echo.New()
+	e.Use(middleware.CORS())
 	// Init connection MongoDB
 	db := repository.New()
 	defer func() {
@@ -27,12 +29,13 @@ func main() {
 	categoryRepository := repository.NewCategoryRepository(db)
 	userRepository := repository.NewUserRepository(db)
 	messageRepository := repository.NewMessageRepository(db)
+	requestRepository := repository.NewRequestRepository(db)
 	// Create services
 	authService := service.NewAuthService(authRepository, userRepository)
 	chatService := service.NewChatService(chatRepository, userRepository)
 	categoryService := service.NewCategoryService(categoryRepository, chatRepository)
 	userService := service.NewUserService(userRepository, chatRepository)
-	requestService := service.NewRequestService()
+	requestService := service.NewRequestService(requestRepository)
 	messageService := service.NewMessageService(messageRepository, chatRepository, userRepository)
 	// Create general service
 	services := service.NewServices(
