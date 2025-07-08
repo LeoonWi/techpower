@@ -5,13 +5,19 @@ import (
 	"time"
 )
 
+// StatusCode can be 1,2,3,4,5
+// 1 = waiting
+// 2 = appointed
+// 3 = in work
+// 4 = completed
+// 5 = canceled
 type Status struct {
 	StatusCode int    `json:"status_code,omitempty" bson:"status_code,omitempty"`
 	Reason     string `json:"reason,omitempty" bson:"reason,omitempty"`
 }
 
 type Request struct {
-	Id          *bson.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Id          bson.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
 	FullName    string         `json:"full_name,omitempty" bson:"full_name,omitempty"`
 	PhoneNumber string         `json:"phone_number,omitempty" bson:"phone_number,omitempty"`
 	Address     string         `json:"address,omitempty" bson:"address,omitempty"`
@@ -21,8 +27,8 @@ type Request struct {
 	FilesDTO    []FileDTO      `json:"files,omitempty" bson:"-"`
 	FilesDAO    []FileDAO      `json:"-" bson:"files,omitempty"`
 	DateTime    time.Time      `json:"datetime,omitempty" bson:"datetime,omitempty"`
-	Category    Category       `json:"category,omitempty" bson:"category,omitempty"`
-	CategoryId  bson.ObjectID  `json:"category_id,omitempty" bson:"category_id,omitempty"`
-	Worker      User           `json:"worker,omitempty" bson:"worker,omitempty"`
-	WorkerId    bson.ObjectID  `json:"worker_id,omitempty" bson:"worker_id,omitempty"`
+	Category    *Category      `json:"category,omitempty" bson:"category,omitempty"`
+	CategoryId  *bson.ObjectID `json:"category_id,omitempty" bson:"category_id,omitempty"`
+	Worker      *User          `json:"worker,omitempty" bson:"worker,omitempty"`
+	WorkerId    *bson.ObjectID `json:"worker_id,omitempty" bson:"worker_id,omitempty"`
 }
