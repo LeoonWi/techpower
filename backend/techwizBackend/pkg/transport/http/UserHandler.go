@@ -152,3 +152,16 @@ func (h Handler) changeStatus(c echo.Context) error {
 
 	return c.JSON(code, map[string]string{"status": "ok"})
 }
+
+func (h Handler) dismissUser(c echo.Context) error {
+	id, err := bson.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "Invalid id"})
+	}
+
+	if status, err := h.services.UserService.DismissUser(id); err != nil {
+		return c.JSON(status, map[string]string{"err": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]bson.ObjectID{"dismissed": id})
+}

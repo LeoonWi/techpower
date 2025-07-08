@@ -35,6 +35,7 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	// example /user/master?id=686832fb6fd2db7bc42f0c63&event=add&status=senior
 	// example /user/master?id=686832fb6fd2db7bc42f0c63&event=remove
 	user.PATCH("/master", h.changeStatus)
+	user.PATCH("/dismiss/:id", h.dismissUser)
 
 	chat := e.Group("chat")
 	chat.POST("/create/:member1/:member2", h.createChat)  // DONE
