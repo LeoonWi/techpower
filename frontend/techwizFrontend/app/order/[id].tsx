@@ -56,8 +56,8 @@ export default function OrderDetailScreen() {
   const handleStatusUpdate = async (newStatus: string) => {
     setIsUpdating(true);
     try {
-      updateOrderStatus(order.id, newStatus as any);
-      Alert.alert('Успешно', 'Статус заказа обновлен');
+      await updateOrderStatus(order.id, newStatus as any);
+      Alert.alert('Успешно', 'Статус заказа обновлён');
     } catch (error) {
       Alert.alert('Ошибка', 'Не удалось обновить статус');
     } finally {

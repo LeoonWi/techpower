@@ -3,15 +3,15 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { Search, Filter, User, Crown, Star, MapPin, Phone, TrendingUp, DollarSign, Clock, ClipboardList } from 'lucide-react-native';
+import { Search, Filter, User, Crown, MapPin, Phone, TrendingUp, DollarSign, ClipboardList } from 'lucide-react-native';
 
 export default function MastersScreen() {
   const { user } = useAuth();
-  const { masters, masterStats } = useData();
+  const { masters } = useData();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
 
-  if (user?.role !== 'admin' && user?.role !== 'senior_master') {
+  if (user?.role !== 'admin' && user?.role !== 'support') {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.accessDenied}>
@@ -24,8 +24,7 @@ export default function MastersScreen() {
   const filters = [
     { key: 'all', label: 'Все' },
     { key: 'active', label: 'Активные' },
-    { key: 'premium', label: 'Премиум' },
-    { key: 'senior', label: 'Старшие' },
+    { key: 'inactive', label: 'Неактивные' },
   ];
 
   const filteredMasters = masters.filter(master => {
@@ -37,10 +36,8 @@ export default function MastersScreen() {
       switch (selectedFilter) {
         case 'active':
           return master.isActive;
-        case 'premium':
-          return master.role === 'premium_master';
-        case 'senior':
-          return master.role === 'senior_master';
+        case 'inactive':
+          return !master.isActive;
         default:
           return true;
       }
@@ -50,34 +47,24 @@ export default function MastersScreen() {
   });
 
   const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'premium_master':
-        return Crown;
-      case 'senior_master':
-        return Star;
-      default:
-        return User;
-    }
+    return User;
   };
 
   const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'premium_master':
-        return '#7C3AED';
-      case 'senior_master':
-        return '#EA580C';
-      default:
-        return '#059669';
-    }
+    return '#059669';
   };
 
   const getRoleTitle = (role: string) => {
-    const titles = {
-      master: 'Мастер',
-      senior_master: 'Старший мастер',
-      premium_master: 'Премиум мастер',
-    };
-    return titles[role as keyof typeof titles] || role;
+    switch (role) {
+      case 'senior_master':
+        return 'Старший мастер';
+      case 'premium_master':
+        return 'Премиум мастер';
+      case 'master':
+        return 'Мастер';
+      default:
+        return 'Мастер';
+    }
   };
 
   const handleMasterAction = (masterId: string, action: string) => {
@@ -114,10 +101,11 @@ export default function MastersScreen() {
           <Text style={styles.statLabel}>Активных</Text>
         </View>
         <View style={styles.statCard}>
-          <Crown size={20} color="#7C3AED" />
-          <Text style={styles.statNumber}>{masters.filter(m => m.role === 'premium_master').length}</Text>
-          <Text style={styles.statLabel}>Премиум</Text>
+          <User size={20} color="#DC2626" />
+          <Text style={styles.statNumber}>{masters.filter(m => !m.isActive).length}</Text>
+          <Text style={styles.statLabel}>Неактивных</Text>
         </View>
+
       </View>
 
       {/* Поиск и фильтры */}
@@ -174,7 +162,7 @@ export default function MastersScreen() {
         ) : (
           filteredMasters.map((master) => {
             const IconComponent = getRoleIcon(master.role);
-            const stats = masterStats[master.id] || { orders: 0, earnings: 0, rating: 0 };
+            const stats = { orders: 0, earnings: 0 };
             
             return (
               <View key={master.id} style={styles.masterCard}>
@@ -185,27 +173,31 @@ export default function MastersScreen() {
                   <View style={styles.masterInfo}>
                     <View style={styles.masterNameRow}>
                       <Text style={styles.masterName}>{master.fullName}</Text>
-                      {master.role === 'premium_master' && (
-                        <Crown size={16} color="#FFD700" />
-                      )}
                     </View>
-                    <Text style={styles.masterRole}>{getRoleTitle(master.role)}</Text>
+                    <Text style={styles.masterRole}>
+                      {getRoleTitle(master.role)}
+                      {(master.role === 'senior_master' || master.role === 'premium_master') && (
+                        <Text style={styles.masterStatus}> • {master.isActive ? 'Активен' : 'Неактивен'}</Text>
+                      )}
+                    </Text>
                     <View style={styles.masterLocation}>
                       <MapPin size={12} color="#64748B" />
                       <Text style={styles.masterLocationText}>{master.city}</Text>
                     </View>
                   </View>
-                  <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: master.isActive ? '#D1FAE5' : '#FEE2E2' }
-                  ]}>
-                    <Text style={[
-                      styles.statusText,
-                      { color: master.isActive ? '#059669' : '#DC2626' }
+                  {master.role === 'master' && (
+                    <View style={[
+                      styles.statusBadge,
+                      { backgroundColor: master.isActive ? '#D1FAE5' : '#FEE2E2' }
                     ]}>
-                      {master.isActive ? 'Активен' : 'Неактивен'}
-                    </Text>
-                  </View>
+                      <Text style={[
+                        styles.statusText,
+                        { color: master.isActive ? '#059669' : '#DC2626' }
+                      ]}>
+                        {master.isActive ? 'Активен' : 'Неактивен'}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.masterDetails}>
@@ -230,11 +222,6 @@ export default function MastersScreen() {
                     </Text>
                     <Text style={styles.masterStatLabel}>Доход</Text>
                   </View>
-                  <View style={styles.masterStatItem}>
-                    <Star size={16} color="#F59E0B" />
-                    <Text style={styles.masterStatValue}>{stats.rating}</Text>
-                    <Text style={styles.masterStatLabel}>Рейтинг</Text>
-                  </View>
                 </View>
 
                 {/* Действия */}
@@ -244,20 +231,6 @@ export default function MastersScreen() {
                     onPress={() => handleMasterAction(master.id, 'view_details')}
                   >
                     <Text style={styles.actionButtonText}>Детали</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.actionButtonSecondary]}
-                    onPress={() => handleMasterAction(master.id, 'edit')}
-                  >
-                    <Text style={styles.actionButtonSecondaryText}>Редактировать</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.actionButtonDanger]}
-                    onPress={() => handleMasterAction(master.id, master.isActive ? 'deactivate' : 'activate')}
-                  >
-                    <Text style={styles.actionButtonDangerText}>
-                      {master.isActive ? 'Деактивировать' : 'Активировать'}
-                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -362,9 +335,9 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     backgroundColor: 'white',
-    width: 12,
-    height: 12,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -400,16 +373,15 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: 'white',
-    fontFamily: 'Inter-SemiBold',
   },
   mastersList: {
     flex: 1,
+    paddingHorizontal: 20,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
-    paddingHorizontal: 20,
   },
   emptyStateText: {
     fontSize: 18,
@@ -425,10 +397,9 @@ const styles = StyleSheet.create({
   },
   masterCard: {
     backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginBottom: 16,
-    padding: 16,
     borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -464,10 +435,15 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   masterRole: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#2563EB',
     marginBottom: 4,
+  },
+  masterStatus: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
   },
   masterLocation: {
     flexDirection: 'row',
@@ -489,13 +465,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
   },
   masterDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
   masterCategory: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#64748B',
-    marginBottom: 4,
   },
   masterContact: {
     flexDirection: 'row',
@@ -512,22 +490,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
+    borderTopColor: '#F1F5F9',
     marginBottom: 12,
   },
   masterStatItem: {
     alignItems: 'center',
   },
   masterStatValue: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Inter-Bold',
     color: '#1E293B',
     marginTop: 4,
     marginBottom: 2,
   },
   masterStatLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#64748B',
   },
@@ -537,35 +514,27 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
     backgroundColor: '#2563EB',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     alignItems: 'center',
   },
-  actionButtonSecondary: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  actionButtonDanger: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
   actionButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: 'white',
   },
+  actionButtonSecondary: {
+    backgroundColor: '#F1F5F9',
+  },
   actionButtonSecondaryText: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#64748B',
   },
+  actionButtonDanger: {
+    backgroundColor: '#FEE2E2',
+  },
   actionButtonDangerText: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
     color: '#DC2626',
   },
 });

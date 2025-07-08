@@ -117,7 +117,9 @@ export default function MapScreen() {
           <View key={order.id} style={styles.orderItem}>
             <View style={styles.orderHeader}>
               <Text style={styles.orderTitle}>{order.title}</Text>
-              {order.isPremium && <Crown size={16} color="#FFD700" />}
+              {order.isPremium && (
+                <Crown size={16} color="#F59E0B" style={styles.premiumIcon} />
+              )}
             </View>
             <Text style={styles.orderAddress}>{order.address}, {order.city}</Text>
             <Text style={styles.orderPrice}>{order.price.toLocaleString('ru-RU')} ₽</Text>
@@ -173,7 +175,9 @@ export default function MapScreen() {
               <View style={styles.orderDetailsHeader}>
                 <View style={styles.orderTitleRow}>
                   <Text style={styles.orderDetailsTitle}>{selectedOrderData.title}</Text>
-                  {selectedOrderData.isPremium && <Crown size={16} color="#FFD700" />}
+                  {selectedOrderData.isPremium && (
+                    <Crown size={16} color="#F59E0B" style={styles.premiumIcon} />
+                  )}
                 </View>
                 <TouchableOpacity onPress={() => setSelectedOrder(null)}>
                   <Text style={styles.closeButton}>✕</Text>
@@ -351,6 +355,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#1E293B',
     marginRight: 8,
+  },
+  premiumIcon: {
+    marginLeft: 8,
   },
   closeButton: {
     fontSize: 18,

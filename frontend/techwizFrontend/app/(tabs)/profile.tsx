@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Phone, MapPin, Camera, CreditCard as Edit3, LogOut, CreditCard, Settings, Star, Crown, Wallet } from 'lucide-react-native';
+import { User, Phone, MapPin, Camera, LogOut, Star, Wallet } from 'lucide-react-native';
 
 // =========================
 // Интеграция с backend (профиль пользователя):
@@ -18,15 +19,30 @@ export default function ProfileScreen() {
   const { user, logout, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState(user || null);
+  const [hasChanges, setHasChanges] = useState(false);
 
   if (!user) {
     return null;
   }
 
+  const checkForChanges = (newValue: any) => {
+    if (!user) return false;
+    const hasNicknameChanged = newValue.nickname !== user.nickname;
+    const hasPhoneChanged = newValue.phone !== user.phone;
+    setHasChanges(hasNicknameChanged || hasPhoneChanged);
+  };
+
   const handleSave = () => {
-    if (editedUser) {
-      updateUser(editedUser);
+    if (editedUser && hasChanges) {
+      // Не отправляем полное имя и категорию при обновлении
+      const userToUpdate = {
+        ...editedUser,
+        fullName: user.fullName, // Оставляем оригинальное значение
+        category: user.category, // Оставляем оригинальное значение
+      };
+      updateUser(userToUpdate);
       setIsEditing(false);
+      setHasChanges(false);
       Alert.alert('Успешно', 'Профиль обновлен');
     }
   };
@@ -40,8 +56,10 @@ export default function ProfileScreen() {
         {
           text: 'Выйти',
           style: 'destructive',
-          onPress: () => {
-            logout();
+          onPress: async () => {
+            await logout();
+            // Перенаправляем на экран логина после выхода
+            router.replace('/login');
           },
         },
       ]
@@ -57,23 +75,23 @@ export default function ProfileScreen() {
   const getRoleTitle = () => {
     const roleTitles = {
       admin: 'Администратор',
+      limitedAdmin: 'Ограниченный администратор',
       support: 'Поддержка',
       master: 'Мастер',
-      senior_master: 'Старший мастер',
-      premium_master: 'Премиум мастер',
     };
-    return roleTitles[user.role];
+    return roleTitles[user.role] || user.role;
   };
 
   const getRoleBadgeColor = () => {
     const colors = {
       admin: '#DC2626',
+      limitedAdmin: '#F59E0B',
       support: '#2563EB',
       master: '#059669',
-      senior_master: '#EA580C',
-      premium_master: '#7C3AED',
+      senior_master: '#7C3AED',
+      premium_master: '#F59E0B',
     };
-    return colors[user.role];
+    return colors[user.role] || '#64748B';
   };
 
   return (
@@ -96,16 +114,13 @@ export default function ProfileScreen() {
           <View style={styles.userInfo}>
             <View style={styles.nameRow}>
               <Text style={styles.userName}>{user.fullName}</Text>
-              {user.role === 'premium_master' && <Crown size={20} color="#FFD700" />}
             </View>
             <View style={[styles.roleBadge, { backgroundColor: `${getRoleBadgeColor()}20` }]}>
               <Text style={[styles.roleText, { color: getRoleBadgeColor() }]}>{getRoleTitle()}</Text>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.editButton} onPress={() => setIsEditing(!isEditing)}>
-            <Edit3 size={20} color="#2563EB" />
-          </TouchableOpacity>
+
         </View>
 
         {/* Balance Card */}
@@ -114,7 +129,7 @@ export default function ProfileScreen() {
             <Wallet size={24} color="#2563EB" />
             <Text style={styles.balanceTitle}>Баланс</Text>
             <TouchableOpacity style={styles.topUpButton} onPress={handlePayment}>
-              <CreditCard size={16} color="white" />
+              <Wallet size={16} color="white" />
               <Text style={styles.topUpText}>Пополнить</Text>
             </TouchableOpacity>
           </View>
@@ -129,16 +144,10 @@ export default function ProfileScreen() {
           <Text style={styles.formTitle}>Личная информация</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Полное имя *</Text>
-            <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Полное имя</Text>
+            <View style={[styles.inputContainer, styles.readOnlyInput]}>
               <User size={20} color="#64748B" />
-              <TextInput
-                style={styles.input}
-                value={isEditing ? editedUser?.fullName : user.fullName}
-                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, fullName: text } : null))}
-                editable={isEditing}
-                placeholder="Введите полное имя"
-              />
+              <Text style={styles.readOnlyText}>{user.fullName}</Text>
             </View>
           </View>
 
@@ -149,7 +158,11 @@ export default function ProfileScreen() {
               <TextInput
                 style={styles.input}
                 value={isEditing ? editedUser?.nickname : user.nickname}
-                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, nickname: text } : null))}
+                onChangeText={(text) => {
+                  const newValue = editedUser ? { ...editedUser, nickname: text } : { ...user, nickname: text };
+                  setEditedUser(newValue);
+                  checkForChanges(newValue);
+                }}
                 editable={isEditing}
                 placeholder="Введите никнейм"
               />
@@ -163,7 +176,11 @@ export default function ProfileScreen() {
               <TextInput
                 style={styles.input}
                 value={isEditing ? editedUser?.phone : user.phone}
-                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, phone: text } : null))}
+                onChangeText={(text) => {
+                  const newValue = editedUser ? { ...editedUser, phone: text } : { ...user, phone: text };
+                  setEditedUser(newValue);
+                  checkForChanges(newValue);
+                }}
                 editable={isEditing}
                 placeholder="Введите номер телефона"
                 keyboardType="phone-pad"
@@ -172,40 +189,21 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Город</Text>
-            <View style={styles.inputContainer}>
-              <MapPin size={20} color="#64748B" />
-              <TextInput
-                style={styles.input}
-                value={isEditing ? editedUser?.city : user.city}
-                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, city: text } : null))}
-                editable={isEditing}
-                placeholder="Введите город"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Категория</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, styles.readOnlyInput]}>
               <Star size={20} color="#64748B" />
-              <TextInput
-                style={styles.input}
-                value={isEditing ? editedUser?.category : user.category}
-                onChangeText={(text) => setEditedUser((prev) => (prev ? { ...prev, category: text } : null))}
-                editable={isEditing}
-                placeholder="Введите категорию"
-              />
+              <Text style={styles.readOnlyText}>{user.category}</Text>
             </View>
           </View>
 
-          {isEditing && (
+          {isEditing && hasChanges && (
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => {
                   setIsEditing(false);
                   setEditedUser(user);
+                  setHasChanges(false);
                 }}
               >
                 <Text style={styles.cancelButtonText}>Отмена</Text>
@@ -219,16 +217,6 @@ export default function ProfileScreen() {
 
         {/* Settings */}
         <View style={styles.settingsContainer}>
-          <TouchableOpacity style={styles.settingItem}>
-            <Settings size={20} color="#64748B" />
-            <Text style={styles.settingText}>Настройки приложения</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem} onPress={handlePayment}>
-            <CreditCard size={20} color="#64748B" />
-            <Text style={styles.settingText}>Платежи и СБП</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity style={[styles.settingItem, styles.logoutItem]} onPress={handleLogout}>
             <LogOut size={20} color="#EF4444" />
             <Text style={[styles.settingText, styles.logoutText]}>Выйти из аккаунта</Text>
@@ -392,11 +380,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
+  readOnlyInput: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+  },
   input: {
     flex: 1,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#1E293B',
+    marginLeft: 12,
+  },
+  readOnlyText: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
     marginLeft: 12,
   },
   actionButtons: {

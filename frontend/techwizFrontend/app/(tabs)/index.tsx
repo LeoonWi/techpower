@@ -4,15 +4,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { router } from 'expo-router';
-import { Wallet, Pickaxe, TrendingUp, ClipboardList, Users, MessageSquare, Calendar, MapPin, Crown, Settings, FileText, TriangleAlert as AlertTriangle, Clock, CircleCheck as CheckCircle, ChartBar as BarChart3 } from 'lucide-react-native';
+import { Wallet, Pickaxe, TrendingUp, ClipboardList, Users, MessageSquare, Calendar, MapPin, Settings, FileText, TriangleAlert as AlertTriangle, Clock, CircleCheck as CheckCircle, ChartBar as BarChart3 } from 'lucide-react-native';
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const { orders, analytics, complaints, masterStats } = useData();
+  const { orders, complaints } = useData();
 
   useEffect(() => {
     if (!user) {
       router.replace('/login');
+    } else if (user.role === 'admin') {
+      // Админ может видеть только экран добавления сотрудников
+      router.replace('/(tabs)/addemployeescreen');
     }
   }, [user]);
 
@@ -32,10 +35,11 @@ export default function HomeScreen() {
       admin: 'Администратор',
       support: 'Поддержка',
       master: 'Мастер',
+      limitedAdmin: 'Ограниченный администратор',
       senior_master: 'Старший мастер',
       premium_master: 'Премиум мастер',
     };
-    return roleTitles[user.role];
+    return roleTitles[user.role] || user.role;
   };
 
   const getDashboardData = () => {
@@ -48,16 +52,16 @@ export default function HomeScreen() {
       };
     }
 
-    if (user.role === 'master' || user.role === 'premium_master') {
+    if (user.role === 'master') {
       const userOrders = orders.filter(order => order.assignedMasterId === user.id);
-      const stats = masterStats[user.id] || { orders: 0, earnings: 0, rating: 0 };
+      const stats = { orders: 0, earnings: 0, rating: 0 };
       
       return {
         activeOrders: userOrders.filter(order => 
           ['assigned', 'in_progress'].includes(order.status)
         ).length,
         completedOrders: userOrders.filter(order => order.status === 'completed').length,
-        totalEarnings: stats.earnings,
+        totalEarnings: stats.earnings || 0,
         rating: stats.rating,
       };
     }
@@ -70,9 +74,9 @@ export default function HomeScreen() {
       activeOrders: userOrders.filter(order => 
         ['assigned', 'in_progress'].includes(order.status)
       ).length,
-      completedOrders: user.role === 'admin' ? analytics.completedOrders : 
+      completedOrders: user.role === 'admin' ? 0 : 
         userOrders.filter(order => order.status === 'completed').length,
-      totalEarnings: user.role === 'admin' ? analytics.earnings : user.balance,
+      totalEarnings: user.role === 'admin' ? 0 : user.balance,
     };
   };
 
@@ -109,7 +113,7 @@ export default function HomeScreen() {
           onPress: () => router.push('/(tabs)/masterscreen'),
         },
       );
-    } else if (user.role === 'master' || user.role === 'premium_master') {
+    } else if (user.role === 'master') {
       baseActions.push(
         {
           title: 'Статистика',
@@ -140,7 +144,7 @@ export default function HomeScreen() {
         }
       );
 
-      if (user.role === 'admin' || user.role === 'senior_master') {
+      if (user.role === 'admin') {
         baseActions.push(
           {
             title: 'Аналитика',
@@ -155,7 +159,7 @@ export default function HomeScreen() {
             onPress: () => router.push('/(tabs)/masters'),
           },
           {
-          title: 'Добавить сотрудника',
+          title: 'Сотрудники',
           icon: Pickaxe,
           color: '#F59E0B',
           onPress: () => router.push('/(tabs)/addemployeescreen'),
@@ -236,7 +240,7 @@ export default function HomeScreen() {
           <Text style={styles.balanceTitle}>Доходы</Text>
         </View>
         <Text style={styles.balanceAmount}>
-          {dashboardData.totalEarnings.toLocaleString('ru-RU')} ₽
+          {(dashboardData.totalEarnings || 0).toLocaleString('ru-RU')} ₽
         </Text>
         <Text style={styles.commissionText}>
           Комиссия: {user.commission}%
@@ -284,21 +288,15 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>{getGreeting()}</Text>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{user.fullName}</Text>
-              {user.role === 'premium_master' && (
-                <Crown size={20} color="#FFD700" style={styles.crownIcon} />
-              )}
             </View>
             <Text style={styles.userRole}>{getRoleTitle()}</Text>
           </View>
-          <TouchableOpacity style={styles.locationContainer}>
-            <MapPin size={16} color="#64748B" />
-            <Text style={styles.locationText}>{user.city}</Text>
-          </TouchableOpacity>
+
         </View>
 
         {user.role === 'support' && renderSupportDashboard()}
-        {(user.role === 'master' || user.role === 'premium_master') && renderMasterDashboard()}
-        {(user.role === 'admin' || user.role === 'senior_master') && renderDefaultDashboard()}
+        {user.role === 'master' && renderMasterDashboard()}
+        {user.role === 'admin' && renderDefaultDashboard()}
 
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Быстрые действия</Text>
@@ -321,20 +319,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.recentActivityContainer}>
-          <Text style={styles.sectionTitle}>Последняя активность</Text>
-          <View style={styles.activityCard}>
-            <Text style={styles.activityText}>
-              {user.role === 'support' 
-                ? `Открытых жалоб: ${dashboardData.openComplaints}, Ожидающих заказов: ${dashboardData.pendingOrders}`
-                : user.role === 'admin' 
-                ? `Всего заказов в системе: ${orders.length}`
-                : `Заказов назначено: ${orders.filter(o => o.assignedMasterId === user.id).length}`
-              }
-            </Text>
-            <Text style={styles.activityTime}>Обновлено только что</Text>
-          </View>
-        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -371,29 +356,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#1E293B',
   },
-  crownIcon: {
-    marginLeft: 8,
-  },
+
   userRole: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#2563EB',
     marginTop: 2,
   },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  locationText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#64748B',
-    marginLeft: 4,
-  },
+
   balanceCard: {
     backgroundColor: 'white',
     marginHorizontal: 20,
@@ -535,31 +505,5 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     textAlign: 'center',
   },
-  recentActivityContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  activityCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2563EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  activityText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  activityTime: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#64748B',
-  },
+
 });

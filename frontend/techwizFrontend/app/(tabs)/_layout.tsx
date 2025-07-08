@@ -35,61 +35,17 @@ export default function TabLayout() {
           icon: MessageSquare,
         }
       );
-    } else if (user?.role === 'senior_master') {
-      // Старший мастер: заказы, аналитика, управление мастерами
+    } else if (user?.role === 'admin' || user?.role === 'limitedAdmin') {
+      // Админ: только экран добавления сотрудников
       baseTabs.push(
         {
-          name: 'orders',
-          title: 'Заказы',
-          icon: ClipboardList,
-        },
-        {
-          name: 'analytics',
-          title: 'Аналитика',
-          icon: BarChart3,
-        },
-        {
-          name: 'masters',
-          title: 'Мастера',
-          icon: Users,
-        },
-        {
-          name: 'chat',
-          title: 'Чаты',
-          icon: MessageSquare,
-        }
-      );
-    } else if (user?.role === 'admin') {
-      // Админ: все функции
-      baseTabs.push(
-        {
-          name: 'orders',
-          title: 'Заказы',
-          icon: ClipboardList,
-        },
-        {
-          name: 'map',
-          title: 'Карта',
-          icon: Map,
-        },
-        {
-          name: 'chat',
-          title: 'Чаты',
-          icon: MessageSquare,
-        },
-        {
-          name: 'analytics',
-          title: 'Аналитика',
-          icon: BarChart3,
-        },
-        {
-          name: 'masters',
-          title: 'Мастера',
+          name: 'addemployeescreen',
+          title: 'Сотрудники',
           icon: Users,
         }
       );
     } else {
-      // Обычные мастера и премиум мастера
+      // Обычные мастера
       baseTabs.push(
         {
           name: 'orders',
@@ -165,9 +121,9 @@ export default function TabLayout() {
           <Tabs.Screen
             key={tab.name}
             name={tab.name}
-            options={({ focused }) => ({
+            options={{
               title: tab.title,
-              tabBarIcon: ({ size, color }) => (
+              tabBarIcon: ({ size, color, focused }) => (
                 <IconComponent 
                   size={focused ? size + 3 : size} 
                   color={color}
@@ -175,12 +131,12 @@ export default function TabLayout() {
                 />
               ),
               tabBarLabelStyle: {
-                fontFamily: focused ? 'Inter-Bold' : 'Inter-Regular',
-                fontSize: focused ? 12 : 11,
+                fontFamily: 'Inter-Regular',
+                fontSize: 11,
                 marginTop: 4,
                 marginBottom: 2,
               },
-            })}
+            }}
           />
         );
       })}
