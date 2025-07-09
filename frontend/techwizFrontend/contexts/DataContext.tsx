@@ -81,7 +81,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           id: String(apiOrder.id || ''),
           title: apiOrder.problem,
           description: apiOrder.problem,
-          category: apiOrder.category?.id || '',
+          category: apiOrder.category?.name || '',
           city: '',
           address: apiOrder.address,
           coordinates: { latitude: 0, longitude: 0 },
