@@ -55,6 +55,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Маппинг OrderStatus (string) -> status_code (number)
+  function mapOrderStatusToStatusCode(status: OrderStatus): number {
+    switch (status) {
+      case 'pending': return 1;
+      case 'assigned': return 2;
+      case 'in_progress': return 3;
+      case 'completed': return 4;
+      case 'cancelled': return 5;
+      case 'rejected': return 6;
+      case 'modernization': return 7;
+      default: return 1;
+    }
+  }
+
   // Загрузка заказов с backend, fallback на локальные
   const loadOrders = async () => {
     setIsLoading(true);
@@ -71,7 +85,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           coordinates: { latitude: 0 as number, longitude: 0 as number },
           price: Number(apiOrder.price),
           commission: 0,
-          status: mapStatusCodeToOrderStatus(apiOrder.status.status_code),
+          status: mapStatusCodeToOrderStatus(Number(apiOrder.status.status_code)),
           clientName: apiOrder.full_name,
           clientPhone: apiOrder.phone_number,
           assignedMasterId: apiOrder.worker_id ? String(apiOrder.worker_id) : undefined,
@@ -104,7 +118,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           price: orderData.price,
           status: { status_code: 1, reason: '' },
           datetime: orderData.createdAt.toISOString(),
-          category_id: '1',
+          category_id: String(orderData.category),
         };
         await apiClient.createRequest(apiRequest);
       } catch (backendError) {
@@ -123,7 +137,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       try {
-        await apiClient.updateOrder(orderId, { status: { status_code: status } });
+        await apiClient.updateOrder(orderId, { status: { status_code: mapOrderStatusToStatusCode(status) } });
       } catch (backendError) {
         updateLocalOrder(orderId, { status });
       }

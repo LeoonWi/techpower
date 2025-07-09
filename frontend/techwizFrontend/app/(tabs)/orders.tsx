@@ -231,11 +231,9 @@ export default function OrdersScreen() {
         <Text style={styles.title}>
           {user?.role === 'support' ? 'Назначение заказов' : 'Заказы'}
         </Text>
-        {canManageOrders && (
-          <TouchableOpacity style={styles.addButton} onPress={() => setShowAddOrderModal(true)}>
-            <Plus size={20} color="white" />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddOrderModal(true)}>
+          <Plus size={20} color="white" />
+        </TouchableOpacity>
       </View>
 
       {/* Кнопка добавить категорию услуги */}
