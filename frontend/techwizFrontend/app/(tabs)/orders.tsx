@@ -135,29 +135,38 @@ export default function OrdersScreen() {
     }
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.city.toLowerCase().includes(searchQuery.toLowerCase());
+  // Фильтрация и сортировка заказов
+  const filteredOrders = orders
+    .filter(order => {
+      // Поиск
+      const matchesSearch =
+        order.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.city?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesFilter = selectedFilter === 'all' || order.status === selectedFilter;
-    const matchesCategory = !selectedCategory || order.category === selectedCategory;
+      // Фильтр по статусу
+      const matchesFilter = selectedFilter === 'all' || order.status === selectedFilter;
 
-    const roleFilter = () => {
-      switch (user?.role) {
-        case 'admin':
-          return true;
-        case 'support':
-          return true;
-        case 'master':
-          return order.assignedMasterId === user.id;
-        default:
-          return false;
-      }
-    };
+      // Фильтр по категории (теперь по имени)
+      const matchesCategory = !selectedCategory || order.category === selectedCategory;
 
-    return matchesSearch && matchesFilter && matchesCategory && roleFilter();
-  });
+      // Фильтр по роли
+      const roleFilter = () => {
+        switch (user?.role) {
+          case 'admin':
+          case 'support':
+            return true;
+          case 'master':
+            return order.assignedMasterId === user.id;
+          default:
+            return false;
+        }
+      };
+
+      return matchesSearch && matchesFilter && matchesCategory && roleFilter();
+    })
+    // Сортировка по дате (новые сверху)
+    .sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0));
 
   const handleAssignOrder = (orderId: string, masterId?: string) => {
     if (user?.role === 'support' || user?.role === 'admin') {
