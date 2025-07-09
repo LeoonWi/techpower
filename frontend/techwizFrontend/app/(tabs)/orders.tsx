@@ -7,7 +7,7 @@
 // - После успешных операций обновляйте локальное состояние.
 // - Обрабатывайте ошибки backend.
 // =========================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,13 +23,6 @@ const statusFilters = [
   { key: 'assigned', label: 'Назначены' },
   { key: 'in_progress', label: 'В работе' },
   { key: 'completed', label: 'Выполнены' },
-];
-
-const categories = [
-  { id: '1', name: 'Компьютеры' },
-  { id: '2', name: 'Электроника' },
-  { id: '3', name: 'Мобильные устройства' },
-  { id: '4', name: 'Ремонт техники' },
 ];
 
 export default function OrdersScreen() {
@@ -51,12 +44,104 @@ export default function OrdersScreen() {
     date_time: '',
   });
 
+  // Категории услуг
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [showRenameCategoryModal, setShowRenameCategoryModal] = useState<string | null>(null);
+  const [renameCategoryName, setRenameCategoryName] = useState('');
+  const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const res = await fetch('http://localhost:8080/category');
+      const data = await res.json();
+      setCategories(data);
+    } catch (e) {
+      Alert.alert('Ошибка', 'Не удалось загрузить категории');
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) {
+      Alert.alert('Ошибка', 'Введите название категории');
+      return;
+    }
+    try {
+      const res = await fetch('http://localhost:8080/category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCategoryName })
+      });
+      if (!res.ok) throw new Error();
+      setNewCategoryName('');
+      setShowAddCategoryModal(false);
+      fetchCategories();
+      Alert.alert('Успешно', 'Категория добавлена');
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось добавить категорию');
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!id) {
+      Alert.alert('Ошибка', 'Некорректный id категории');
+      return;
+    }
+    try {
+      const res = await fetch(`http://localhost:8080/category?id=${String(id)}`, {
+        method: 'DELETE',
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(text);
+      setShowDeleteCategoryModal(null);
+      fetchCategories();
+      Alert.alert('Успешно', 'Категория удалена');
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.message || 'Не удалось удалить категорию');
+    }
+  };
+
+  const handleRenameCategory = async () => {
+    if (!renameCategoryName.trim() || !showRenameCategoryModal) {
+      Alert.alert('Ошибка', 'Введите новое имя категории');
+      return;
+    }
+    try {
+      const id = String(showRenameCategoryModal);
+      const name = renameCategoryName.trim();
+      const res = await fetch('http://localhost:8080/category', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name })
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(text);
+      setShowRenameCategoryModal(null);
+      setRenameCategoryName('');
+      fetchCategories();
+      Alert.alert('Успешно', 'Категория переименована');
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.message || 'Не удалось переименовать категорию');
+    }
+  };
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          order.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          order.city.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesFilter = selectedFilter === 'all' || order.status === selectedFilter;
+    const matchesCategory = !selectedCategory || order.category === selectedCategory;
 
     const roleFilter = () => {
       switch (user?.role) {
@@ -71,7 +156,7 @@ export default function OrdersScreen() {
       }
     };
 
-    return matchesSearch && matchesFilter && roleFilter();
+    return matchesSearch && matchesFilter && matchesCategory && roleFilter();
   });
 
   const handleAssignOrder = (orderId: string, masterId?: string) => {
@@ -153,6 +238,41 @@ export default function OrdersScreen() {
         )}
       </View>
 
+      {/* Кнопка добавить категорию услуги */}
+      <View style={{ alignItems: 'flex-end', marginHorizontal: 20, marginBottom: 8 }}>
+        <TouchableOpacity style={{ backgroundColor: '#059669', padding: 10, borderRadius: 8 }} onPress={() => setShowAddCategoryModal(true)}>
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>Добавить категории услуги</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Модалка добавления категории */}
+      <Modal
+        visible={showAddCategoryModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAddCategoryModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Добавить категорию услуги</Text>
+            <TextInput
+              style={styles.formInput}
+              value={newCategoryName}
+              onChangeText={setNewCategoryName}
+              placeholder="Название категории"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowAddCategoryModal(false)}>
+                <Text style={styles.cancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitButton} onPress={handleAddCategory}>
+                <Text style={styles.submitButtonText}>Добавить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
@@ -173,8 +293,8 @@ export default function OrdersScreen() {
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        style={styles.filtersContainer}
-        contentContainerStyle={styles.filtersContent}
+        style={[styles.filtersContainer, { marginBottom: 2 }]}
+        contentContainerStyle={[styles.filtersContent, { marginBottom: 0 }]}
       >
         {statusFilters.map((filter) => (
           <TouchableOpacity
@@ -194,6 +314,106 @@ export default function OrdersScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Категории услуг - фильтры */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ marginTop: 0, marginBottom: 3, paddingHorizontal: 20 }}
+        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 4, maxHeight: 35 }}
+      >
+        <TouchableOpacity
+          style={[
+            styles.filterChip,
+            !selectedCategory && { backgroundColor: '#2563EB', borderColor: '#2563EB' }
+          ]}
+          onPress={() => setSelectedCategory('')}
+        >
+          <Text style={[
+            styles.filterChipText,
+            !selectedCategory && { color: 'white', fontWeight: 'bold' }
+          ]}>
+            Все категории
+          </Text>
+        </TouchableOpacity>
+        {categories.map((cat) => (
+          <View key={cat.id} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 4 }}>
+            <TouchableOpacity
+              style={[
+                styles.filterChip,
+                selectedCategory === cat.id && { backgroundColor: '#2563EB', borderColor: '#2563EB' }
+              ]}
+              onPress={() => setSelectedCategory(cat.id)}
+            >
+              <Text style={[
+                styles.filterChipText,
+                selectedCategory === cat.id && { color: 'white', fontWeight: 'bold' }
+              ]}>
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+            {/* Кнопка переименовать */}
+            <TouchableOpacity onPress={() => { setShowRenameCategoryModal(cat.id); setRenameCategoryName(cat.name); }} style={{ marginLeft: 2, padding: 2, justifyContent: 'center', alignItems: 'center', height: 28, width: 28 }}>
+              <Text style={{ color: '#2563EB', fontSize: 15, textAlign: 'center' }}>✏️</Text>
+            </TouchableOpacity>
+            {/* Кнопка удалить */}
+            <TouchableOpacity onPress={() => setShowDeleteCategoryModal(cat.id)} style={{ marginLeft: 2, padding: 2, justifyContent: 'center', alignItems: 'center', height: 28, width: 28 }}>
+              <Text style={{ color: '#DC2626', fontSize: 15, textAlign: 'center' }}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Модалка переименования категории */}
+      <Modal
+        visible={!!showRenameCategoryModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowRenameCategoryModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Переименовать категорию</Text>
+            <TextInput
+              style={styles.formInput}
+              value={renameCategoryName}
+              onChangeText={setRenameCategoryName}
+              placeholder="Новое название"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowRenameCategoryModal(null)}>
+                <Text style={styles.cancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitButton} onPress={handleRenameCategory}>
+                <Text style={styles.submitButtonText}>Сохранить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модалка удаления категории */}
+      <Modal
+        visible={!!showDeleteCategoryModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteCategoryModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Удалить категорию?</Text>
+            <Text style={{ marginBottom: 16, color: '#EF4444', textAlign: 'center' }}>Это действие нельзя отменить</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowDeleteCategoryModal(null)}>
+                <Text style={styles.cancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteConfirmButton} onPress={() => handleDeleteCategory(showDeleteCategoryModal!)}>
+                <Text style={styles.deleteConfirmButtonText}>Удалить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Orders List */}
       <ScrollView 
