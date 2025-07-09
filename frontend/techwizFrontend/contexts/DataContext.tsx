@@ -74,23 +74,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       try {
-        const apiOrders = await apiClient.getOrders();
+        const response = await apiClient.getOrders();
+        const apiOrders = response.requests || [];
+        console.log('apiOrders from backend:', apiOrders);
         setOrders(apiOrders.map(apiOrder => ({
           id: String(apiOrder.id || ''),
           title: apiOrder.problem,
           description: apiOrder.problem,
-          category: '',
+          category: apiOrder.category?.id || '',
           city: '',
           address: apiOrder.address,
-          coordinates: { latitude: 0 as number, longitude: 0 as number },
+          coordinates: { latitude: 0, longitude: 0 },
           price: Number(apiOrder.price),
           commission: 0,
-          status: mapStatusCodeToOrderStatus(Number(apiOrder.status.status_code)),
+          status: mapStatusCodeToOrderStatus(
+            Number(apiOrder.status?.status_code || apiOrder.status?.code || 1)
+          ),
           clientName: apiOrder.full_name,
           clientPhone: apiOrder.phone_number,
           assignedMasterId: apiOrder.worker_id ? String(apiOrder.worker_id) : undefined,
-          createdAt: new Date(apiOrder.datetime),
-          updatedAt: new Date(apiOrder.datetime),
+          createdAt: apiOrder.datetime ? new Date(apiOrder.datetime) : new Date(),
+          updatedAt: apiOrder.datetime ? new Date(apiOrder.datetime) : new Date(),
           isPremium: false,
         })));
       } catch (backendError) {

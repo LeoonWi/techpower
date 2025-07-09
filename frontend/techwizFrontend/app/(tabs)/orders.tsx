@@ -413,6 +413,41 @@ export default function OrdersScreen() {
         </View>
       </Modal>
 
+      {/* Красивая карточка для отладки заказов */}
+      <ScrollView style={{ marginHorizontal: 20, marginBottom: 10, maxHeight: 350 }}>
+        {orders.length === 0 ? (
+          <Text style={{ color: '#64748B', fontSize: 14, textAlign: 'center' }}>Нет заказов для отображения</Text>
+        ) : (
+          orders.map(order => (
+            <View
+              key={order.id}
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 12,
+                padding: 16,
+                marginBottom: 10,
+                shadowColor: '#000',
+                shadowOpacity: 0.07,
+                shadowRadius: 4,
+                elevation: 2,
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+              }}
+            >
+              <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#2563EB', marginBottom: 2 }}>{order.title}</Text>
+              <Text style={{ color: '#64748B', marginBottom: 2 }}>Клиент: <Text style={{ color: '#1E293B' }}>{order.clientName}</Text></Text>
+              <Text style={{ color: '#64748B', marginBottom: 2 }}>Телефон: <Text style={{ color: '#1E293B' }}>{order.clientPhone}</Text></Text>
+              <Text style={{ color: '#64748B', marginBottom: 2 }}>Адрес: <Text style={{ color: '#1E293B' }}>{order.address}</Text></Text>
+              <Text style={{ color: '#64748B', marginBottom: 2 }}>Проблема: <Text style={{ color: '#1E293B' }}>{order.description}</Text></Text>
+              <Text style={{ color: '#64748B', marginBottom: 2 }}>Категория: <Text style={{ color: '#1E293B' }}>{order.category}</Text></Text>
+              <Text style={{ color: '#64748B', marginBottom: 2 }}>Цена: <Text style={{ color: '#059669', fontWeight: 'bold' }}>{order.price} ₽</Text></Text>
+              <Text style={{ color: '#64748B', marginBottom: 2 }}>Дата: <Text style={{ color: '#1E293B' }}>{order.createdAt?.toLocaleString?.() || ''}</Text></Text>
+              <Text style={{ color: '#64748B', marginBottom: 2 }}>Статус: <Text style={{ color: '#2563EB', fontWeight: 'bold' }}>{order.status}</Text></Text>
+            </View>
+          ))
+        )}
+      </ScrollView>
+
       {/* Orders List */}
       <ScrollView 
         style={styles.ordersList}
