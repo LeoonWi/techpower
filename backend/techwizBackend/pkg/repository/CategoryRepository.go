@@ -88,10 +88,10 @@ func (r CategoryRepository) Rename(category *models.Category) error {
 func (r CategoryRepository) Get(categories *[]models.Category) error {
 	coll := r.db.Database("TechPower").Collection("Category")
 	cursor, err := coll.Find(context.TODO(), bson.D{})
-	defer cursor.Close(context.TODO())
 	if err != nil {
 		return errors.New("Categories not found")
 	}
+	defer cursor.Close(context.TODO())
 
 	if err = cursor.All(context.TODO(), categories); err != nil {
 		return errors.New("Failed to get all categories")

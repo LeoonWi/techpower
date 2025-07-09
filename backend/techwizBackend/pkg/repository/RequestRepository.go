@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"techwizBackend/pkg/models"
@@ -11,6 +12,10 @@ type (
 	IRequestRepository interface {
 		Create(request *models.Request) error
 		GetRequests(requests *[]models.Request) error
+		GetRequest(id bson.ObjectID, request *models.Request) error
+		AttachMaster(requestId bson.ObjectID, userId bson.ObjectID, request *models.Request) error
+		ChangeStatus(id bson.ObjectID, status *models.Status) error
+		InSpot(id bson.ObjectID) error
 	}
 
 	RequestRepository struct {
@@ -83,13 +88,118 @@ func (r RequestRepository) GetRequests(requests *[]models.Request) error {
 	}
 
 	cursor, err := coll.Aggregate(context.TODO(), pipeline)
-	defer cursor.Close(context.TODO())
 	if err != nil {
 		return err
 	}
+	defer cursor.Close(context.TODO())
 
 	if err := cursor.All(context.TODO(), requests); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (r RequestRepository) GetRequest(id bson.ObjectID, request *models.Request) error {
+	coll := r.db.Database("TechPower").Collection("Requests")
+	pipeline := mongo.Pipeline{
+		bson.D{{"$match", bson.M{"_id": id}}},
+		// Выполняем $lookup для объединения с коллекцией Category
+		bson.D{{
+			"$lookup",
+			bson.M{
+				"from":         "Category",
+				"localField":   "category_id",
+				"foreignField": "_id",
+				"as":           "category",
+			},
+		}},
+		// Разворачиваем массив category
+		bson.D{{
+			"$unwind", bson.D{
+				{"path", "$category"},
+				{"preserveNullAndEmptyArrays", true},
+			},
+		}},
+		// Выполняем $lookup для объединения с коллекцией Category
+		bson.D{{
+			"$lookup",
+			bson.M{
+				"from":         "Users",
+				"localField":   "worker_id",
+				"foreignField": "_id",
+				"as":           "worker",
+			},
+		}},
+		// Разворачиваем массив worker
+		bson.D{{
+			"$unwind", bson.D{
+				{"path", "$worker"},
+				{"preserveNullAndEmptyArrays", true},
+			},
+		}},
+		// Удаляем categories_id и worker_id из результата
+		{
+			{"$project", bson.D{
+				{"category_id", 0},
+				{"worker_id", 0},
+			}},
+		},
+	}
+
+	cursor, err := coll.Aggregate(context.TODO(), pipeline)
+	if err != nil {
+		return fmt.Errorf("%s", err.Error())
+	}
+	defer cursor.Close(context.TODO())
+
+	if cursor.Next(context.TODO()) {
+		if err := cursor.Decode(request); err != nil {
+			return fmt.Errorf("%s", err.Error())
+		}
+		return nil
+	}
+	return fmt.Errorf("Request not found")
+}
+
+func (r RequestRepository) AttachMaster(requestId bson.ObjectID, userId bson.ObjectID, request *models.Request) error {
+	coll := r.db.Database("TechPower").Collection("Requests")
+	filter := bson.M{"_id": requestId}
+	update := bson.M{"$set": bson.M{"worker_id": userId, "status.code": 2}}
+
+	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
+		return err
+	}
+
+	if err := r.GetRequest(requestId, request); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r RequestRepository) ChangeStatus(id bson.ObjectID, status *models.Status) error {
+	coll := r.db.Database("TechPower").Collection("Requests")
+	filter := bson.M{"_id": id}
+	if status == nil {
+		return fmt.Errorf("status is nil")
+	}
+	update := bson.M{"$set": bson.M{"status": *status}}
+
+	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
+		return fmt.Errorf("%s", err.Error())
+	}
+
+	return nil
+}
+
+func (r RequestRepository) InSpot(id bson.ObjectID) error {
+	coll := r.db.Database("TechPower").Collection("Requests")
+	filter := bson.M{"_id": id}
+	update := bson.M{"$set": bson.M{"status.in_spot": true}}
+
+	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
+		return err
+	}
+
 	return nil
 }

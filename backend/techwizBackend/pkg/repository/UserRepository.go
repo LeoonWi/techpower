@@ -139,7 +139,7 @@ func (r UserRepository) GetUserById(id bson.ObjectID, res *models.User) error {
 	// Выполняем агрегацию
 	cursor, err := coll.Aggregate(context.TODO(), pipeline)
 	if err != nil {
-		return fmt.Errorf("failed to find user by ID: %w", err)
+		return fmt.Errorf("failed to find user by ID: %s", err.Error())
 	}
 	defer cursor.Close(context.TODO())
 
@@ -223,6 +223,7 @@ func (r UserRepository) GetUsers(users *[]models.User) error {
 	if err != nil {
 		return fmt.Errorf("failed to find users: %w", err)
 	}
+	defer cursor.Close(context.TODO())
 
 	if err = cursor.All(context.TODO(), users); err != nil {
 		return errors.New("Failed to get users")
@@ -277,6 +278,7 @@ func (r UserRepository) GetMasters(users *[]models.User) error {
 	if err != nil {
 		return fmt.Errorf("failed to find users: %w", err)
 	}
+	defer cursor.Close(context.TODO())
 
 	if err = cursor.All(context.TODO(), users); err != nil {
 		return errors.New("Failed to get users")

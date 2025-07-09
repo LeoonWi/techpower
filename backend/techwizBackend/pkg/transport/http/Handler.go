@@ -47,6 +47,11 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	request := e.Group("request")
 	request.POST("", h.createRequest)
 	request.GET("", h.getRequests)
+	request.GET("/:id", h.getRequest)
+	request.PATCH("/attach/:requestId/:userId", h.attachMasterToRequest)
+	request.PATCH("", h.changeStatusRequest)
+	request.PATCH("/in_spot", h.requestInSpot)
+	//request.PUT("/:id", h.changeRequest) // in work
 
 	e.GET("/ws", func(c echo.Context) error {
 		return websocketConn.Ws(c)
