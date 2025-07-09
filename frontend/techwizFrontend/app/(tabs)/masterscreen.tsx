@@ -14,7 +14,7 @@ export default function MastersScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Ограничение доступа только для support
-  if (user?.role !== 'support') {
+  if ((user?.permission === '001')) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyState}>

@@ -20,7 +20,7 @@ export default function ComplaintsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
 
-  if (user?.role !== 'support' && user?.role !== 'admin') {
+  if (user?.permission === '001') {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.accessDenied}>

@@ -19,10 +19,21 @@ export default function AnalyticsScreen() {
   const { analytics, masters, masterStats, orders } = useData();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
 
+  // Проверка на наличие данных аналитики
+  if (!analytics) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.accessDenied}>
+          <Text style={styles.accessDeniedText}>Загрузка аналитики...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // Для мастеров показываем их личную статистику
   if (user?.role === 'master' || user?.role === 'premium_master') {
     const userOrders = orders.filter(order => order.assignedMasterId === user.id);
-    const userStats = masterStats[user.id] || { orders: 0, earnings: 0, rating: 0 };
+    const userStats = masterStats[user.id || ''] || { orders: 0, earnings: 0, rating: 0 };
     
     const personalStats = [
       {
@@ -157,7 +168,7 @@ export default function AnalyticsScreen() {
   }
 
   // Для админов и старших мастеров показываем общую аналитику
-  if (user?.role !== 'admin' && user?.role !== 'senior_master') {
+  if (user?.permission === '001') {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.accessDenied}>
@@ -209,7 +220,7 @@ export default function AnalyticsScreen() {
   const topMasters = masters
     .map(master => ({
       ...master,
-      stats: masterStats[master.id] || { orders: 0, earnings: 0, rating: 0 }
+      stats: masterStats[master.id || ''] || { orders: 0, earnings: 0, rating: 0 }
     }))
     .sort((a, b) => b.stats.earnings - a.stats.earnings)
     .slice(0, 5);

@@ -11,17 +11,25 @@ export default function HomeScreen() {
   const { orders, complaints } = useData();
 
   useEffect(() => {
-    if (!user) {
-      router.replace('/login');
-    } else if (user.role === 'admin') {
+    if (user?.role === 'admin') {
       // Админ может видеть только экран добавления сотрудников
       router.replace('/(tabs)/addemployeescreen');
     }
   }, [user]);
 
   if (!user) {
-    return null;
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text>Загрузка пользователя...</Text>
+        </View>
+      </SafeAreaView>
+    );
   }
+
+  // Добавляем отладочную информацию
+  console.log('User role:', user.role);
+  console.log('User data:', user);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -39,7 +47,7 @@ export default function HomeScreen() {
       senior_master: 'Старший мастер',
       premium_master: 'Премиум мастер',
     };
-    return roleTitles[user.role] || user.role;
+    return roleTitles[user.role as keyof typeof roleTitles] || user.role;
   };
 
   const getDashboardData = () => {
@@ -76,7 +84,7 @@ export default function HomeScreen() {
       ).length,
       completedOrders: user.role === 'admin' ? 0 : 
         userOrders.filter(order => order.status === 'completed').length,
-      totalEarnings: user.role === 'admin' ? 0 : user.balance,
+      totalEarnings: user.role === 'admin' ? 0 : (user.balance || 0),
     };
   };
 
@@ -257,10 +265,10 @@ export default function HomeScreen() {
           <Text style={styles.balanceTitle}>Баланс</Text>
         </View>
         <Text style={styles.balanceAmount}>
-          {user.balance.toLocaleString('ru-RU')} ₽
+          {(user.balance || 0).toLocaleString('ru-RU')} ₽
         </Text>
         <Text style={styles.commissionText}>
-          Комиссия: {user.commission}%
+          Комиссия: {user.commission || 0}%
         </Text>
       </View>
 
@@ -283,11 +291,21 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent} // Добавляем отступ внизу
       >
+        {/* Тестовый контент для отладки */}
+        <View style={{ padding: 20, backgroundColor: 'white', margin: 20, borderRadius: 12 }}>
+          <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1E293B' }}>
+            Отладка: Роль пользователя - {user.role || 'не определена'}
+          </Text>
+          <Text style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>
+            Имя: {user.fullName || 'не указано'}
+          </Text>
+        </View>
+
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>{getGreeting()}</Text>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{user.fullName}</Text>
+              <Text style={styles.userName}>{user.fullName || 'Пользователь'}</Text>
             </View>
             <Text style={styles.userRole}>{getRoleTitle()}</Text>
           </View>
@@ -297,6 +315,8 @@ export default function HomeScreen() {
         {user.role === 'support' && renderSupportDashboard()}
         {user.role === 'master' && renderMasterDashboard()}
         {user.role === 'admin' && renderDefaultDashboard()}
+        {/* Fallback для других ролей */}
+        {user.role && !['support', 'master', 'admin'].includes(user.role) && renderDefaultDashboard()}
 
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Быстрые действия</Text>

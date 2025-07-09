@@ -11,7 +11,7 @@ export default function MastersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
 
-  if (user?.role !== 'admin' && user?.role !== 'support') {
+  if (user?.permission === '100' || user?.permission === '010') {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.accessDenied}>

@@ -86,45 +86,12 @@ export default function AddMasterModal({ visible, onClose, onAddMaster }: AddMas
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Город</Text>
-              <TextInput
-                style={styles.formInput}
-                value={newMaster.city}
-                onChangeText={(text) => setNewMaster({ ...newMaster, city: text })}
-                placeholder="Введите город"
-              />
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Категория</Text>
               <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={newMaster.category}
-                  onValueChange={(value) => setNewMaster({ ...newMaster, category: value })}
-                  style={styles.picker}
-                >
-                  {masterCategories.map((category) => (
-                    <Picker.Item
-                      key={category.key}
-                      label={category.label}
-                      value={category.key}
-                    />
-                  ))}
-                </Picker>
               </View>
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Статус</Text>
               <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={newMaster.isActive}
-                  onValueChange={(value) => setNewMaster({ ...newMaster, isActive: value })}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Активен" value={true} />
-                  <Picker.Item label="Неактивен" value={false} />
-                </Picker>
               </View>
             </View>
           </ScrollView>

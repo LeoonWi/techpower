@@ -28,6 +28,8 @@ interface DataContextType {
   deleteOrder: (orderId: string) => Promise<void>;
   addMaster: (masterData: Partial<User>) => Promise<void>;
   deleteMaster: (masterId: string) => Promise<void>;
+  analytics?: Analytics;
+  masterStats: Record<string, { orders: number; earnings: number; rating: number }>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -40,6 +42,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Добавляю состояния для analytics и masterStats
+  const [analytics, setAnalytics] = useState<Analytics | undefined>({
+    totalOrders: 100,
+    completedOrders: 80,
+    earnings: 500000,
+    commission: 50000,
+    averageRating: 4.7,
+    ordersByCity: { 'Москва': 40, 'Санкт-Петербург': 30, 'Казань': 30 },
+    ordersByCategory: { 'Электрика': 50, 'Сантехника': 30, 'Отделка': 20 },
+    monthlyStats: [
+      { month: 'Янв', orders: 10, earnings: 40000 },
+      { month: 'Фев', orders: 15, earnings: 50000 },
+      { month: 'Мар', orders: 20, earnings: 60000 },
+      { month: 'Апр', orders: 25, earnings: 70000 },
+      { month: 'Май', orders: 30, earnings: 80000 },
+      { month: 'Июн', orders: 0, earnings: 0 },
+      { month: 'Июл', orders: 0, earnings: 0 },
+      { month: 'Авг', orders: 0, earnings: 0 },
+      { month: 'Сен', orders: 0, earnings: 0 },
+      { month: 'Окт', orders: 0, earnings: 0 },
+      { month: 'Ноя', orders: 0, earnings: 0 },
+      { month: 'Дек', orders: 0, earnings: 0 },
+    ],
+  });
+  const [masterStats, setMasterStats] = useState<Record<string, { orders: number; earnings: number; rating: number }>>({
+    '1': { orders: 30, earnings: 200000, rating: 4.8 },
+    '2': { orders: 25, earnings: 150000, rating: 4.6 },
+    '3': { orders: 20, earnings: 100000, rating: 4.7 },
+  });
 
   // Маппинг status_code (number) -> OrderStatus (string)
   function mapStatusCodeToOrderStatus(code: number): OrderStatus {
@@ -191,7 +222,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         await apiClient.signUp({
           phone_number: String(masterData.phone),
           password: 'defaultpass',
-          permission: '100',
+          permission: '001',
         });
       } catch (backendError) {
         addLocalMaster({
@@ -422,6 +453,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deleteOrder,
       addMaster,
       deleteMaster,
+      analytics,
+      masterStats,
     }}>
       {children}
     </DataContext.Provider>
