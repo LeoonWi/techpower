@@ -54,7 +54,7 @@ export interface Request {
   problem: string;
   price: number;
   status: {
-    status_code: number;
+    code: number;
     reason?: string;
   };
   datetime: string;
@@ -226,7 +226,7 @@ class ApiClient {
 
   // Заказы (Requests)
   async createRequest(request: Omit<Request, 'id'>): Promise<Request> {
-    const response = await this.client.post<Request>('/request/create', request);
+    const response = await this.client.post<Request>('/request', request);
     return response.data;
   }
 
@@ -246,6 +246,18 @@ class ApiClient {
 
   async deleteOrder(id: string): Promise<void> {
     await this.client.delete(`/request/${id}`);
+  }
+
+  async attachMasterToRequest(requestId: string, userId: string): Promise<void> {
+    await this.client.patch(`/request/attach/${requestId}/${userId}`);
+  }
+
+  async changeStatusRequest(requestId: string, status: { status_code: number, reason?: string }): Promise<void> {
+    await this.client.patch('/request', { id: requestId, status });
+  }
+
+  async requestInSpot(requestId: string): Promise<void> {
+    await this.client.patch('/request/in_spot', { id: requestId });
   }
 
   // WebSocket URL

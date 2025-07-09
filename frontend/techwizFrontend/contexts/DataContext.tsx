@@ -116,7 +116,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           address: orderData.address,
           problem: orderData.description,
           price: orderData.price,
-          status: { status_code: 1, reason: '' },
+          status: { code: 1, reason: '' },
           datetime: orderData.createdAt.toISOString(),
           category_id: String(orderData.category),
         };
@@ -127,22 +127,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       await loadOrders();
     } catch (error) {
       throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Обновление статуса заказа через backend, fallback на локальные
-  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
-    setIsLoading(true);
-    try {
-      try {
-        await apiClient.updateOrder(orderId, { status: { status_code: mapOrderStatusToStatusCode(status) } });
-      } catch (backendError) {
-        updateLocalOrder(orderId, { status });
-      }
-      await loadOrders();
-    } catch (error) {
     } finally {
       setIsLoading(false);
     }
@@ -328,11 +312,47 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     initializeData();
   }, []);
 
-  // Назначение мастера заказу только на фронте
+  // Назначение мастера заказу через backend
   const assignOrder = async (orderId: string, masterId: string) => {
     setIsLoading(true);
     try {
-      updateLocalOrder(orderId, { assignedMasterId: masterId, status: 'assigned' });
+      try {
+        await apiClient.attachMasterToRequest(orderId, masterId);
+      } catch (backendError) {
+        updateLocalOrder(orderId, { assignedMasterId: masterId, status: 'assigned' });
+      }
+      await loadOrders();
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Смена статуса заказа через backend
+  const updateOrderStatus = async (orderId: string, status: OrderStatus, reason?: string) => {
+    setIsLoading(true);
+    try {
+      try {
+        await apiClient.changeStatusRequest(orderId, { status_code: mapOrderStatusToStatusCode(status), reason });
+      } catch (backendError) {
+        updateLocalOrder(orderId, { status });
+      }
+      await loadOrders();
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Отметить заказ как "in spot"
+  const requestInSpot = async (orderId: string) => {
+    setIsLoading(true);
+    try {
+      try {
+        await apiClient.requestInSpot(orderId);
+      } catch (backendError) {
+        // fallback: ничего не делаем
+      }
       await loadOrders();
     } catch (error) {
     } finally {
