@@ -164,6 +164,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           phone: String(apiMaster.phone_number),
           photo: apiMaster.photo || '',
           city: '',
+          permission: apiMaster.permission,
           category: apiMaster.categories?.[0]?.name || '',
           balance: apiMaster.balance ? Number(apiMaster.balance) : 0,
           commission: apiMaster.commission ? Number(apiMaster.commission) : 0,

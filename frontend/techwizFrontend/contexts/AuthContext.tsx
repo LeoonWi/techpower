@@ -10,7 +10,7 @@ interface AuthContextType {
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   isLoading: boolean;
-  authenticate: (username: string, password: string) => Promise<boolean>;
+  authenticate: (username: string, password: string, permission: string) => Promise<boolean>;
   registerUser: (user: { phone: string; password: string; role: UserRole; fullName?: string }) => Promise<boolean>;
 }
 
@@ -20,82 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mock user data for different roles
-  const mockUsers: Record<UserRole, User> = {
-    admin: {
-      id: '1',
-      role: 'admin',
-      fullName: 'Администратор',
-      nickname: 'admin',
-      phone: '+7 900 123-45-67',
-      city: 'Москва',
-      category: 'Все категории',
-      balance: 150000,
-      commission: 10,
-      isActive: true,
-    },
-    // Ограниченный админ - только для создания сотрудников
-    limitedAdmin: {
-      id: '1-limited',
-      role: 'admin',
-      fullName: 'Администратор (Ограниченный)',
-      nickname: 'limited_admin',
-      phone: '+7 900 123-45-67',
-      city: 'Москва',
-      category: 'Все категории',
-      balance: 150000,
-      commission: 10,
-      isActive: true,
-    },
-    support: {
-      id: '2',
-      role: 'support',
-      fullName: 'Поддержка Техническая',
-      nickname: 'support',
-      phone: '+7 900 234-56-78',
-      city: 'Санкт-Петербург',
-      category: 'Поддержка',
-      balance: 45000,
-      commission: 8,
-      isActive: true,
-    },
-    master: {
-      id: '3',
-      role: 'master',
-      fullName: 'Мастер Обычный',
-      nickname: 'master',
-      phone: '+7 900 345-67-89',
-      city: 'Казань',
-      category: 'Ремонт техники',
-      balance: 25000,
-      commission: 15,
-      isActive: true,
-    },
-    senior_master: {
-      id: '4',
-      role: 'senior_master',
-      fullName: 'Мастер Старший',
-      nickname: 'senior_master',
-      phone: '+7 900 456-78-90',
-      city: 'Новосибирск',
-      category: 'Компьютеры',
-      balance: 75000,
-      commission: 12,
-      isActive: true,
-    },
-    premium_master: {
-      id: '5',
-      role: 'premium_master',
-      fullName: 'Мастер Премиум',
-      nickname: 'premium_master',
-      phone: '+7 900 567-89-01',
-      city: 'Екатеринбург',
-      category: 'Электроника',
-      balance: 120000,
-      commission: 8,
-      isActive: true,
-    },
-  };
 
   // Фейк-аккаунты для демо
   const demoCredentials = {
@@ -104,64 +28,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     master: { username: '79003456789', password: 'master123' },
   };
 
-  const authenticate = async (username: string, password: string): Promise<boolean> => {
+  const authenticate = async (username: string, password: string, permission: string): Promise<boolean> => {
     try {
-      // Сначала пробуем подключиться к бэкенду
-      try {
-        const credentials: AuthRequest = {
-          phone_number: username,
-          password: password,
-        };
-
-        const response: AuthResponse = await apiClient.signIn(credentials);
-        // Преобразуем данные пользователя в формат фронтенда
-        const frontendUser: User = {
-          id: response.user.id,
-          role: response.user.permission as UserRole,
-          fullName: response.user.full_name || '',
-          nickname: response.user.nickname || '',
-          phone: response.user.phone_number,
-          city: '',
-          category: response.user.categories?.[0]?.name || '',
-          balance: response.user.balance || 0,
-          commission: response.user.commission || 0,
-          isActive: true,
-        };
-        if (response.token) {
-          await AsyncStorage.setItem('authToken', response.token);
-        }
-        setUser(frontendUser);
-        await AsyncStorage.setItem('user', JSON.stringify(frontendUser));
-        await AsyncStorage.setItem('userId', frontendUser.id);
-        return true;
-      } catch (backendError) {
-        // Fallback к локальным пользователям
-        const localUser = findUser(username, password);
-        if (localUser) {
-          setUser({
-            id: localUser.id,
-            role: localUser.role,
-            fullName: localUser.fullName || '',
-            nickname: '',
-            phone: localUser.phone,
-            city: '',
-            category: '',
-            balance: 0,
-            commission: 0,
-            isActive: true,
-          });
-          return true;
-        }
-        return false;
-      }
-    } catch (error) {
-      console.error('Authentication error:', error);
+      const credentials: AuthRequest = {
+        phone_number: username,
+        password: password,
+        permission: permission
+      };
+      console.log('Auth: sending credentials', credentials);
+      const response: AuthResponse = await apiClient.signIn(credentials);
+      console.log('Auth: API response', response);
+      console.log('Auth: user', response.id);
+      const frontendUser: User = {
+        id: response.id
+      };
+      console.log('Auth: frontendUser', frontendUser);
+      await AsyncStorage.setItem('userId', frontendUser.id ? frontendUser.id : '');
+      return true;
+    } catch (backendError) {
+      console.log('Auth: error', backendError);
       return false;
     }
   };
 
   const login = (role: UserRole) => {
-    setUser(mockUsers[role]);
   };
 
   const logout = async () => {

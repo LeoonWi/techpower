@@ -20,7 +20,8 @@ export default function AuthScreen() {
           description: 'Полный доступ ко всем функциям',
           icon: Shield,
           color: '#DC2626',
-          placeholder: 'Введите номер телефона'
+          placeholder: 'Введите номер телефона',
+          permission: '100'
         };
       case 'support':
         return {
@@ -28,7 +29,8 @@ export default function AuthScreen() {
           description: 'Управление заявками и чатами',
           icon: Headphones,
           color: '#2563EB',
-          placeholder: 'Введите номер телефона'
+          placeholder: 'Введите номер телефона',
+                    permission: '010'
         };
       case 'master':
         return {
@@ -36,7 +38,8 @@ export default function AuthScreen() {
           description: 'Календарь смен и статусы заказов',
           icon: Wrench,
           color: '#059669',
-          placeholder: 'Введите номер телефона'
+          placeholder: 'Введите номер телефона',
+                    permission: '001'
         };
       default:
         return {
@@ -44,7 +47,8 @@ export default function AuthScreen() {
           description: 'Базовый доступ',
           icon: Shield,
           color: '#6B7280',
-          placeholder: 'Введите номер телефона'
+          placeholder: 'Введите номер телефона',
+          permission: '000'
         };
     }
   };
@@ -56,18 +60,17 @@ export default function AuthScreen() {
     }
 
     try {
-      const success = await authenticate(username, password);
+      const success = await authenticate(username, password, roleInfo.permission);
+      console.log('auth result:', success);
       if (success) {
-        login(role);
-        if (role === 'admin') {
-          router.replace('/addemployeescreen');
-        } else {
-          router.replace('/(tabs)');
-        }
+        // login(role);
+        console.log('переход');
+        router.replace('/(tabs)/profile');
       } else {
         Alert.alert('Ошибка', 'Неверный логин или пароль');
       }
     } catch (error) {
+      console.log('handleLogin error:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при входе');
     }
   };

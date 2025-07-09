@@ -16,9 +16,9 @@ import { useAuth } from '@/contexts/AuthContext';
 // =========================
 
 const roles = [
-  { role: 'admin' as UserRole, title: 'Администратор', description: 'Полный доступ ко всем функциям', icon: Shield, color: '#DC2626' },
-  { role: 'support' as UserRole, title: 'Поддержка', description: 'Управление заявками и чатами', icon: HeadphonesIcon, color: '#2563EB' },
-  { role: 'master' as UserRole, title: 'Мастер', description: 'Календарь смен и статусы заказов', icon: Wrench, color: '#059669' },
+  { role: 'admin' as UserRole, title: 'Администратор', description: 'Полный доступ ко всем функциям', icon: Shield, color: '#DC2626', permission: '100' },
+  { role: 'support' as UserRole, title: 'Поддержка', description: 'Управление заявками и чатами', icon: HeadphonesIcon, color: '#2563EB', permission: '010' },
+  { role: 'master' as UserRole, title: 'Мастер', description: 'Календарь смен и статусы заказов', icon: Wrench, color: '#059669', permission: '001' },
 ];
 
 const testUsers = [

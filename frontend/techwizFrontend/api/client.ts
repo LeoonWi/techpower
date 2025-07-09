@@ -16,11 +16,11 @@ export interface ApiResponse<T = any> {
 export interface AuthRequest {
   phone_number: string;
   password: string;
+  permission: string
 }
 
 export interface AuthResponse {
-  user: User;
-  token?: string;
+  id: string;
 }
 
 // Интерфейс пользователя (соответствует бэкенду)
@@ -35,6 +35,7 @@ export interface User {
   categories?: Category[];
   balance?: number;
   commission?: number;
+  dismissed?: boolean;
 }
 
 // Интерфейс категории
@@ -134,9 +135,12 @@ class ApiClient {
     return response.data;
   }
 
-  async getUser(id: string): Promise<User> {
+  async getUser(id: string): Promise<any> {
     const response = await this.client.get<User>(`/user/${id}`);
-    return response.data;
+    if (response.status === 200) {
+        return response.data;
+    }
+    return null;
   }
 
   async getMasters(): Promise<User[]> {

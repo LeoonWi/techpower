@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Phone, MapPin, Camera, LogOut, Star, Wallet } from 'lucide-react-native';
+import { User as UserIcon, Phone, MapPin, Camera, LogOut, Star, Wallet } from 'lucide-react-native';
+import apiClient from '@/api/client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // =========================
 // Интеграция с backend (профиль пользователя):
@@ -16,13 +18,52 @@ import { User, Phone, MapPin, Camera, LogOut, Star, Wallet } from 'lucide-react-
 // =========================
 
 export default function ProfileScreen() {
-  const { user, logout, updateUser } = useAuth();
+  const { user: authUser, logout, updateUser } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState(user || null);
+  const [editedUser, setEditedUser] = useState<any>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      setLoading(true);
+      try {
+        const id = await AsyncStorage.getItem('userId');
+        if (!id) {
+          setError('Не найден id пользователя');
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+        const data = await apiClient.getUser(id);
+        if (!data) {
+          setError('Пользователь не найден');
+          setUser(null);
+        } else {
+          setUser(data);
+          setEditedUser(data);
+          setError(null);
+        }
+      } catch (e: any) {
+        setError(e.message || 'Ошибка загрузки профиля');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  if (loading) {
+    return <View style={{flex:1,justifyContent:'center',alignItems:'center'}}><ActivityIndicator size="large" color="#2563EB" /></View>;
+  }
+  if (error) {
+    return <View style={{flex:1,justifyContent:'center',alignItems:'center'}}><Text style={{ color: 'red' }}>{error}</Text></View>;
+  }
   if (!user) {
-    return null;
+    return <View style={{flex:1,justifyContent:'center',alignItems:'center'}}><Text>Пользователь не найден</Text></View>;
   }
 
   const checkForChanges = (newValue: any) => {
@@ -73,17 +114,17 @@ export default function ProfileScreen() {
   };
 
   const getRoleTitle = () => {
-    const roleTitles = {
+    const roleTitles: { [key: string]: string } = {
       admin: 'Администратор',
       limitedAdmin: 'Ограниченный администратор',
       support: 'Поддержка',
       master: 'Мастер',
     };
-    return roleTitles[user.role] || user.role;
+    return roleTitles[String(user.role)] || user.role;
   };
 
   const getRoleBadgeColor = () => {
-    const colors = {
+    const colors: { [key: string]: string } = {
       admin: '#DC2626',
       limitedAdmin: '#F59E0B',
       support: '#2563EB',
@@ -91,7 +132,7 @@ export default function ProfileScreen() {
       senior_master: '#7C3AED',
       premium_master: '#F59E0B',
     };
-    return colors[user.role] || '#64748B';
+    return colors[String(user.role)] || '#64748B';
   };
 
   return (
@@ -104,7 +145,7 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <View style={styles.profileImageContainer}>
             <View style={styles.profileImage}>
-              <User size={48} color="#64748B" />
+              <UserIcon size={48} color="#64748B" />
             </View>
             <TouchableOpacity style={styles.cameraButton}>
               <Camera size={16} color="white" />
@@ -113,7 +154,7 @@ export default function ProfileScreen() {
 
           <View style={styles.userInfo}>
             <View style={styles.nameRow}>
-              <Text style={styles.userName}>{user.fullName}</Text>
+              <Text style={styles.userName}>{user.full_name || 'Без имени'}</Text>
             </View>
             <View style={[styles.roleBadge, { backgroundColor: `${getRoleBadgeColor()}20` }]}>
               <Text style={[styles.roleText, { color: getRoleBadgeColor() }]}>{getRoleTitle()}</Text>
@@ -133,7 +174,9 @@ export default function ProfileScreen() {
               <Text style={styles.topUpText}>Пополнить</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.balanceAmount}>{user.balance.toLocaleString('ru-RU')} ₽</Text>
+          <Text style={styles.balanceAmount}>
+            {typeof user.balance === 'number' ? user.balance.toLocaleString('ru-RU') : '0'} ₽
+          </Text>
           <Text style={styles.commissionInfo}>
             Комиссия: {user.commission}% • Статус: {user.isActive ? 'Активен' : 'Неактивен'}
           </Text>
@@ -146,15 +189,15 @@ export default function ProfileScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Полное имя</Text>
             <View style={[styles.inputContainer, styles.readOnlyInput]}>
-              <User size={20} color="#64748B" />
-              <Text style={styles.readOnlyText}>{user.fullName}</Text>
+              <UserIcon size={20} color="#64748B" />
+              <Text style={styles.readOnlyText}>{user.full_name || 'Не указано'}</Text>
             </View>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Никнейм *</Text>
             <View style={styles.inputContainer}>
-              <User size={20} color="#64748B" />
+              <UserIcon size={20} color="#64748B" />
               <TextInput
                 style={styles.input}
                 value={isEditing ? editedUser?.nickname : user.nickname}
