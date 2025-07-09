@@ -35,6 +35,7 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	// example /user/master?id=686832fb6fd2db7bc42f0c63&event=add&status=senior
 	// example /user/master?id=686832fb6fd2db7bc42f0c63&event=remove
 	user.PATCH("/master", h.changeStatus)
+	user.PATCH("/dismiss/:id", h.dismissUser)
 
 	chat := e.Group("chat")
 	chat.POST("/create/:member1/:member2", h.createChat)  // DONE
@@ -46,6 +47,11 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	request := e.Group("request")
 	request.POST("", h.createRequest)
 	request.GET("", h.getRequests)
+	request.GET("/:id", h.getRequest)
+	request.PATCH("/attach/:requestId/:userId", h.attachMasterToRequest)
+	request.PATCH("", h.changeStatusRequest)
+	request.PATCH("/in_spot", h.requestInSpot)
+	//request.PUT("/:id", h.changeRequest) // in work
 
 	e.GET("/ws", func(c echo.Context) error {
 		return websocketConn.Ws(c)

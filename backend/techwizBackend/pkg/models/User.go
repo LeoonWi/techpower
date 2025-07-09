@@ -19,6 +19,7 @@ type User struct {
 	CategoryId  []bson.ObjectID `json:"categories_id,omitempty" bson:"categories_id,omitempty"`
 	Balance     float32         `json:"balance,omitempty" bson:"balance,omitempty"`       // only master
 	Commission  int             `json:"commission,omitempty" bson:"commission,omitempty"` // only master
+	Dismissed   bool            `json:"dismissed" bson:"dismissed"`
 }
 
 const (

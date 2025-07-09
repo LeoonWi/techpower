@@ -91,10 +91,10 @@ func (r ChatRepository) GetChats(idUser bson.ObjectID, chats *[]models.Chat) err
 	collUsers := r.db.Database("TechPower").Collection("Users")
 	filter := bson.M{"members_id": idUser}
 	cursor, err := collChats.Find(context.TODO(), filter)
-	defer cursor.Close(context.TODO())
 	if err != nil {
 		return errors.New("Chats not found")
 	}
+	defer cursor.Close(context.TODO())
 
 	if err = cursor.All(context.TODO(), chats); err != nil {
 		return errors.New("Failed to get chats")
