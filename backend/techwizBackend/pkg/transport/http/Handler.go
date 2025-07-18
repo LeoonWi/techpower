@@ -26,6 +26,7 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	user := e.Group("user")
 	user.PATCH("/changepassword", h.changePassword)                                       // DONE
 	user.PATCH("/changepermission/:id/:permissionOld/:permissionNew", h.changePermission) // DONE
+	user.PUT("/:id", h.updateUser)
 	user.GET("/:id", h.getUser)
 	user.GET("", h.getUsers)
 	user.GET("/masters", h.getMasters)                   // DONE
@@ -52,6 +53,9 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	request.PATCH("", h.changeStatusRequest)
 	request.PATCH("/in_spot", h.requestInSpot)
 	//request.PUT("/:id", h.changeRequest) // in work
+
+	statistics := e.Group("statistics")
+	statistics.GET("/:days", h.getStatistics)
 
 	e.GET("/ws", func(c echo.Context) error {
 		return websocketConn.Ws(c)

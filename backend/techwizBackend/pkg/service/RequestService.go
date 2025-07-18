@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"techwizBackend/pkg/models"
 	"techwizBackend/pkg/repository"
+	"time"
 )
 
 type (
@@ -38,6 +39,7 @@ func (s RequestService) Create(request *models.Request) (int, error) {
 
 	status := models.Status{Code: 1, Reason: ""}
 	request.Status = status
+	request.CreatedAt = time.Now()
 
 	if err := s.RequestRepository.Create(request); err != nil {
 		return http.StatusBadRequest, err

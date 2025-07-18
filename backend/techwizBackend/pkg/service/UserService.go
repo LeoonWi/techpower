@@ -19,6 +19,7 @@ type (
 		RemoveCategory(idUser bson.ObjectID, idCategory bson.ObjectID) (int, error)
 		ChangeStatus(id bson.ObjectID, event string, status string) (int, error)
 		DismissUser(id bson.ObjectID) (int, error)
+		UpdateUser(idUser bson.ObjectID, user *models.User) error
 	}
 
 	UserService struct {
@@ -196,4 +197,8 @@ func (s UserService) DismissUser(id bson.ObjectID) (int, error) {
 	}
 
 	return http.StatusOK, nil
+}
+
+func (s UserService) UpdateUser(idUser bson.ObjectID, user *models.User) error {
+	return s.UserRepository.UpdateUser(idUser, user)
 }

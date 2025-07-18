@@ -30,6 +30,7 @@ func main() {
 	userRepository := repository.NewUserRepository(db)
 	messageRepository := repository.NewMessageRepository(db)
 	requestRepository := repository.NewRequestRepository(db)
+	statisticRepository := repository.NewStatisticRepository(db)
 	// Create services
 	authService := service.NewAuthService(authRepository, userRepository)
 	chatService := service.NewChatService(chatRepository, userRepository)
@@ -37,6 +38,7 @@ func main() {
 	userService := service.NewUserService(userRepository, chatRepository)
 	requestService := service.NewRequestService(requestRepository)
 	messageService := service.NewMessageService(messageRepository, chatRepository, userRepository)
+	statisticService := service.NewStatisticService(statisticRepository)
 	// Create general service
 	services := service.NewServices(
 		authService,
@@ -45,6 +47,7 @@ func main() {
 		categoryService,
 		chatService,
 		messageService,
+		statisticService,
 	)
 	// Init hub websocket
 	hub := ws.NewHub(services)
