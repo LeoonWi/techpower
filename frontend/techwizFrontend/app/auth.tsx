@@ -67,7 +67,7 @@ export default function AuthScreen() {
         console.log('переход');
         router.replace('/(tabs)/profile');
       } else {
-        Alert.alert('Ошибка', 'Неверный логин или пароль');
+        Alert.alert('Ошибка', 'Неверный логин или пароль ' + JSON.stringify([success, username, password, roleInfo.permission]));
       }
     } catch (error) {
       console.log('handleLogin error:', error);
@@ -212,6 +212,7 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     borderWidth: 1,
     fontFamily: 'Inter-Regular',
+    color: '#1E293B',
   },
   loginButton: {
     backgroundColor: '#3B82F6',

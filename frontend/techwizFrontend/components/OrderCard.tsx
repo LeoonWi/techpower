@@ -119,44 +119,30 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange,
         {order.description}
       </Text>
 
+      {/* Блок информации: теперь две строки */}
       <View style={styles.infoRow}>
-        {showClientInfo ? (
-          <>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoText}>{order.price.toLocaleString('ru-RU')} ₽</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoText}>{order.clientPhone}</Text>
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoText}>*** ₽</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoText}>*** *** ** **</Text>
-            </View>
-          </>
-        )}
+        <View style={styles.infoItem}>
+          <Text style={styles.infoText}>{order.price.toLocaleString('ru-RU')} ₽</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <Text style={styles.infoText}>{order.clientPhone}</Text>
+        </View>
+      </View>
+      <View style={styles.infoRow}>
         <View style={styles.infoItem}>
           <MapPin size={14} color="#64748B" />
           <Text style={styles.infoText}>{order.city}</Text>
         </View>
         <View style={styles.infoItem}>
           <Clock size={14} color="#64748B" />
-          <Text style={styles.infoText}>
-            {formatDateTime(order.createdAt)}
-          </Text>
+          <Text style={styles.infoText}>{formatDateTime(order.createdAt)}</Text>
         </View>
       </View>
 
-      {showClientInfo && (
-        <View style={styles.clientInfo}>
-          <Text style={styles.clientName}>{order.clientName}</Text>
-          <Text style={styles.clientAddress}>{order.address}</Text>
-        </View>
-      )}
+      <View style={styles.clientInfo}>
+        <Text style={styles.clientName}>{order.clientName}</Text>
+        <Text style={styles.clientAddress}>{order.address}</Text>
+      </View>
 
       {showActions && (order.status === 'assigned' || order.status === 'in_progress') && (
         <View style={styles.actionsContainer}>
@@ -294,7 +280,7 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange,
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
-    marginHorizontal: 20,
+    marginHorizontal: 0,
     marginBottom: 16,
     padding: 16,
     borderRadius: 12,

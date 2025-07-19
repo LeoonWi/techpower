@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { apiClient } from '@/api/client';
 
 const masterCategories = [
   { key: 'plumber', label: 'Сантехник' },
@@ -28,25 +29,47 @@ export default function AddMasterModal({ visible, onClose, onAddMaster }: AddMas
     phone_number: '',
     city: '',
     category: masterCategories[0].key,
+    password: '',
     isActive: true,
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleAddMaster = () => {
-    onAddMaster({
-      phone: newMaster.phone_number,
-      fullName: newMaster.fullName,
-      city: newMaster.city,
-      category: newMaster.category,
-      isActive: newMaster.isActive,
-    });
-    setNewMaster({
-      fullName: '',
-      phone_number: '',
-      city: '',
-      category: masterCategories[0].key,
-      isActive: true,
-    });
-    onClose();
+  const handleAddMaster = async () => {
+    if (!newMaster.fullName.trim() || !newMaster.phone_number.trim() || !newMaster.password.trim() || !newMaster.city.trim() || !newMaster.category.trim()) {
+      Alert.alert('Ошибка', 'Заполните все поля');
+      return;
+    }
+    setLoading(true);
+    try {
+      await apiClient.signUp({
+        phone_number: newMaster.phone_number,
+        full_name: newMaster.fullName,
+        password: newMaster.password,
+        permission: '002', // permission for master
+        // Можно добавить city и category, если бэкенд поддерживает
+      });
+      onAddMaster({
+        phone: newMaster.phone_number,
+        fullName: newMaster.fullName,
+        city: newMaster.city,
+        category: newMaster.category,
+        isActive: newMaster.isActive,
+      });
+      setNewMaster({
+        fullName: '',
+        phone_number: '',
+        city: '',
+        category: masterCategories[0].key,
+        password: '',
+        isActive: true,
+      });
+      onClose();
+      Alert.alert('Успех', 'Мастер добавлен');
+    } catch (err) {
+      Alert.alert('Ошибка', 'Не удалось добавить мастера');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -86,12 +109,38 @@ export default function AddMasterModal({ visible, onClose, onAddMaster }: AddMas
             </View>
 
             <View style={styles.formGroup}>
-              <View style={styles.pickerContainer}>
-              </View>
+              <Text style={styles.formLabel}>Пароль</Text>
+              <TextInput
+                style={styles.formInput}
+                value={newMaster.password}
+                onChangeText={(text) => setNewMaster({ ...newMaster, password: text })}
+                placeholder="Введите пароль"
+                secureTextEntry
+              />
             </View>
 
             <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Город</Text>
+              <TextInput
+                style={styles.formInput}
+                value={newMaster.city}
+                onChangeText={(text) => setNewMaster({ ...newMaster, city: text })}
+                placeholder="Введите город"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Категория</Text>
               <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={newMaster.category}
+                  onValueChange={(itemValue) => setNewMaster({ ...newMaster, category: itemValue })}
+                  style={styles.picker}
+                >
+                  {masterCategories.map((cat) => (
+                    <Picker.Item key={cat.key} label={cat.label} value={cat.key} />
+                  ))}
+                </Picker>
               </View>
             </View>
           </ScrollView>
@@ -106,8 +155,13 @@ export default function AddMasterModal({ visible, onClose, onAddMaster }: AddMas
             <TouchableOpacity 
               style={styles.submitButton}
               onPress={handleAddMaster}
+              disabled={loading}
             >
-              <Text style={styles.submitButtonText}>Добавить</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.submitButtonText}>Добавить</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -133,7 +187,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     width: '100%',
-    maxHeight: '70%',
+    // maxHeight: '70%',
+    borderWidth: 2,
+    borderColor: 'red',
   },
   modalTitle: {
     fontSize: 18,

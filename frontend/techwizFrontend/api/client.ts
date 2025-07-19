@@ -1,8 +1,29 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 // Базовый URL для бэкенда
-const API_BASE_URL = 'http://localhost:8080';
+const URL_SERV = '192.168.0.114:8080';
+
+// Тестовый аккаунт админа на сервера:
+// 7 978 588 22-72
+// qwerty
+
+// Определяем базовый URL с проверкой на production
+const getBaseURL = () => {
+  if (Platform.OS === 'web') {
+    return 'http://localhost:8080';
+  }
+  
+  // В production APK используем полный URL
+  return `http://${URL_SERV}`;
+};
+
+const API_BASE_URL = getBaseURL();
+
+// Логирование для отладки
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('Platform.OS:', Platform.OS);
 
 // Типы для API ответов
 export interface ApiResponse<T = any> {
@@ -84,16 +105,20 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
-      timeout: 10000,
+      timeout: 30000, // Увеличен таймаут для production
       headers: {
         'Content-Type': 'application/json',
       },
+      // Дополнительные настройки для production
+      ...(Platform.OS !== 'web' && {
+        validateStatus: (status) => status < 500, // Принимаем все статусы < 500
+      }),
     });
 
     // Добавляем интерцептор для автоматического добавления токена
     this.client.interceptors.request.use(
       async (config) => {
-        const token = await AsyncStorage.getItem('authToken');
+        const token = await SecureStore.getItemAsync('authToken');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -108,11 +133,28 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response: AxiosResponse) => response,
       (error) => {
+        console.log('HTTP Error:', error.message);
+        console.log('Error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            baseURL: error.config?.baseURL,
+          },
+        });
+
         if (error.response?.status === 401) {
           // Токен истек или недействителен
-          AsyncStorage.removeItem('authToken');
-          AsyncStorage.removeItem('user');
+          SecureStore.deleteItemAsync('authToken');
+          SecureStore.deleteItemAsync('user');
         }
+        
+        // Улучшенная обработка сетевых ошибок
+        if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNABORTED') {
+          console.log('Network error detected, check server connection');
+        }
+        
         return Promise.reject(error);
       }
     );
@@ -135,12 +177,12 @@ class ApiClient {
     return response.data;
   }
 
-  async getUser(id: string): Promise<any> {
+  async getUser(id: string): Promise<User> {
     const response = await this.client.get<User>(`/user/${id}`);
     if (response.status === 200) {
         return response.data;
     }
-    return null;
+    throw new Error('User not found');
   }
 
   async getMasters(): Promise<User[]> {
@@ -154,6 +196,12 @@ class ApiClient {
       old_password: oldPassword,
       new_password: newPassword,
     });
+  }
+
+  // Обновление пользователя
+  async updateUser(userId: string, data: Partial<User>): Promise<User> {
+    const response = await this.client.put<User>(`/user/${userId}`, data);
+    return response.data;
   }
 
   async changePermission(userId: string, oldPermission: string, newPermission: string): Promise<void> {
@@ -183,6 +231,10 @@ class ApiClient {
       params.append('status', status);
     }
     await this.client.patch(`/user/master?${params.toString()}`);
+  }
+
+  async dismissUser(userId: string): Promise<void> {
+    await this.client.patch(`/user/dismiss/${userId}`);
   }
 
   // Категории
@@ -224,6 +276,11 @@ class ApiClient {
     await this.client.delete(`/chat/${chatId}/${userId}`);
   }
 
+  async deleteChat(chatId: string, userId: string): Promise<void> {
+    // Удаляем пользователя из чата, что фактически "удаляет" чат для этого пользователя
+    await this.client.delete(`/chat/${chatId}/${userId}`);
+  }
+
   // Заказы (Requests)
   async createRequest(request: Omit<Request, 'id'>): Promise<Request> {
     const response = await this.client.post<Request>('/request', request);
@@ -262,7 +319,11 @@ class ApiClient {
 
   // WebSocket URL
   getWebSocketUrl(): string {
-    return `${API_BASE_URL.replace('http', 'ws')}/ws`;
+    if (Platform.OS === 'web') {
+      return 'ws://192.168.0.114:8080/ws';
+    } else {
+      return `ws://${URL_SERV}/ws`;
+    }
   }
 }
 

@@ -1,15 +1,18 @@
 package service
 
 import (
-	"go.mongodb.org/mongo-driver/v2/bson"
+	"net/http"
 	"techwizBackend/pkg/models"
 	"techwizBackend/pkg/repository"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type (
 	IMessageService interface {
 		Save(message *models.Message) error
+		GetMessageByChat(chat_id bson.ObjectID) (int, *[]models.Message)
 	}
 
 	MessageService struct {
@@ -56,4 +59,13 @@ func (s *MessageService) Save(message *models.Message) error {
 	}
 
 	return nil
+}
+
+func (s *MessageService) GetMessageByChat(chat_id bson.ObjectID) (int, *[]models.Message) {
+	var messages []models.Message
+	if err := s.MessageRepository.GetMessageByChat(chat_id, &messages); err != nil {
+		return http.StatusBadRequest, nil
+	}
+
+	return http.StatusOK, &messages
 }

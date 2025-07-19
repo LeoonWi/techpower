@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,14 +9,17 @@ import {
   Modal,
   Pressable,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Search, X, Edit, Trash2, UserCheck } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
 import RoleGuard from '@/components/RoleGuard';
+import { apiClient, User } from '@/api/client';
+import { permissionToRole, roleToPermission, getRoleTitle } from '@/utils/roleUtils';
 
 interface Employee {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   role: string;
@@ -24,10 +27,7 @@ interface Employee {
 }
 
 export default function EmployeeScreen() {
-  const [employees, setEmployees] = useState<Employee[]>([
-    { id: 1, name: 'Иван Иванов', phone: '+7 900 123-45-67', role: 'support', status: 'active' },
-    { id: 2, name: 'Петр Петров', phone: '+7 900 234-56-78', role: 'master', status: 'active' },
-  ]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalVisible, setModalVisible] = useState(false);
   const [isActionModalVisible, setActionModalVisible] = useState(false);
@@ -36,6 +36,47 @@ export default function EmployeeScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('support');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [savingEmployee, setSavingEmployee] = useState(false);
+
+
+
+  // Загрузка сотрудников с бэкенда при открытии страницы
+  useEffect(() => {
+    loadEmployees();
+  }, []);
+
+  const loadEmployees = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const users = await apiClient.getUsers();
+      
+      // Преобразуем данные из бэкенда в формат компонента
+      const transformedEmployees: Employee[] = users.map((user: User) => {
+        return {
+          id: user.id, // Используем оригинальный ID из бэкенда
+          name: user.full_name || user.nickname || 'Без имени',
+          phone: user.phone_number,
+          role: permissionToRole(user.permission),
+          status: user.dismissed ? 'inactive' : 'active',
+        };
+      });
+      
+      setEmployees(transformedEmployees);
+    } catch (err) {
+      console.error('Ошибка загрузки сотрудников:', err);
+      setError('Не удалось загрузить сотрудников');
+      // В случае ошибки показываем тестовые данные
+      setEmployees([
+        { id: '1', name: 'Иван Иванов', phone: '+7 900 123-45-67', role: 'support', status: 'active' },
+        { id: '2', name: 'Петр Петров', phone: '+7 900 234-56-78', role: 'master', status: 'active' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const openModal = () => setModalVisible(true);
   const closeModal = () => {
@@ -56,49 +97,75 @@ export default function EmployeeScreen() {
     setSelectedEmployee(null);
   };
 
-  const addEmployee = () => {
+  const addEmployee = async () => {
     if (name.trim() && phone.trim() && password.trim()) {
-      const newEmployee: Employee = {
-        id: Date.now(),
-        name,
-        phone,
-        role,
-        status: 'active',
-      };
-      setEmployees((prev) => [...prev, newEmployee]);
-      closeModal();
+      try {
+        setSavingEmployee(true);
+        // Создаем нового пользователя через API
+        const permission = roleToPermission(role as any);
+        await apiClient.signUp({
+          phone_number: phone,
+          password: password,
+          permission: permission,
+          full_name: name,
+        });
+        
+        // Перезагружаем список сотрудников
+        await loadEmployees();
+        closeModal();
+        Alert.alert('Успех', 'Сотрудник добавлен');
+      } catch (err) {
+        console.error('Ошибка добавления сотрудника:', err);
+        Alert.alert('Ошибка', 'Не удалось добавить сотрудника');
+      } finally {
+        setSavingEmployee(false);
+      }
     } else {
       Alert.alert('Ошибка', 'Заполните все поля');
     }
   };
 
-  const changeEmployeeStatus = () => {
+  const changeEmployeeStatus = async () => {
     if (selectedEmployee) {
-      const newStatus = selectedEmployee.status === 'active' ? 'inactive' : 'active';
-      setEmployees(prev => 
-        prev.map(emp => 
-          emp.id === selectedEmployee.id 
-            ? { ...emp, status: newStatus }
-            : emp
-        )
-      );
-      closeActionModal();
-      Alert.alert('Успех', `Статус сотрудника изменен на ${newStatus === 'active' ? 'активный' : 'неактивный'}`);
+      try {
+        // Изменяем статус мастера через API
+        const event = selectedEmployee.status === 'active' ? 'remove' : 'add';
+        const status = selectedEmployee.status === 'active' ? '' : 'default';
+        
+        await apiClient.changeMasterStatus(selectedEmployee.id, event, status);
+        
+        // Перезагружаем список сотрудников
+        await loadEmployees();
+        closeActionModal();
+        Alert.alert('Успех', `Статус сотрудника изменен`);
+      } catch (err) {
+        console.error('Ошибка изменения статуса:', err);
+        Alert.alert('Ошибка', 'Не удалось изменить статус сотрудника');
+      }
     }
   };
 
-  const changeEmployeeRole = () => {
+  const changeEmployeeRole = async () => {
     if (selectedEmployee) {
-      const newRole = selectedEmployee.role === 'master' ? 'support' : 'master';
-      setEmployees(prev => 
-        prev.map(emp => 
-          emp.id === selectedEmployee.id 
-            ? { ...emp, role: newRole }
-            : emp
-        )
-      );
-      closeActionModal();
-      Alert.alert('Успех', `Роль сотрудника изменена на ${newRole === 'master' ? 'Мастер' : 'Поддержка'}`);
+      try {
+        const newRole = selectedEmployee.role === 'master' ? 'support' : 'master';
+        const oldPermission = roleToPermission(selectedEmployee.role as any);
+        const newPermission = roleToPermission(newRole as any);
+        
+        await apiClient.changePermission(
+          selectedEmployee.id,
+          oldPermission,
+          newPermission
+        );
+        
+        // Перезагружаем список сотрудников
+        await loadEmployees();
+        closeActionModal();
+        Alert.alert('Успех', `Роль сотрудника изменена на ${getRoleTitle(newRole)}`);
+      } catch (err) {
+        console.error('Ошибка изменения роли:', err);
+        Alert.alert('Ошибка', 'Не удалось изменить роль сотрудника');
+      }
     }
   };
 
@@ -112,10 +179,18 @@ export default function EmployeeScreen() {
           {
             text: 'Уволить',
             style: 'destructive',
-            onPress: () => {
-              setEmployees(prev => prev.filter(emp => emp.id !== selectedEmployee.id));
-              closeActionModal();
-              Alert.alert('Успех', 'Сотрудник уволен');
+            onPress: async () => {
+              try {
+                await apiClient.dismissUser(selectedEmployee.id);
+                
+                // Перезагружаем список сотрудников
+                await loadEmployees();
+                closeActionModal();
+                Alert.alert('Успех', 'Сотрудник уволен');
+              } catch (err) {
+                console.error('Ошибка увольнения:', err);
+                Alert.alert('Ошибка', 'Не удалось уволить сотрудника');
+              }
             }
           }
         ]
@@ -123,9 +198,7 @@ export default function EmployeeScreen() {
     }
   };
 
-  const getRoleTitle = (role: string) => {
-    return role === 'master' ? 'Мастер' : 'Поддержка';
-  };
+
 
   const getStatusTitle = (status?: string) => {
     return status === 'active' ? 'Активен' : 'Неактивен';
@@ -168,7 +241,20 @@ export default function EmployeeScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={true}
       >
-        {filteredEmployees.length === 0 ? (
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#10B981" />
+            <Text style={styles.loadingText}>Загрузка сотрудников...</Text>
+          </View>
+                 ) : error ? (
+           <View style={styles.errorContainer}>
+             <Text style={styles.errorText}>{error}</Text>
+             <Text style={styles.errorSubtext}>Попробуйте перезагрузить список</Text>
+             <TouchableOpacity style={styles.retryButton} onPress={loadEmployees}>
+               <Text style={styles.retryButtonText}>Обновить</Text>
+             </TouchableOpacity>
+           </View>
+        ) : filteredEmployees.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>Сотрудники не найдены</Text>
             <Text style={styles.emptyStateSubtext}>Попробуйте изменить поисковый запрос</Text>
@@ -247,18 +333,28 @@ export default function EmployeeScreen() {
               secureTextEntry
             />
             
-            <Picker
-              selectedValue={role}
-              onValueChange={(itemValue) => setRole(itemValue)}
-              style={styles.picker}
-              itemStyle={{ fontSize: 16 }}
-            >
-              <Picker.Item label="Поддержка" value="support" />
-              <Picker.Item label="Мастер" value="master" />
-            </Picker>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={role}
+                onValueChange={(itemValue) => setRole(itemValue)}
+                style={styles.picker}
+                itemStyle={styles.pickerItem}
+              >
+                <Picker.Item label="Поддержка" value="support" />
+                <Picker.Item label="Мастер" value="master" />
+              </Picker>
+            </View>
 
-            <TouchableOpacity style={styles.modalButton} onPress={addEmployee}>
-              <Text style={styles.modalButtonText}>Сохранить</Text>
+            <TouchableOpacity 
+              style={[styles.modalButton, savingEmployee && styles.modalButtonDisabled]} 
+              onPress={addEmployee}
+              disabled={savingEmployee}
+            >
+              {savingEmployee ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.modalButtonText}>Сохранить</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -509,12 +605,66 @@ const styles = StyleSheet.create({
   fireButton: {
     backgroundColor: '#FEE2E2',
   },
-  picker: {
+  pickerContainer: {
     backgroundColor: '#F1F5F9',
     borderRadius: 10,
-    height: 40,
-    fontSize: 16,
     marginBottom: 8,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
     color: '#1E293B',
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+  },
+  pickerItem: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#1E293B',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#EF4444',
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+  },
+  modalButtonDisabled: {
+    opacity: 0.6,
   },
 });

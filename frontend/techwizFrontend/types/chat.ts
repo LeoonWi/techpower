@@ -5,12 +5,13 @@
 // =========================
 
 export interface ChatMessage {
-  id: string;
-  senderId: string;
-  senderName: string;
-  content: string;
-  timestamp: Date;
-  category: string;
+  id?: string;
+  sender_id?: string;
+  sender_full_name?: string;
+  recipient_id: string;
+  chat_id?: string;
+  text: string;
+  created_at?: string;
 }
 
 export interface ChatCategory {

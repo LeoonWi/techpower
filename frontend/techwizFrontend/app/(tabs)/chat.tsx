@@ -8,13 +8,15 @@
 // - После успешных операций обновляйте локальное состояние.
 // - Обрабатывайте ошибки backend.
 // =========================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Send, ArrowLeft, Users, TriangleAlert as AlertTriangle, Plus, Filter, X } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
+import { apiClient, Chat as ApiChat } from '@/api/client';
+import { permissionToRole, getRoleTitle } from '@/utils/roleUtils';
 
 interface User {
   id: string;
@@ -24,26 +26,106 @@ interface User {
 
 export default function ChatScreen() {
   const { user } = useAuth();
-  const { chatCategories, messages, sendMessage, addComplaint } = useData();
+  const { chatCategories, messages, setMessages, sendMessage, addComplaint, masters } = useData();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const [complaintText, setComplaintText] = useState('');
   const [showComplaintForm, setShowComplaintForm] = useState(false);
   const [showCreateChatModal, setShowCreateChatModal] = useState(false);
   const [selectedUserFilter, setSelectedUserFilter] = useState<string>(user?.id || 'all');
+  const [chats, setChats] = useState<ApiChat[]>([]);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   
   const selectedCategoryData = chatCategories.find(cat => cat.id === selectedCategory);
-  const categoryMessages = messages.filter(msg => msg.category === selectedCategory);
+  // Безопасно инициализируем chats и chatCategories, чтобы не было ошибок при null
+  const safeChats = Array.isArray(chats) ? chats : [];
+  const safeChatCategories = Array.isArray(chatCategories) ? chatCategories : [];
 
-  const handleSendMessage = () => {
-    if (messageText.trim() && selectedCategory && user) {
-      sendMessage(selectedCategory, messageText.trim(), user.id, user.fullName);
-      setMessageText('');
+  // Исправляем фильтрацию сообщений по выбранной категории/чату
+  const categoryMessages = Array.isArray(messages)
+    ? messages.filter(msg => msg.chat_id === selectedCategory)
+    : [];
+
+  // Функция для загрузки чатов с сервера
+  const loadChats = async () => {
+    if (!user?.id) return;
+    
+    setIsLoadingChats(true);
+    try {
+      const userChats = await apiClient.getChats(user.id);
+      setChats(userChats);
+      console.log('Loaded chats:', userChats);
+      console.log('Chat structure:', userChats.length > 0 ? userChats[0] : 'No chats');
+    } catch (error) {
+      console.error('Failed to load chats:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить чаты');
+    } finally {
+      setIsLoadingChats(false);
     }
   };
 
+    // Функция для загрузки пользователей
+  const loadUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const allUsers = await apiClient.getUsers();
+      if (allUsers != null) {
+      const formattedUsers = allUsers.map(apiUser => ({
+        id: String(apiUser.id),
+        fullName: apiUser.full_name || '',
+        role: permissionToRole(apiUser.permission),
+      }));
+      setUsers(formattedUsers);
+      console.log('Loaded users:', formattedUsers);
+      } else {
+        console.log("Array allUsers is empty")
+      }
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  // Функция для удаления чата
+  const handleDeleteChat = async (chatId: string) => {
+    Alert.alert(
+      'Удалить чат',
+      'Вы уверены, что хотите удалить этот чат? Это действие нельзя отменить.',
+      [
+        {
+          text: 'Отмена',
+          style: 'cancel',
+        },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('Удаляем чат:', chatId, 'пользователь:', user?.id);
+              await apiClient.deleteChat(chatId, user?.id || '');
+              // Обновляем список чатов после удаления
+              await loadChats();
+              Alert.alert('Успешно', 'Чат удален');
+            } catch (error) {
+              console.error('Ошибка при удалении чата:', error);
+              Alert.alert('Ошибка', 'Не удалось удалить чат. Попробуйте еще раз.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+const handleSendMessage = () => {
+  sendMessage(user.id, messageText);
+  setMessageText('');
+};
+
   const handleSubmitComplaint = () => {
-    if (complaintText.trim() && user) {
+    if (complaintText.trim() && user && user.id && user.fullName) {
       addComplaint(
         'Жалоба от пользователя',
         complaintText.trim(),
@@ -55,21 +137,28 @@ export default function ChatScreen() {
     }
   };
 
-  const handleCreateChat = () => {
-    if (selectedUserFilter !== 'all') {
-      // Здесь будет логика создания чата
-      const user1Name = user?.role === 'master' ? user.fullName : chatCategories.find(cat => cat.id === selectedUserFilter)?.name;
-      const user2Name = chatCategories.find(cat => cat.id === selectedUserFilter)?.name;
-      
-      Alert.alert(
-        'Чат создан успешно', 
-        `Чат между ${user1Name} и ${user2Name} создан.\n\nID чата: ${selectedUserFilter}`
-      );
-      
-      setSelectedUserFilter('all');
-      setShowCreateChatModal(false);
+  const handleCreateChat = async () => {
+    if (selectedUserFilter !== 'all' && selectedUserFilter !== '' && user?.id) {
+      try {
+        // Создаем чат через API
+        const newChat = await apiClient.createChat(user.id, selectedUserFilter);
+        
+        // Обновляем список чатов
+        await loadChats();
+        
+        Alert.alert(
+          'Чат создан успешно', 
+          `Чат создан с ID: ${newChat.id}`
+        );
+        
+        setSelectedUserFilter('all');
+        setShowCreateChatModal(false);
+      } catch (error) {
+        console.error('Ошибка при создании чата:', error);
+        Alert.alert('Ошибка', 'Не удалось создать чат. Попробуйте еще раз.');
+      }
     } else {
-      Alert.alert('Ошибка', 'Выберите пользователя поддержки');
+      Alert.alert('Ошибка', 'Выберите пользователя для создания чата');
     }
   };
 
@@ -105,13 +194,19 @@ export default function ChatScreen() {
     return availableCategories.filter(category => {
       // Проверяем, есть ли сообщения от выбранного пользователя в этой категории
       return messages.some(message => 
-        message.category === category.id && 
-        message.senderId === selectedUserFilter
+        message.chat_id === category.id && 
+        message.sender_id === selectedUserFilter
       );
     });
   };
 
   const filteredCategories = getFilteredCategories();
+
+  // Загрузка чатов и пользователей при открытии страницы
+  useEffect(() => {
+    loadChats();
+    loadUsers();
+  }, [user?.id, masters]);
 
   if (selectedCategory) {
     return (
@@ -154,31 +249,21 @@ export default function ChatScreen() {
                   key={message.id}
                   style={[
                     styles.messageContainer,
-                    message.senderId === user?.id && styles.myMessageContainer
+                    message.sender_id === user?.id && styles.myMessageContainer
                   ]}
                 >
                   <View style={[
                     styles.messageBubble,
-                    message.senderId === user?.id && styles.myMessageBubble
+                    message.sender_id === user?.id && styles.myMessageBubble
                   ]}>
-                    {message.senderId !== user?.id && (
-                      <Text style={styles.senderName}>{message.senderName}</Text>
-                    )}
+                    {/* Имя отправителя не выводим, если нет такого поля */}
                     <Text style={[
                       styles.messageText,
-                      message.senderId === user?.id && styles.myMessageText
+                      message.sender_id === user?.id && styles.myMessageText
                     ]}>
-                      {message.content}
+                      {message.text}
                     </Text>
-                    <Text style={[
-                      styles.messageTime,
-                      message.senderId === user?.id && styles.myMessageTime
-                    ]}>
-                      {new Date(message.timestamp).toLocaleTimeString('ru-RU', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </Text>
+                    {/* Время сообщения не выводим, если нет такого поля */}
                   </View>
                 </View>
               ))
@@ -277,34 +362,35 @@ export default function ChatScreen() {
           <View style={styles.filterHeader}>
             <Filter size={16} color="#64748B" />
             <Text style={styles.filterTitle}>Фильтр по пользователю</Text>
+            {isLoadingUsers && <Text style={styles.loadingText}>Загрузка...</Text>}
           </View>
-          <Picker
-            selectedValue={selectedUserFilter}
-            onValueChange={(itemValue) => setSelectedUserFilter(itemValue)}
-            style={styles.filterPicker}
-          >
-            <Picker.Item label="Все чаты" value="all" />
-            <Picker.Item 
-              label={`Мои чаты (${user?.fullName})`} 
-              value={user?.id || 'all'} 
-            />
-            {chatCategories.filter(cat => cat.id !== user?.id).map((category) => (
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedUserFilter}
+              onValueChange={(itemValue) => setSelectedUserFilter(itemValue)}
+              style={styles.filterPicker}
+            >
               <Picker.Item 
-                key={category.id} 
-                label={`Чаты ${category.name} (${category.id === 'support' ? 'Поддержка' : 'Мастер'})`} 
-                value={category.id} 
+                label={`Мои чаты (${user?.fullName})`} 
+                value={user?.id || 'all'} 
               />
-            ))}
-          </Picker>
+              {isLoadingUsers ? (
+                <Picker.Item label="Загрузка пользователей..." value="" />
+              ) : users.filter(u => u.id !== user?.id).length === 0 ? (
+                <Picker.Item label="Нет доступных пользователей" value="" />
+              ) : (
+                users.filter(u => u.id !== user?.id).map((chatUser) => (
+                  <Picker.Item 
+                    key={chatUser.id} 
+                    label={`Чаты ${chatUser.fullName} (${chatUser.role === 'admin' ? 'Админ' : chatUser.role === 'support' ? 'Поддержка' : 'Мастер'})`} 
+                    value={chatUser.id} 
+                  />
+                ))
+              )}
+            </Picker>
+          </View>
         </View>
       )}
-
-      <Text style={styles.subtitle}>
-        {user?.role === 'master' 
-          ? 'Выберите категорию для общения или создайте чат с поддержкой' 
-          : 'Выберите категорию для общения'
-        }
-      </Text>
 
       <ScrollView 
         style={styles.categoriesList}
@@ -331,36 +417,42 @@ export default function ChatScreen() {
           </>
         )}
 
-        {filteredCategories.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={styles.categoryCard}
-            onPress={() => setSelectedCategory(category.id)}
-          >
-            <View style={styles.categoryHeader}>
-              <Text style={styles.categoryName}>{category.name}</Text>
-              <View style={styles.participantsBadge}>
-                <Users size={12} color="#64748B" />
-                <Text style={styles.participantsBadgeText}>
-                  {category.participantCount}
+        {isLoadingChats ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Загрузка чатов...</Text>
+          </View>
+        ) : safeChats.length === 0 ? (
+          <View style={styles.emptyChatsContainer}>
+            <Text style={styles.emptyChatsText}>У вас пока нет чатов</Text>
+          </View>
+        ) : (
+          safeChats.map((chat) => (
+            <TouchableOpacity
+              key={chat.id}
+              style={styles.categoryCard}
+              onPress={() => setSelectedCategory(chat.id)}
+              onLongPress={() => handleDeleteChat(chat.id)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.categoryHeader}>
+                <Text style={styles.categoryName}>
+                  {chat.name || 'Без названия'}
                 </Text>
+                <View style={styles.participantsBadge}>
+                  <Users size={12} color="#64748B" />
+                  <Text style={styles.participantsBadgeText}>
+                    {Array.isArray(chat.members) ? chat.members.length : 0}
+                  </Text>
+                </View>
               </View>
-            </View>
-            {category.lastMessage && (
               <View style={styles.lastMessage}>
                 <Text style={styles.lastMessageText} numberOfLines={1}>
-                  {category.lastMessage.senderName}: {category.lastMessage.content}
-                </Text>
-                <Text style={styles.lastMessageTime}>
-                  {new Date(category.lastMessage.timestamp).toLocaleTimeString('ru-RU', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
+                  Участники: {Array.isArray(chat.members) ? chat.members.join(', ') : 'Нет участников'}
                 </Text>
               </View>
-            )}
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
 
       {/* Modal создания чата */}
@@ -395,20 +487,28 @@ export default function ChatScreen() {
                   <Text style={styles.userIdText}>ID: {user.id}</Text>
                 </View>
               ) : (
-                <Picker
-                  selectedValue={selectedUserFilter}
-                  onValueChange={(itemValue) => setSelectedUserFilter(itemValue)}
-                  style={styles.formPicker}
-                >
-                  <Picker.Item label="Выберите пользователя" value="" />
-                  {chatCategories.filter(cat => cat.id !== user?.id).map((category) => (
-                    <Picker.Item 
-                      key={category.id} 
-                      label={`${category.name} (${category.id === 'support' ? 'Поддержка' : 'Мастер'})`} 
-                      value={category.id} 
-                    />
-                  ))}
-                </Picker>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={selectedUserFilter}
+                    onValueChange={(itemValue) => setSelectedUserFilter(itemValue)}
+                    style={styles.formPicker}
+                  >
+                    <Picker.Item label="Выберите пользователя" value="" />
+                    {isLoadingUsers ? (
+                      <Picker.Item label="Загрузка пользователей..." value="" />
+                    ) : users.filter(u => u.id !== user?.id).length === 0 ? (
+                      <Picker.Item label="Нет доступных пользователей" value="" />
+                    ) : (
+                      users.filter(u => u.id !== user?.id).map((chatUser) => (
+                        <Picker.Item 
+                          key={chatUser.id} 
+                          label={`${chatUser.fullName} (${chatUser.role === 'admin' ? 'Админ' : chatUser.role === 'support' ? 'Поддержка' : 'Мастер'})`} 
+                          value={chatUser.id} 
+                        />
+                      ))
+                    )}
+                  </Picker>
+                </View>
               )}
             </View>
 
@@ -454,12 +554,6 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#64748B',
-    paddingHorizontal: 20,
-  },
   addButton: {
     backgroundColor: '#2563EB',
     width: 40,
@@ -477,6 +571,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   categoriesListContent: {
+    paddingTop: 16,
     paddingBottom: 120,
     flexGrow: 1,
   },
@@ -605,6 +700,26 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyChatText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+  },
+  emptyChatsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyChatsText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#64748B',
@@ -806,15 +921,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterContainer: {
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+    marginBottom: 8,
   },
   filterHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   filterTitle: {
     fontSize: 16,
@@ -822,8 +939,19 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginLeft: 8,
   },
+  pickerContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    minHeight: 50,
+  },
   filterPicker: {
-    flex: 1,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#1E293B',
+    height: 50,
   },
   createChatButton: {
     backgroundColor: '#2563EB',
@@ -844,7 +972,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   formPicker: {
-    flex: 1,
+    height: 50,
+    color: '#1E293B',
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
   userInfoContainer: {
     position: 'relative',

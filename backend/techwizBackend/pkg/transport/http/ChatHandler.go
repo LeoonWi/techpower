@@ -1,10 +1,11 @@
 package http
 
 import (
-	"github.com/labstack/echo/v4"
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
 	"techwizBackend/pkg/models"
+
+	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func (h Handler) createChat(c echo.Context) error {
@@ -80,4 +81,14 @@ func (h Handler) removeUserFromChat(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h Handler) getMessageByChat(c echo.Context) error {
+	chat_id, err := bson.ObjectIDFromHex(c.QueryParam("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+	}
+	return c.JSON(h.services.MessageService.GetMessageByChat(chat_id))
 }

@@ -5,7 +5,8 @@ import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { User as UserIcon, Phone, MapPin, Camera, LogOut, Star, Wallet } from 'lucide-react-native';
 import apiClient from '@/api/client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { getRoleTitle } from '@/utils/roleUtils';
 
 // =========================
 // Интеграция с backend (профиль пользователя):
@@ -18,45 +19,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // =========================
 
 export default function ProfileScreen() {
-  const { user: authUser, logout, updateUser } = useAuth();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { user: authUser, logout, updateUser, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(true);
   const [editedUser, setEditedUser] = useState<any>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      setLoading(true);
-      try {
-        const id = await AsyncStorage.getItem('userId');
-        if (!id) {
-          setError('Не найден id пользователя');
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-        const data = await apiClient.getUser(id);
-        if (!data) {
-          setError('Пользователь не найден');
-          setUser(null);
-        } else {
-          setUser(data);
-          setEditedUser(data);
-          setError(null);
-        }
-      } catch (e: any) {
-        setError(e.message || 'Ошибка загрузки профиля');
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
-  }, []);
+  // Используем пользователя из AuthContext
+  const user = authUser;
 
-  if (loading) {
+  useEffect(() => {
+    if (user) {
+      setEditedUser(user);
+    }
+  }, [user]);
+
+  if (isLoading) {
     return <View style={{flex:1,justifyContent:'center',alignItems:'center'}}><ActivityIndicator size="large" color="#2563EB" /></View>;
   }
   if (error) {
@@ -73,18 +51,27 @@ export default function ProfileScreen() {
     setHasChanges(hasNicknameChanged || hasPhoneChanged);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!user?.id) {
+      Alert.alert('Ошибка', 'Не удалось определить ID пользователя');
+      return;
+    }
     if (editedUser && hasChanges) {
-      // Не отправляем полное имя и категорию при обновлении
-      const userToUpdate = {
-        ...editedUser,
-        fullName: user.fullName, // Оставляем оригинальное значение
-        category: user.category, // Оставляем оригинальное значение
-      };
-      updateUser(userToUpdate);
-      setIsEditing(false);
-      setHasChanges(false);
-      Alert.alert('Успешно', 'Профиль обновлен');
+      try {
+        const updatePayload: any = {};
+        if (editedUser.nickname !== user.nickname) updatePayload.nickname = editedUser.nickname;
+        if (editedUser.phone !== user.phone) updatePayload.phone_number = editedUser.phone;
+        if (!updatePayload.nickname && !updatePayload.phone_number) {
+          Alert.alert('Нет изменений', 'Измените хотя бы одно поле');
+          return;
+        }
+        const updated = await apiClient.updateUser(user.id, updatePayload);
+        setEditedUser(updated);
+        setHasChanges(false);
+        Alert.alert('Успешно', 'Профиль обновлен');
+      } catch (e: any) {
+        Alert.alert('Ошибка', e?.message || 'Не удалось обновить профиль');
+      }
     }
   };
 
@@ -113,14 +100,8 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const getRoleTitle = () => {
-    const roleTitles: { [key: string]: string } = {
-      admin: 'Администратор',
-      limitedAdmin: 'Ограниченный администратор',
-      support: 'Поддержка',
-      master: 'Мастер',
-    };
-    return roleTitles[String(user.role)] || user.role;
+  const getRoleTitleLocal = () => {
+    return getRoleTitle(user.role || '');
   };
 
   const getRoleBadgeColor = () => {
@@ -154,10 +135,10 @@ export default function ProfileScreen() {
 
           <View style={styles.userInfo}>
             <View style={styles.nameRow}>
-              <Text style={styles.userName}>{user.full_name || 'Без имени'}</Text>
+              <Text style={styles.userName}>{user.fullName || 'Без имени'}</Text>
             </View>
             <View style={[styles.roleBadge, { backgroundColor: `${getRoleBadgeColor()}20` }]}>
-              <Text style={[styles.roleText, { color: getRoleBadgeColor() }]}>{getRoleTitle()}</Text>
+              <Text style={[styles.roleText, { color: getRoleBadgeColor() }]}>{getRoleTitleLocal()}</Text>
             </View>
           </View>
 
@@ -190,7 +171,7 @@ export default function ProfileScreen() {
             <Text style={styles.inputLabel}>Полное имя</Text>
             <View style={[styles.inputContainer, styles.readOnlyInput]}>
               <UserIcon size={20} color="#64748B" />
-              <Text style={styles.readOnlyText}>{user.full_name || 'Не указано'}</Text>
+              <Text style={styles.readOnlyText}>{user.fullName || 'Не указано'}</Text>
             </View>
           </View>
 
@@ -244,7 +225,7 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => {
-                  setIsEditing(false);
+                  setIsEditing(true);
                   setEditedUser(user);
                   setHasChanges(false);
                 }}

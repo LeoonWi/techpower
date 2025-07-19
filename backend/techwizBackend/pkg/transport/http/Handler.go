@@ -1,9 +1,10 @@
 package http
 
 import (
-	"github.com/labstack/echo/v4"
 	"techwizBackend/pkg/service"
 	"techwizBackend/pkg/transport/ws"
+
+	"github.com/labstack/echo/v4"
 )
 
 type Handler struct {
@@ -44,6 +45,9 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	chat.DELETE("/:idChat/:idUser", h.removeUserFromChat) // DONE
 	chat.GET("/:userId", h.getChats)                      // DONE
 	//chat.GET("/:member1/:member2", h.getChatByMember)     // DONE
+
+	message := e.Group("message")
+	message.GET("", h.getMessageByChat)
 
 	request := e.Group("request")
 	request.POST("", h.createRequest)

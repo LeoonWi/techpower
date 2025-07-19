@@ -1,11 +1,12 @@
 package ws
 
 import (
-	"github.com/gorilla/websocket"
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"log"
 	"techwizBackend/pkg/models"
 	"techwizBackend/pkg/service"
+
+	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type Hub struct {
@@ -31,14 +32,11 @@ func (h *Hub) Run() {
 		select {
 		case user := <-h.Add:
 			h.Clients[user.Id] = user.Conn
-			log.Printf("клиент подключён | всего клиентов: %d", len(h.Clients))
+			log.Printf("клиент %s подключён | всего клиентов: %d", user.Id.Hex(), len(h.Clients))
 
 		case id := <-h.Remove:
-			if conn, ok := h.Clients[id]; ok {
+			if _, ok := h.Clients[id]; ok {
 				delete(h.Clients, id)
-				if err := conn.Close(); err != nil {
-					log.Printf("Не удалось разорвать соединение: %v", err)
-				}
 				log.Printf("клиент отключён | всего клиентов: %d", len(h.Clients))
 			}
 
@@ -49,9 +47,6 @@ func (h *Hub) Run() {
 			}
 			recipients := h.services.ChatService.GetRecipient(&message)
 			for _, item := range recipients {
-				if message.SenderId == item {
-					continue
-				}
 				log.Println(message)
 				if conn, ok := h.Clients[item]; ok {
 					if err := conn.WriteJSON(&message); err != nil {

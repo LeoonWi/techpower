@@ -6,6 +6,7 @@ import { User } from '@/types/user';
 import { Complaint } from '@/types/complaint';
 import { apiClient, User as ApiUser, Category as ApiCategory, Request as ApiRequest, Chat as ApiChat, Message as ApiMessage } from '@/api/client';
 import { useAuth } from './AuthContext';
+import useWebSocket from '@/api/useWebSocket';
 import { getOrders as getLocalOrders, addOrder as addLocalOrder, deleteOrder as deleteLocalOrder, updateOrder as updateLocalOrder, LocalOrder } from '../data/orders';
 import { getMasters as getLocalMasters, addMaster as addLocalMaster, deleteMaster as deleteLocalMaster, updateMaster as updateLocalMaster, LocalMaster } from '../data/masters';
 
@@ -18,7 +19,8 @@ interface DataContextType {
   isLoading: boolean;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   assignOrder: (orderId: string, masterId: string) => void;
-  sendMessage: (categoryId: string, content: string, senderId: string, senderName: string) => void;
+  sendMessage: (recipient_id: string, text: string) => void;
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
   addComplaint: (title: string, description: string, authorId: string, authorName: string) => void;
   resolveComplaint: (complaintId: string, resolvedBy: string) => void;
   loadMasters: () => Promise<void>;
@@ -36,6 +38,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const [ws, setWs] = useState<WebSocket | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [masters, setMasters] = useState<User[]>([]);
   const [chatCategories, setChatCategories] = useState<ChatCategory[]>([]);
@@ -105,10 +108,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       try {
-        const response = await apiClient.getOrders();
-        const apiOrders = response.requests || [];
-        console.log('apiOrders from backend:', apiOrders);
-        setOrders(apiOrders.map(apiOrder => ({
+        const apiOrders = await apiClient.getOrders() as any;
+        const ordersArray = Array.isArray(apiOrders) ? apiOrders : (apiOrders && apiOrders.requests ? apiOrders.requests : []);
+        console.log('apiOrders from backend:', ordersArray);
+        setOrders(ordersArray.map((apiOrder: any) => ({
           id: String(apiOrder.id || ''),
           title: apiOrder.problem,
           description: apiOrder.problem,
@@ -257,47 +260,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Загрузка сотрудников с backend, fallback на локальные
-  const loadEmployees = async () => {
-    setIsLoading(true);
-    try {
-      try {
-        const apiUsers = await apiClient.getUsers();
-        setEmployees(apiUsers.map(apiUser => ({
-          id: String(apiUser.id),
-          role: apiUser.permission as any,
-          fullName: apiUser.full_name || '',
-          nickname: apiUser.nickname || '',
-          phone: String(apiUser.phone_number),
-          photo: apiUser.photo || '',
-          city: '',
-          category: apiUser.categories?.[0]?.name || '',
-          balance: apiUser.balance ? Number(apiUser.balance) : 0,
-          commission: apiUser.commission ? Number(apiUser.commission) : 0,
-          isActive: true,
-        })));
-      } catch (backendError) {
-        const localUsers = getUsers();
-        setEmployees(localUsers.map(u => ({
-          id: u.id,
-          role: u.role,
-          fullName: u.fullName || '',
-          nickname: '',
-          phone: u.phone,
-          city: '',
-          category: '',
-          balance: 0,
-          commission: 0,
-          isActive: true,
-        })));
-      }
-    } catch (error) {
-      setEmployees([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Функция для загрузки категорий с бэкенда
   const loadCategories = async () => {
     try {
@@ -317,15 +279,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Интеграция WebSocket для чата
   useEffect(() => {
-    const wsUrl = apiClient.getWebSocketUrl();
-    const ws = new WebSocket(wsUrl);
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      setMessages((prev) => [...prev, message]);
-    };
-    ws.onerror = (e) => console.error('WebSocket error:', e);
-    return () => ws.close();
-  }, []);
+    if (!user || !user.id)  return
+    const ws = useWebSocket(user.id)
+    setWs(ws)
+    try {
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        setMessages((prev) => [...prev, message]);
+      };
+      ws.onerror = (e) => console.error('WebSocket error:', e);
+      return () => ws.close();
+    } catch(e) {
+      console.log(e)
+    }
+  }, [user]);
 
   // Инициализация данных
   useEffect(() => {
@@ -395,16 +362,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const sendMessage = (categoryId: string, content: string, senderId: string, senderName: string) => {
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      senderId,
-      senderName,
-      content,
-      timestamp: new Date(),
-      category: categoryId,
-    };
-    setMessages(prev => [...prev, newMessage]);
+  const sendMessage = (recipient_id: string, text: string) => {
+    if (ws && ws.readyState === 1) {
+      const newMessage: ChatMessage = {
+        text,
+        recipient_id
+      };
+      setMessages((prev) => [...prev, newMessage]);
+      ws.send(JSON.stringify(newMessage))
+    }
   };
 
   const addComplaint = (title: string, description: string, authorId: string, authorName: string) => {
@@ -447,6 +413,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addComplaint, 
       resolveComplaint,
       loadMasters,
+      setMessages,
       loadCategories,
       createOrder,
       loadOrders,

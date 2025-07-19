@@ -7,6 +7,8 @@
 // - После успешных операций обновляйте локальное состояние.
 // - Обрабатывайте ошибки backend.
 // =========================
+
+//TODO надо сделать обновление данных о категориях и заказах при повторном входе на страницы
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +18,7 @@ import OrderCard from '@/components/OrderCard';
 import { Search, Filter, Plus, User, X } from 'lucide-react-native';
 import { OrderStatus } from '@/types/order';
 import { Picker } from '@react-native-picker/picker';
+import apiClient from '@/api/client';
 
 const statusFilters = [
   { key: 'all', label: 'Все' },
@@ -27,10 +30,13 @@ const statusFilters = [
 
 export default function OrdersScreen() {
   const { user } = useAuth();
-  const { orders, updateOrderStatus, assignOrder, createOrder, deleteOrder, masters } = useData();
+  const { orders, updateOrderStatus, assignOrder, createOrder, deleteOrder, masters, loadOrders } = useData();
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showMasterSelection, setShowMasterSelection] = useState<string | null>(null);
+  // Новый стейт для мастеров в модалке
+  const [modalMasters, setModalMasters] = useState<any[]>([]);
+  const [loadingMasters, setLoadingMasters] = useState(false);
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -58,14 +64,25 @@ export default function OrdersScreen() {
     fetchCategories();
   }, []);
 
+  // Polling для динамического обновления заказов
+  useEffect(() => {
+    if (!loadOrders) return;
+    loadOrders(); // Загрузить заказы сразу при монтировании
+    const interval = setInterval(() => {
+      loadOrders();
+    }, 10000); // 10 секунд
+    return () => clearInterval(interval);
+  }, [user, loadOrders]);
+
   const fetchCategories = async () => {
     setLoadingCategories(true);
     try {
-      const res = await fetch('http://localhost:8080/category');
-      const data = await res.json();
-      setCategories(data);
+      // Заменено на apiClient
+      const data = await apiClient.getCategories();
+      setCategories(Array.isArray(data) ? data : []);
     } catch (e) {
       Alert.alert('Ошибка', 'Не удалось загрузить категории');
+      setCategories([]); // fallback
     } finally {
       setLoadingCategories(false);
     }
@@ -77,12 +94,8 @@ export default function OrdersScreen() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:8080/category', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCategoryName })
-      });
-      if (!res.ok) throw new Error();
+      // Заменено на apiClient
+      await apiClient.createCategory({ name: newCategoryName });
       setNewCategoryName('');
       setShowAddCategoryModal(false);
       fetchCategories();
@@ -98,11 +111,8 @@ export default function OrdersScreen() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8080/category?id=${String(id)}`, {
-        method: 'DELETE',
-      });
-      const text = await res.text();
-      if (!res.ok) throw new Error(text);
+      // Заменено на apiClient
+      await apiClient.deleteCategory(id);
       setShowDeleteCategoryModal(null);
       fetchCategories();
       Alert.alert('Успешно', 'Категория удалена');
@@ -119,13 +129,8 @@ export default function OrdersScreen() {
     try {
       const id = String(showRenameCategoryModal);
       const name = renameCategoryName.trim();
-      const res = await fetch('http://localhost:8080/category', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name })
-      });
-      const text = await res.text();
-      if (!res.ok) throw new Error(text);
+      // Заменено на apiClient
+      await apiClient.updateCategory({ id, name });
       setShowRenameCategoryModal(null);
       setRenameCategoryName('');
       fetchCategories();
@@ -147,17 +152,16 @@ export default function OrdersScreen() {
       // Фильтр по статусу
       const matchesFilter = selectedFilter === 'all' || order.status === selectedFilter;
 
-      // Фильтр по категории (теперь по имени)
-      const matchesCategory = !selectedCategory || order.category === selectedCategory;
+      // Фильтр по категории (по id, даже если в order.category имя)
+      const matchesCategory = !selectedCategory || order.category === (categories.find(c => c.id === selectedCategory)?.name || selectedCategory);
 
       // Фильтр по роли
       const roleFilter = () => {
         switch (user?.role) {
           case 'admin':
           case 'support':
-            return true;
           case 'master':
-            return order.assignedMasterId === user.id;
+            return true;
           default:
             return false;
         }
@@ -230,9 +234,33 @@ export default function OrdersScreen() {
   const canAssignOrders = user?.role === 'support' || user?.role === 'admin';
   const canManageOrders = user?.role === 'support' || user?.role === 'admin';
 
-  const availableMasters = masters.filter(master => 
-    master.isActive
-  );
+  const availableMasters = Array.isArray(masters) ? masters.filter(master => master.isActive) : [];
+
+  // Функция для загрузки мастеров с бэкенда
+  const fetchMastersForModal = async () => {
+    setLoadingMasters(true);
+    try {
+      const data = await apiClient.getUsers();
+      // Фильтруем только мастеров (роль master, senior_master, premium_master)
+      const filtered = Array.isArray(data)
+        ? data.filter(master =>
+            ['001'].includes(master.permission) && master.dismissed === false
+          )
+        : [];
+      setModalMasters(filtered);
+    } catch (e) {
+      setModalMasters([]);
+      Alert.alert('Ошибка', 'Не удалось загрузить мастеров');
+    } finally {
+      setLoadingMasters(false);
+    }
+  };
+
+  // Открытие модалки выбора мастера с подгрузкой
+  const handleOpenMasterSelection = (orderId: string) => {
+    setShowMasterSelection(orderId);
+    fetchMastersForModal();
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -240,7 +268,10 @@ export default function OrdersScreen() {
         <Text style={styles.title}>
           {user?.role === 'support' ? 'Назначение заказов' : 'Заказы'}
         </Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddOrderModal(true)}>
+        <TouchableOpacity style={styles.addButton} onPress={() => {
+          console.log('Opening add order modal');
+          setShowAddOrderModal(true);
+        }}>
           <Plus size={20} color="white" />
         </TouchableOpacity>
       </View>
@@ -300,7 +331,7 @@ export default function OrdersScreen() {
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        style={[styles.filtersContainer, { marginBottom: 2 }]}
+        style={[styles.filtersContainer]}
         contentContainerStyle={[styles.filtersContent, { marginBottom: 0 }]}
       >
         {statusFilters.map((filter) => (
@@ -326,8 +357,8 @@ export default function OrdersScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ marginTop: 0, marginBottom: 3, paddingHorizontal: 20 }}
-        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 4, maxHeight: 35 }}
+        style={[styles.filtersContainer]}
+        contentContainerStyle={[styles.filtersContent, { marginBottom: 0 }]}
       >
         <TouchableOpacity
           style={[
@@ -344,7 +375,7 @@ export default function OrdersScreen() {
           </Text>
         </TouchableOpacity>
         {categories.map((cat) => (
-          <View key={cat.id} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 4 }}>
+          <View key={cat.id} style={{ flexDirection: 'row' }}>
             <TouchableOpacity
               style={[
                 styles.filterChip,
@@ -422,40 +453,6 @@ export default function OrdersScreen() {
         </View>
       </Modal>
 
-      {/* Красивая карточка для отладки заказов */}
-      <ScrollView style={{ marginHorizontal: 20, marginBottom: 10, maxHeight: 350 }}>
-        {orders.length === 0 ? (
-          <Text style={{ color: '#64748B', fontSize: 14, textAlign: 'center' }}>Нет заказов для отображения</Text>
-        ) : (
-          orders.map(order => (
-            <View
-              key={order.id}
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 10,
-                shadowColor: '#000',
-                shadowOpacity: 0.07,
-                shadowRadius: 4,
-                elevation: 2,
-                borderWidth: 1,
-                borderColor: '#E2E8F0',
-              }}
-            >
-              <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#2563EB', marginBottom: 2 }}>{order.title}</Text>
-              <Text style={{ color: '#64748B', marginBottom: 2 }}>Клиент: <Text style={{ color: '#1E293B' }}>{order.clientName}</Text></Text>
-              <Text style={{ color: '#64748B', marginBottom: 2 }}>Телефон: <Text style={{ color: '#1E293B' }}>{order.clientPhone}</Text></Text>
-              <Text style={{ color: '#64748B', marginBottom: 2 }}>Адрес: <Text style={{ color: '#1E293B' }}>{order.address}</Text></Text>
-              <Text style={{ color: '#64748B', marginBottom: 2 }}>Проблема: <Text style={{ color: '#1E293B' }}>{order.description}</Text></Text>
-              <Text style={{ color: '#64748B', marginBottom: 2 }}>Категория: <Text style={{ color: '#1E293B' }}>{order.category}</Text></Text>
-              <Text style={{ color: '#64748B', marginBottom: 2 }}>Цена: <Text style={{ color: '#059669', fontWeight: 'bold' }}>{order.price} ₽</Text></Text>
-              <Text style={{ color: '#64748B', marginBottom: 2 }}>Дата: <Text style={{ color: '#1E293B' }}>{order.createdAt?.toLocaleString?.() || ''}</Text></Text>
-              <Text style={{ color: '#64748B', marginBottom: 2 }}>Статус: <Text style={{ color: '#2563EB', fontWeight: 'bold' }}>{order.status}</Text></Text>
-            </View>
-          ))
-        )}
-      </ScrollView>
 
       {/* Orders List */}
       <ScrollView 
@@ -463,7 +460,7 @@ export default function OrdersScreen() {
         contentContainerStyle={styles.ordersListContent}
         showsVerticalScrollIndicator={true}
       >
-        {filteredOrders.length === 0 ? (
+        {(Array.isArray(filteredOrders) ? filteredOrders : []).length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>Заказы не найдены</Text>
             <Text style={styles.emptyStateSubtext}>
@@ -471,7 +468,7 @@ export default function OrdersScreen() {
             </Text>
           </View>
         ) : (
-          filteredOrders.map((order) => (
+          (Array.isArray(filteredOrders) ? filteredOrders : []).map((order) => (
             <View key={order.id} style={styles.orderItemContainer}>
               <OrderCard
                 order={order}
@@ -479,7 +476,7 @@ export default function OrdersScreen() {
                 onStatusChange={updateOrderStatus}
                 onPress={() => {
                   if (canAssignOrders && order.status === 'pending') {
-                    handleAssignOrder(order.id);
+                    handleOpenMasterSelection(order.id);
                   }
                 }}
               />
@@ -489,7 +486,7 @@ export default function OrdersScreen() {
                 {canAssignOrders && order.status === 'pending' && (
                   <TouchableOpacity 
                     style={styles.assignButton}
-                    onPress={() => handleAssignOrder(order.id)}
+                    onPress={() => handleOpenMasterSelection(order.id)}
                   >
                     <User size={16} color="white" />
                     <Text style={styles.assignButtonText}>Назначить мастера</Text>
@@ -523,19 +520,20 @@ export default function OrdersScreen() {
               style={styles.formContainer}
               contentContainerStyle={styles.formContent}
               showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
             >
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Имя клиента</Text>
+                <Text style={styles.formLabel}>Имя клиента *</Text>
                 <TextInput
                   style={styles.formInput}
                   value={newOrder.name}
                   onChangeText={(text) => setNewOrder({ ...newOrder, name: text })}
-                  placeholder="Введите имя"
+                  placeholder="Введите имя клиента"
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Номер телефона</Text>
+                <Text style={styles.formLabel}>Номер телефона *</Text>
                 <TextInput
                   style={styles.formInput}
                   value={newOrder.phone_number}
@@ -546,7 +544,7 @@ export default function OrdersScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Адрес</Text>
+                <Text style={styles.formLabel}>Адрес *</Text>
                 <TextInput
                   style={styles.formInput}
                   value={newOrder.address}
@@ -567,12 +565,12 @@ export default function OrdersScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Цена</Text>
+                <Text style={styles.formLabel}>Цена *</Text>
                 <TextInput
                   style={styles.formInput}
                   value={newOrder.price}
                   onChangeText={(text) => setNewOrder({ ...newOrder, price: text })}
-                  placeholder="Введите цену"
+                  placeholder="Введите цену в рублях"
                   keyboardType="numeric"
                 />
               </View>
@@ -585,7 +583,7 @@ export default function OrdersScreen() {
                   style={styles.formPicker}
                 >
                   <Picker.Item label="Выберите категорию" value="" />
-                  {categories.map((category) => (
+                  {(Array.isArray(categories) ? categories : []).map((category) => (
                     <Picker.Item key={category.id} label={category.name} value={category.id} />
                   ))}
                 </Picker>
@@ -678,7 +676,11 @@ export default function OrdersScreen() {
                 contentContainerStyle={styles.mastersListContent}
                 showsVerticalScrollIndicator={true}
               >
-                {availableMasters.length === 0 ? (
+                {loadingMasters ? (
+                  <View style={styles.emptyMastersState}>
+                    <Text style={styles.emptyMastersText}>Загрузка мастеров...</Text>
+                  </View>
+                ) : (Array.isArray(modalMasters) ? modalMasters : []).length === 0 ? (
                   <View style={styles.emptyMastersState}>
                     <Text style={styles.emptyMastersText}>Нет доступных мастеров</Text>
                     <Text style={styles.emptyMastersSubtext}>
@@ -686,20 +688,20 @@ export default function OrdersScreen() {
                     </Text>
                   </View>
                 ) : (
-                  availableMasters.map((master) => (
+                  (Array.isArray(modalMasters) ? modalMasters : []).map((master) => (
                     <TouchableOpacity
                       key={master.id}
                       style={styles.masterItem}
                       onPress={() => handleAssignOrder(showMasterSelection, master.id)}
                     >
                       <View style={styles.masterInfo}>
-                        <Text style={styles.masterName}>{master.fullName}</Text>
-                        <Text style={styles.masterCategory}>{master.category}</Text>
-                        <Text style={styles.masterCity}>{master.city}</Text>
+                        <Text style={styles.masterName}>{master.full_name || 'Без имени'}</Text>
+                        <Text style={styles.masterCategory}>{master.id}</Text>
+                        <Text style={styles.masterCity}>{master.phone_number}</Text>
                       </View>
                       <View style={styles.masterStats}>
-                        <Text style={styles.masterRating}>⭐ 4.8</Text>
-                        <Text style={styles.masterOrders}>24 заказа</Text>
+                        <Text style={styles.masterRating}>⭐ {master.rating ?? '5'}</Text>
+                        <Text style={styles.masterOrders}>{master.ordersCount ?? '0'} заказов</Text>
                       </View>
                     </TouchableOpacity>
                   ))
@@ -789,7 +791,7 @@ const styles = StyleSheet.create({
   },
   filtersContainer: {
     marginBottom: 0,
-    maxHeight: 50,
+    maxHeight: 40,
   },
   filtersContent: {
     paddingHorizontal: 20,
@@ -823,6 +825,7 @@ const styles = StyleSheet.create({
   ordersList: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 10,
   },
   ordersListContent: {
     paddingBottom: 120, // Added to ensure last order is fully visible
@@ -902,7 +905,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     width: '100%',
-    maxHeight: '70%',
+    height: '90%',
   },
   modalTitle: {
     fontSize: 18,
@@ -915,7 +918,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   formContent: {
-    paddingBottom: 120, // Added to ensure full scrolling in modal
+    paddingBottom: 20,
     flexGrow: 1,
   },
   formGroup: {
@@ -1052,6 +1055,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#1E293B',
+    height: 50,
   },
   cancelConfirmText: {
     fontSize: 16,

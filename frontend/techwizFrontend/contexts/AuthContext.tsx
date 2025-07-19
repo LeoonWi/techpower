@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types/user';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { apiClient, AuthRequest, AuthResponse } from '@/api/client';
 import { getUsers, addUser, findUser, findUserByPhone, LocalUser } from '../data/users';
+import { permissionToRole } from '@/utils/roleUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -16,10 +17,40 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Загрузка полных данных пользователя по ID
+  const loadUserData = async (userId: string): Promise<User | null> => {
+    try {
+      const userData = await apiClient.getUser(userId);
+      
+      // Валидация данных от API
+      if (!userData || !userData.id || !userData.permission) {
+        console.error('Invalid user data received from API:', userData);
+        return null;
+      }
+      
+      const frontendUser: User = {
+        id: userData.id,
+        role: permissionToRole(userData.permission),
+        fullName: userData.full_name,
+        permission: userData.permission,
+        nickname: userData.nickname,
+        phone: userData.phone_number,
+        photo: userData.photo,
+        balance: userData.balance,
+        commission: userData.commission,
+        isActive: !userData.dismissed,
+      };
+      return frontendUser;
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      return null;
+    }
+  };
 
   // Фейк-аккаунты для демо
   const demoCredentials = {
@@ -36,17 +67,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         permission: permission
       };
       console.log('Auth: sending credentials', credentials);
+      console.log('Auth: API endpoint will be called');
+      
       const response: AuthResponse = await apiClient.signIn(credentials);
-      console.log('Auth: API response', response);
-      console.log('Auth: user', response.id);
-      const frontendUser: User = {
-        id: response.id
-      };
-      console.log('Auth: frontendUser', frontendUser);
-      await AsyncStorage.setItem('userId', frontendUser.id ? frontendUser.id : '');
-      return true;
-    } catch (backendError) {
-      console.log('Auth: error', backendError);
+      console.log('Auth: API response received', response);
+      
+      if (response.id) {
+        console.log('Auth: loading user data for id:', response.id);
+        // Загружаем полные данные пользователя
+        const userData = await loadUserData(response.id);
+        if (userData) {
+          setUser(userData);
+          await SecureStore.setItemAsync('userId', response.id);
+          console.log('Auth: user loaded with role:', userData.role);
+          return true;
+        } else {
+          console.log('Auth: failed to load user data');
+        }
+      } else {
+        console.log('Auth: no user ID in response');
+      }
+      return false;
+    } catch (backendError: any) {
+      console.log('Auth: error details', {
+        message: backendError?.message,
+        status: backendError?.response?.status,
+        data: backendError?.response?.data,
+        code: backendError?.code,
+      });
       return false;
     }
   };
@@ -58,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     // Очищаем сохраненные данные пользователя
     try {
-      await AsyncStorage.removeItem('userId');
+      await SecureStore.deleteItemAsync('userId');
     } catch (error) {
       console.error('Error clearing user data:', error);
     }
@@ -100,11 +148,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Проверка сохраненного пользователя при инициализации
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    // Очищаем куки/хранилище при каждом запуске приложения
+    const clearSession = async () => {
+      try {
+        await SecureStore.deleteItemAsync('userId');
+        await SecureStore.deleteItemAsync('authToken');
+        setUser(null);
+      } catch (error) {
+        console.error('Error clearing session on app start:', error);
+      }
+    };
+    clearSession();
+    const checkStoredUser = async () => {
+      setIsLoading(true);
+      try {
+        const storedUserId = await SecureStore.getItemAsync('userId');
+        if (storedUserId) {
+          const userData = await loadUserData(storedUserId);
+          if (userData) {
+            setUser(userData);
+            console.log('Auth: restored user with role:', userData.role);
+          } else {
+            // Если не удалось загрузить данные пользователя, очищаем хранилище
+            console.log('Auth: failed to load user data, clearing storage');
+            await SecureStore.deleteItemAsync('userId');
+            await SecureStore.deleteItemAsync('authToken');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking stored user:', error);
+        // При ошибке также очищаем хранилище
+        try {
+          await SecureStore.deleteItemAsync('userId');
+          await SecureStore.deleteItemAsync('authToken');
+        } catch (clearError) {
+          console.error('Error clearing storage:', clearError);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkStoredUser();
   }, []);
 
   return (

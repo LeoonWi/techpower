@@ -2,10 +2,11 @@ package service
 
 import (
 	"errors"
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
 	"techwizBackend/pkg/models"
 	"techwizBackend/pkg/repository"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type (
@@ -35,6 +36,11 @@ func NewChatService(
 }
 
 func (s ChatService) Create(chat *models.Chat) (int, error) {
+	var tmp_chat models.Chat
+	if err := s.ChatRepository.GetChatByMembers(chat.MembersId[0], chat.MembersId[1], &tmp_chat); err == nil {
+		return http.StatusBadRequest, errors.New("chat is already exists")
+	}
+
 	if err := s.ChatRepository.Create(chat); err != nil {
 		return http.StatusBadRequest, err
 	}

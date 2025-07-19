@@ -1,12 +1,13 @@
 package ws
 
 import (
-	"github.com/gorilla/websocket"
-	"github.com/labstack/echo/v4"
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"log"
 	"net/http"
 	"techwizBackend/pkg/models"
+
+	"github.com/gorilla/websocket"
+	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type WebsocketConnection struct {
@@ -54,7 +55,6 @@ func (wsConn *WebsocketConnection) Ws(c echo.Context) error {
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 				log.Printf("Клиент %s закрыл соединение", id)
 				wsConn.Hub.Remove <- user.Id
-				// TODO отправку сообщения клиенту об успешном отключении c.JSON
 				return nil
 			} else {
 				log.Printf("read error from client %s: %s", id, err)

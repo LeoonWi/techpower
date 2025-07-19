@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { router } from 'expo-router';
+import { getRoleTitle } from '@/utils/roleUtils';
 import { Wallet, Pickaxe, TrendingUp, ClipboardList, Users, MessageSquare, Calendar, MapPin, Settings, FileText, TriangleAlert as AlertTriangle, Clock, CircleCheck as CheckCircle, ChartBar as BarChart3 } from 'lucide-react-native';
 
 export default function HomeScreen() {
@@ -11,10 +12,10 @@ export default function HomeScreen() {
   const { orders, complaints } = useData();
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      // Админ может видеть только экран добавления сотрудников
-      router.replace('/(tabs)/addemployeescreen');
-    }
+    // Убираем принудительное перенаправление - пусть пользователи сами выбирают куда идти
+    // if (user?.role === 'admin' || user?.role === 'limitedAdmin') {
+    //   router.replace('/(tabs)/addemployeescreen');
+    // }
   }, [user]);
 
   if (!user) {
@@ -38,16 +39,8 @@ export default function HomeScreen() {
     return 'Добрый вечер';
   };
 
-  const getRoleTitle = () => {
-    const roleTitles = {
-      admin: 'Администратор',
-      support: 'Поддержка',
-      master: 'Мастер',
-      limitedAdmin: 'Ограниченный администратор',
-      senior_master: 'Старший мастер',
-      premium_master: 'Премиум мастер',
-    };
-    return roleTitles[user.role as keyof typeof roleTitles] || user.role;
+  const getRoleTitleLocal = () => {
+    return getRoleTitle(user.role || '');
   };
 
   const getDashboardData = () => {
@@ -307,7 +300,7 @@ export default function HomeScreen() {
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{user.fullName || 'Пользователь'}</Text>
             </View>
-            <Text style={styles.userRole}>{getRoleTitle()}</Text>
+            <Text style={styles.userRole}>{getRoleTitleLocal()}</Text>
           </View>
 
         </View>

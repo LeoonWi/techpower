@@ -1,17 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Search, Plus, Trash2 } from 'lucide-react-native';
-import AddMasterModal from './addmastermodal';
+import { Picker } from '@react-native-picker/picker';
+import { apiClient } from '@/api/client';
+import { ActivityIndicator } from 'react-native';
+
+interface Master {
+  id: string;
+  fullName: string;
+  phone: string;
+  isActive: boolean;
+}
 
 export default function MastersScreen() {
   const { user } = useAuth();
-  const { masters, addMaster, deleteMaster } = useData();
+  const [masters, setMasters] = useState<Master[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddMasterModal, setShowAddMasterModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [newMaster, setNewMaster] = useState({
+    fullName: '',
+    phone_number: '',
+    password: '',
+    isActive: true,
+  });
+  const [loading, setLoading] = useState(false);
+
+  const masterCategories = [
+    { key: 'plumber', label: 'Сантехник' },
+    { key: 'computer_technician', label: 'Компьютерный мастер' },
+    { key: 'electrician', label: 'Электрик' },
+    { key: 'carpenter', label: 'Плотник' },
+    { key: 'general_repair', label: 'Общий ремонт' },
+  ];
+
+  useEffect(() => {
+    loadMasters();
+  }, []);
+
+  const loadMasters = async () => {
+    try {
+      const users = await apiClient.getUsers();
+      const mastersOnly = users.filter((user) => user.permission === '001');
+      setMasters(mastersOnly.map((user) => ({
+        id: user.id,
+        fullName: user.full_name || user.nickname || '',
+        phone: user.phone_number,
+        isActive: !user.dismissed,
+      })));
+    } catch (err) {
+      setMasters([]);
+    }
+  };
 
   // Ограничение доступа только для support
   if ((user?.permission === '001')) {
@@ -28,15 +71,42 @@ export default function MastersScreen() {
   }
 
   const filteredMasters = masters.filter(master =>
-    master.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    master.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    master.category.toLowerCase().includes(searchQuery.toLowerCase())
+    (master.fullName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleDeleteMaster = (masterId: string) => {
-    deleteMaster(masterId);
+    // deleteMaster(masterId); // This line was removed from useData
     setShowDeleteConfirm(null);
     Alert.alert('Успешно', 'Мастер удалён');
+  };
+
+  const handleAddMaster = async () => {
+    if (!newMaster.fullName.trim() || !newMaster.phone_number.trim() || !newMaster.password.trim()) {
+      Alert.alert('Ошибка', 'Заполните все поля');
+      return;
+    }
+    setLoading(true);
+    try {
+      await apiClient.signUp({
+        phone_number: newMaster.phone_number,
+        full_name: newMaster.fullName,
+        password: newMaster.password,
+        permission: '001',
+      });
+      setNewMaster({
+        fullName: '',
+        phone_number: '',
+        password: '',
+        isActive: true,
+      });
+      setShowAddMasterModal(false);
+      await loadMasters();
+      Alert.alert('Успех', 'Мастер добавлен');
+    } catch (err) {
+      Alert.alert('Ошибка', 'Не удалось добавить мастера');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -79,9 +149,7 @@ export default function MastersScreen() {
             <View key={master.id} style={styles.masterItemContainer}>
               <View style={styles.masterItem}>
                 <View style={styles.masterInfo}>
-                  <Text style={styles.masterName}>{master.fullName}</Text>
-                  <Text style={styles.masterCategory}>{master.category}</Text>
-                  <Text style={styles.masterCity}>{master.city}</Text>
+                  <Text style={styles.masterName}>{master.fullName || ''}</Text>
                 </View>
                 <View style={styles.masterStats}>
                   <Text style={styles.masterStatus}>
@@ -89,7 +157,7 @@ export default function MastersScreen() {
                   </Text>
                   <TouchableOpacity 
                     style={styles.deleteButton}
-                    onPress={() => setShowDeleteConfirm(master.id)}
+                    onPress={() => setShowDeleteConfirm(master.id ?? null)}
                   >
                     <Trash2 size={16} color="white" />
                   </TouchableOpacity>
@@ -101,14 +169,72 @@ export default function MastersScreen() {
       </ScrollView>
 
       {/* Add Master Modal */}
-      <AddMasterModal
+      <Modal
         visible={showAddMasterModal}
-        onClose={() => setShowAddMasterModal(false)}
-        onAddMaster={(master) => {
-          addMaster(master);
-          Alert.alert('Успешно', 'Мастер добавлен');
-        }}
-      />
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAddMasterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '90%', minWidth: '90%' }]}> 
+            <Text style={styles.modalTitle}>Добавить нового мастера</Text>
+            <ScrollView 
+              style={{}}
+              contentContainerStyle={styles.formContent}
+              showsVerticalScrollIndicator={true}
+            >
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Имя мастера</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newMaster.fullName}
+                  onChangeText={(text) => setNewMaster({ ...newMaster, fullName: text })}
+                  placeholder="Введите имя"
+                />
+              </View>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Номер телефона</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newMaster.phone_number}
+                  onChangeText={(text) => setNewMaster({ ...newMaster, phone_number: text })}
+                  placeholder="Введите номер телефона"
+                  keyboardType="phone-pad"
+                />
+              </View>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Пароль</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newMaster.password}
+                  onChangeText={(text) => setNewMaster({ ...newMaster, password: text })}
+                  placeholder="Введите пароль"
+                  secureTextEntry
+                />
+              </View>
+            </ScrollView>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setShowAddMasterModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.submitButton}
+                onPress={handleAddMaster}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Добавить</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -337,5 +463,46 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#64748B',
+  },
+  formContent: {
+    gap: 16,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: '#F1F5F9',
+    padding: 14,
+    borderRadius: 12,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#1E293B',
+  },
+  pickerContainer: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  picker: {
+    width: '100%',
+    height: 50,
+  },
+  submitButton: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: 'white',
   },
 });
