@@ -22,6 +22,7 @@ type (
 		ChangeStatus(id bson.ObjectID, status string) error
 		RemoveStatus(id bson.ObjectID) error
 		DismissUserById(id bson.ObjectID) error
+		UpdateUser(idUser bson.ObjectID, user *models.User) error
 	}
 
 	UserRepository struct {
@@ -354,4 +355,27 @@ func (r UserRepository) DismissUserById(id bson.ObjectID) error {
 	}
 
 	return nil
+}
+
+func (r UserRepository) UpdateUser(idUser bson.ObjectID, user *models.User) error {
+	update := bson.M{"$set": bson.M{}}
+	if user.Nickname != "" {
+		update["$set"].(bson.M)["nickname"] = user.Nickname
+	}
+	if user.PhoneNumber != "" {
+		update["$set"].(bson.M)["phone_number"] = user.PhoneNumber
+	}
+
+	collection := r.db.Database("TechPower").Collection("Users")
+	_, err := collection.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": idUser},
+		update,
+	)
+	if err != nil {
+		return errors.New("Failed to update user")
+	}
+
+	return nil
+
 }

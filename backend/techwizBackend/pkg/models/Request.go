@@ -36,4 +36,5 @@ type Request struct {
 	CategoryId  *bson.ObjectID `json:"category_id,omitempty" bson:"category_id,omitempty"`
 	Worker      *User          `json:"worker,omitempty" bson:"worker,omitempty"`
 	WorkerId    *bson.ObjectID `json:"worker_id,omitempty" bson:"worker_id,omitempty"`
+	CreatedAt   time.Time      `json:"created_at,omitempty" bson:"created_at,omitempty"`
 }

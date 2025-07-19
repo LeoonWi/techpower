@@ -165,3 +165,25 @@ func (h Handler) dismissUser(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]bson.ObjectID{"dismissed": id})
 }
+
+func (h Handler) updateUser(c echo.Context) error {
+	userId, err := bson.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid user ID"})
+	}
+
+	var user models.User
+	if err := c.Bind(&user); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	if user.Nickname == "" && user.PhoneNumber == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "At least one field (nickname or phone_number) must be provided"})
+	}
+
+	if err := h.services.UserService.UpdateUser(userId, &user); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+}
