@@ -9,7 +9,7 @@ interface OrderCardProps {
   order: Order;
   onPress?: () => void;
   showActions?: boolean;
-  onStatusChange?: (orderId: string, status: OrderStatus) => void;
+  onStatusChange?: (orderId: string, status: OrderStatus, reason?: string, price_is_bail?: number) => void;
   onCancel?: (orderId: string, reason: string) => void;
 }
 
@@ -71,7 +71,7 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange,
 
   const submitModernization = () => {
     if (modernizationReason.trim()) {
-      onStatusChange?.(order.id, 'modernization');
+      onStatusChange?.(order.id, 'modernization', modernizationReason);
       setShowModernizationForm(false);
       setModernizationReason('');
     }
@@ -79,7 +79,7 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange,
 
   const submitRejection = () => {
     if (rejectionReason.trim() && rejectionAmount.trim()) {
-      onStatusChange?.(order.id, 'rejected');
+      onStatusChange?.(order.id, 'rejected', rejectionReason, Number(rejectionAmount));
       setShowRejectionForm(false);
       setRejectionReason('');
       setRejectionAmount('');

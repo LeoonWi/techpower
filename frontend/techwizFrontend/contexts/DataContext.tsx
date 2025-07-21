@@ -17,7 +17,7 @@ interface DataContextType {
   masters: User[];
   complaints: Complaint[];
   isLoading: boolean;
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  updateOrderStatus: (orderId: string, status: OrderStatus, reason?: string, price_is_bail?: number) => void;
   assignOrder: (orderId: string, masterId: string) => void;
   sendMessage: (recipient_id: string, text: string) => void;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
@@ -82,9 +82,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       case 2: return 'assigned';
       case 3: return 'in_progress';
       case 4: return 'completed';
-      case 5: return 'cancelled';
-      case 6: return 'rejected';
-      case 7: return 'modernization';
+      case 5: return 'modernization';
+      case 6: return 'cancelled';
+      case 7: return 'rejected';
       default: return 'pending';
     }
   }
@@ -96,9 +96,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       case 'assigned': return 2;
       case 'in_progress': return 3;
       case 'completed': return 4;
-      case 'cancelled': return 5;
-      case 'rejected': return 6;
-      case 'modernization': return 7;
+      case 'modernization': return 5;
+      case 'cancelled': return 6;
+      case 'rejected': return 7;
       default: return 1;
     }
   }
@@ -331,11 +331,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Смена статуса заказа через backend
-  const updateOrderStatus = async (orderId: string, status: OrderStatus, reason?: string) => {
+  const updateOrderStatus = async (orderId: string, status: OrderStatus, reason?: string, price_is_bail?: number) => {
     setIsLoading(true);
     try {
       try {
-        await apiClient.changeStatusRequest(orderId, { status_code: mapOrderStatusToStatusCode(status), reason });
+        const status_code = mapOrderStatusToStatusCode(status);
+        await apiClient.changeStatusRequest(orderId, { status_code, reason, price_is_bail });
       } catch (backendError) {
         updateLocalOrder(orderId, { status });
       }

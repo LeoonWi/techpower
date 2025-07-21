@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // Базовый URL для бэкенда
-const URL_SERV = '192.168.0.114:8080';
+const URL_SERV = '192.168.0.192:8080';
 
 // Тестовый аккаунт админа на сервера:
 // 7 978 588 22-72
@@ -309,8 +309,15 @@ class ApiClient {
     await this.client.patch(`/request/attach/${requestId}/${userId}`);
   }
 
-  async changeStatusRequest(requestId: string, status: { status_code: number, reason?: string }): Promise<void> {
-    await this.client.patch('/request', { id: requestId, status });
+  async changeStatusRequest(requestId: string, params: { status_code: number, reason?: string, price_is_bail?: number }): Promise<void> {
+    const body: any = { code: params.status_code };
+    if (params.reason) {
+      body.reason = params.reason;
+    }
+    if (params.price_is_bail !== undefined) {
+      body.price_is_bail = params.price_is_bail;
+    }
+    await this.client.patch(`/request?id=${requestId}`, body);
   }
 
   async requestInSpot(requestId: string): Promise<void> {
