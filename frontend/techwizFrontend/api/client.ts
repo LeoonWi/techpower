@@ -324,6 +324,12 @@ class ApiClient {
     await this.client.patch('/request/in_spot', { id: requestId });
   }
 
+  // Статистика
+  async getStatistics(days: number): Promise<any> { // Используем any, так как тип Analytics может отличаться
+    const response = await this.client.get(`/statistics/${days}`);
+    return response.data;
+  }
+
   // WebSocket URL
   getWebSocketUrl(): string {
     if (Platform.OS === 'web') {

@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { ChartBar as BarChart3, TrendingUp, Users, DollarSign, Calendar, MapPin, Crown, Star, ClipboardList } from 'lucide-react-native';
+import { apiClient } from '@/api/client'; // Импортируем apiClient
 
 const { width } = Dimensions.get('window');
 
@@ -36,12 +37,11 @@ export default function AnalyticsScreen() {
     setError(null);
     try {
       const days = periodToDays[period];
-      const response = await fetch(`/statistic/${days}`);
-      if (!response.ok) throw new Error('Ошибка загрузки статистики');
-      const data = await response.json();
+      const data = await apiClient.getStatistics(days);
       setAdminAnalytics(data);
     } catch (e: any) {
-      setError(e.message || 'Ошибка');
+      console.error('Ошибка при загрузке статистики:', e.message);
+      setError(e.message || 'Произошла ошибка');
     } finally {
       setLoading(false);
     }
