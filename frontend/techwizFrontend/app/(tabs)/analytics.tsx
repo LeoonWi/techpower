@@ -17,7 +17,42 @@ const { width } = Dimensions.get('window');
 export default function AnalyticsScreen() {
   const { user } = useAuth();
   const { analytics, masters, masterStats, orders } = useData();
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
+  const [adminAnalytics, setAdminAnalytics] = useState(analytics);
+  const isAdmin = user?.role === 'admin' || user?.permission === '100';
+
+  // Маппинг периода на число дней
+  const periodToDays: Record<'week' | 'month' | 'year', number> = {
+    week: 7,
+    month: 30,
+    year: 365,
+  };
+
+  // Simulate fetching analytics for a period (replace with real API call)
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fetchAnalyticsForPeriod = async (period: 'week' | 'month' | 'year') => {
+    setLoading(true);
+    setError(null);
+    try {
+      const days = periodToDays[period];
+      const response = await fetch(`/statistic/${days}`);
+      if (!response.ok) throw new Error('Ошибка загрузки статистики');
+      const data = await response.json();
+      setAdminAnalytics(data);
+    } catch (e: any) {
+      setError(e.message || 'Ошибка');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isAdmin) {
+      fetchAnalyticsForPeriod(selectedPeriod);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPeriod, isAdmin]);
 
   // Проверка на наличие данных аналитики
   if (!analytics) {
@@ -25,6 +60,25 @@ export default function AnalyticsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.accessDenied}>
           <Text style={styles.accessDeniedText}>Загрузка аналитики...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isAdmin && (loading || !adminAnalytics)) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.accessDenied}>
+          <Text style={styles.accessDeniedText}>{loading ? 'Загрузка аналитики...' : 'Нет данных'}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  if (isAdmin && error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.accessDenied}>
+          <Text style={styles.accessDeniedText}>Ошибка: {error}</Text>
         </View>
       </SafeAreaView>
     );
@@ -167,237 +221,237 @@ export default function AnalyticsScreen() {
     );
   }
 
-  // Для админов и старших мастеров показываем общую аналитику
-  if (user?.permission === '001') {
+  // Для админов и старших мастеров показываем только для админа
+  if (isAdmin) {
+    const periods = [
+      { key: 'week', label: 'Неделя' },
+      { key: 'month', label: 'Месяц' },
+      { key: 'year', label: 'Год' },
+    ];
+
+    const stats = [
+      {
+        title: 'Всего заказов',
+        value: adminAnalytics?.totalOrders,
+        icon: BarChart3,
+        color: '#2563EB',
+        change: '+12%',
+      },
+      {
+        title: 'Выполнено',
+        value: adminAnalytics?.completedOrders,
+        icon: TrendingUp,
+        color: '#10B981',
+        change: '+8%',
+      },
+      {
+        title: 'Общий доход',
+        value: adminAnalytics ? `${adminAnalytics.earnings.toLocaleString('ru-RU')} ₽` : '',
+        icon: DollarSign,
+        color: '#F59E0B',
+        change: '+15%',
+      },
+      {
+        title: 'Активных мастеров',
+        value: masters.filter(m => m.isActive).length,
+        icon: Users,
+        color: '#7C3AED',
+        change: '+5%',
+      },
+    ];
+
+    // Топ мастера по доходам
+    const topMasters = masters
+      .map(master => ({
+        ...master,
+        stats: masterStats[master.id || ''] || { orders: 0, earnings: 0, rating: 0 }
+      }))
+      .sort((a, b) => b.stats.earnings - a.stats.earnings)
+      .slice(0, 5);
+
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.accessDenied}>
-          <Text style={styles.accessDeniedText}>Нет доступа к аналитике</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Аналитика</Text>
+          <View style={styles.periodSelector}>
+            {periods.map((period) => (
+              <TouchableOpacity
+                key={period.key}
+                style={[
+                  styles.periodButton,
+                  selectedPeriod === period.key && styles.periodButtonActive
+                ]}
+                onPress={() => setSelectedPeriod(period.key as 'week' | 'month' | 'year')}
+              >
+                <Text style={[
+                  styles.periodButtonText,
+                  selectedPeriod === period.key && styles.periodButtonTextActive
+                ]}>
+                  {period.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
+
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+        >
+          {/* Main Stats */}
+          <View style={styles.statsGrid}>
+            {stats.map((stat, index) => {
+              const IconComponent = stat.icon;
+              return (
+                <View key={index} style={styles.statCard}>
+                  <View style={styles.statHeader}>
+                    <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}> 
+                      <IconComponent size={20} color={stat.color} />
+                    </View>
+                    <Text style={[styles.statChange, { color: stat.color }]}> 
+                      {stat.change}
+                    </Text>
+                  </View>
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statTitle}>{stat.title}</Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Top Masters */}
+          <View style={styles.chartContainer}>
+            <View style={styles.chartHeader}>
+              <Crown size={20} color="#F59E0B" />
+              <Text style={styles.chartTitle}>Топ мастера по доходам</Text>
+            </View>
+            <View style={styles.mastersRanking}>
+              {topMasters.map((master, index) => (
+                <View key={master.id} style={styles.masterRankItem}>
+                  <View style={styles.masterRankLeft}>
+                    <View style={[
+                      styles.rankBadge,
+                      { backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#E2E8F0' }
+                    ]}>
+                      <Text style={[
+                        styles.rankNumber,
+                        { color: index < 3 ? 'white' : '#64748B' }
+                      ]}>
+                        {index + 1}
+                      </Text>
+                    </View>
+                    <View style={styles.masterRankInfo}>
+                      <View style={styles.masterNameRow}>
+                        <Text style={styles.masterRankName}>{master.fullName}</Text>
+                        {master.role === 'premium_master' && (
+                          <Crown size={14} color="#FFD700" />
+                        )}
+                        {master.role === 'senior_master' && (
+                          <Star size={14} color="#EA580C" />
+                        )}
+                      </View>
+                      <Text style={styles.masterRankCity}>{master.city}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.masterRankStats}>
+                    <Text style={styles.masterRankEarnings}>
+                      {master.stats.earnings.toLocaleString('ru-RU')} ₽
+                    </Text>
+                    <Text style={styles.masterRankOrders}>
+                      {master.stats.orders} заказов
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Orders by City */}
+          <View style={styles.chartContainer}>
+            <View style={styles.chartHeader}>
+              <MapPin size={20} color="#2563EB" />
+              <Text style={styles.chartTitle}>Заказы по городам</Text>
+            </View>
+            <View style={styles.cityStats}>
+              {Object.entries(adminAnalytics?.ordersByCity || {}).map(([city, count]) => (
+                <View key={city} style={styles.cityRow}>
+                  <Text style={styles.cityName}>{city}</Text>
+                  <View style={styles.cityBar}>
+                    <View 
+                      style={[
+                        styles.cityBarFill, 
+                        { width: `${(count / Math.max(...Object.values(adminAnalytics?.ordersByCity || {1:1}))) * 100}%` }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.cityCount}>{count}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Orders by Category */}
+          <View style={styles.chartContainer}>
+            <View style={styles.chartHeader}>
+              <BarChart3 size={20} color="#059669" />
+              <Text style={styles.chartTitle}>Заказы по категориям</Text>
+            </View>
+            <View style={styles.categoryStats}>
+              {Object.entries(adminAnalytics?.ordersByCategory || {}).map(([category, count]) => (
+                <View key={category} style={styles.categoryItem}>
+                  <View style={styles.categoryDot} />
+                  <View style={styles.categoryInfo}>
+                    <Text style={styles.categoryName}>{category}</Text>
+                    <Text style={styles.categoryCount}>{count} заказов</Text>
+                  </View>
+                  <Text style={styles.categoryPercentage}>
+                    {adminAnalytics?.totalOrders ? Math.round((count / adminAnalytics.totalOrders) * 100) : 0}%
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Monthly Stats */}
+          <View style={styles.chartContainer}>
+            <View style={styles.chartHeader}>
+              <Calendar size={20} color="#EA580C" />
+              <Text style={styles.chartTitle}>Статистика по месяцам</Text>
+            </View>
+            <View style={styles.monthlyStats}>
+              {adminAnalytics?.monthlyStats?.map((month, index) => (
+                <View key={index} style={styles.monthItem}>
+                  <Text style={styles.monthName}>{month.month}</Text>
+                  <View style={styles.monthBar}>
+                    <View 
+                      style={[
+                        styles.monthBarFill,
+                        { 
+                          height: `${(month.orders / Math.max(...(adminAnalytics?.monthlyStats?.map(m => m.orders) || [1]))) * 100}%` 
+                        }
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.monthOrders}>{month.orders}</Text>
+                  <Text style={styles.monthEarnings}>
+                    {month.earnings.toLocaleString('ru-RU')} ₽
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
-  const periods = [
-    { key: 'week', label: 'Неделя' },
-    { key: 'month', label: 'Месяц' },
-    { key: 'quarter', label: 'Квартал' },
-    { key: 'year', label: 'Год' },
-  ];
-
-  const stats = [
-    {
-      title: 'Всего заказов',
-      value: analytics.totalOrders,
-      icon: BarChart3,
-      color: '#2563EB',
-      change: '+12%',
-    },
-    {
-      title: 'Выполнено',
-      value: analytics.completedOrders,
-      icon: TrendingUp,
-      color: '#10B981',
-      change: '+8%',
-    },
-    {
-      title: 'Общий доход',
-      value: `${analytics.earnings.toLocaleString('ru-RU')} ₽`,
-      icon: DollarSign,
-      color: '#F59E0B',
-      change: '+15%',
-    },
-    {
-      title: 'Активных мастеров',
-      value: masters.filter(m => m.isActive).length,
-      icon: Users,
-      color: '#7C3AED',
-      change: '+5%',
-    },
-  ];
-
-  // Топ мастера по доходам
-  const topMasters = masters
-    .map(master => ({
-      ...master,
-      stats: masterStats[master.id || ''] || { orders: 0, earnings: 0, rating: 0 }
-    }))
-    .sort((a, b) => b.stats.earnings - a.stats.earnings)
-    .slice(0, 5);
-
+  // Если не админ и не мастер, нет доступа
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Аналитика</Text>
-        <View style={styles.periodSelector}>
-          {periods.map((period) => (
-            <TouchableOpacity
-              key={period.key}
-              style={[
-                styles.periodButton,
-                selectedPeriod === period.key && styles.periodButtonActive
-              ]}
-              onPress={() => setSelectedPeriod(period.key)}
-            >
-              <Text style={[
-                styles.periodButtonText,
-                selectedPeriod === period.key && styles.periodButtonTextActive
-              ]}>
-                {period.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+      <View style={styles.accessDenied}>
+        <Text style={styles.accessDeniedText}>Нет доступа к аналитике</Text>
       </View>
-
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-      >
-        {/* Main Stats */}
-        <View style={styles.statsGrid}>
-          {stats.map((stat, index) => {
-            const IconComponent = stat.icon;
-            return (
-              <View key={index} style={styles.statCard}>
-                <View style={styles.statHeader}>
-                  <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
-                    <IconComponent size={20} color={stat.color} />
-                  </View>
-                  <Text style={[styles.statChange, { color: stat.color }]}>
-                    {stat.change}
-                  </Text>
-                </View>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statTitle}>{stat.title}</Text>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Top Masters */}
-        <View style={styles.chartContainer}>
-          <View style={styles.chartHeader}>
-            <Crown size={20} color="#F59E0B" />
-            <Text style={styles.chartTitle}>Топ мастера по доходам</Text>
-          </View>
-          <View style={styles.mastersRanking}>
-            {topMasters.map((master, index) => (
-              <View key={master.id} style={styles.masterRankItem}>
-                <View style={styles.masterRankLeft}>
-                  <View style={[
-                    styles.rankBadge,
-                    { backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#E2E8F0' }
-                  ]}>
-                    <Text style={[
-                      styles.rankNumber,
-                      { color: index < 3 ? 'white' : '#64748B' }
-                    ]}>
-                      {index + 1}
-                    </Text>
-                  </View>
-                  <View style={styles.masterRankInfo}>
-                    <View style={styles.masterNameRow}>
-                      <Text style={styles.masterRankName}>{master.fullName}</Text>
-                      {master.role === 'premium_master' && (
-                        <Crown size={14} color="#FFD700" />
-                      )}
-                      {master.role === 'senior_master' && (
-                        <Star size={14} color="#EA580C" />
-                      )}
-                    </View>
-                    <Text style={styles.masterRankCity}>{master.city}</Text>
-                  </View>
-                </View>
-                <View style={styles.masterRankStats}>
-                  <Text style={styles.masterRankEarnings}>
-                    {master.stats.earnings.toLocaleString('ru-RU')} ₽
-                  </Text>
-                  <Text style={styles.masterRankOrders}>
-                    {master.stats.orders} заказов
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Orders by City */}
-        <View style={styles.chartContainer}>
-          <View style={styles.chartHeader}>
-            <MapPin size={20} color="#2563EB" />
-            <Text style={styles.chartTitle}>Заказы по городам</Text>
-          </View>
-          <View style={styles.cityStats}>
-            {Object.entries(analytics.ordersByCity).map(([city, count]) => (
-              <View key={city} style={styles.cityRow}>
-                <Text style={styles.cityName}>{city}</Text>
-                <View style={styles.cityBar}>
-                  <View 
-                    style={[
-                      styles.cityBarFill, 
-                      { width: `${(count / Math.max(...Object.values(analytics.ordersByCity))) * 100}%` }
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.cityCount}>{count}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Orders by Category */}
-        <View style={styles.chartContainer}>
-          <View style={styles.chartHeader}>
-            <BarChart3 size={20} color="#059669" />
-            <Text style={styles.chartTitle}>Заказы по категориям</Text>
-          </View>
-          <View style={styles.categoryStats}>
-            {Object.entries(analytics.ordersByCategory).map(([category, count]) => (
-              <View key={category} style={styles.categoryItem}>
-                <View style={styles.categoryDot} />
-                <View style={styles.categoryInfo}>
-                  <Text style={styles.categoryName}>{category}</Text>
-                  <Text style={styles.categoryCount}>{count} заказов</Text>
-                </View>
-                <Text style={styles.categoryPercentage}>
-                  {Math.round((count / analytics.totalOrders) * 100)}%
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Monthly Stats */}
-        <View style={styles.chartContainer}>
-          <View style={styles.chartHeader}>
-            <Calendar size={20} color="#EA580C" />
-            <Text style={styles.chartTitle}>Статистика по месяцам</Text>
-          </View>
-          <View style={styles.monthlyStats}>
-            {analytics.monthlyStats.map((month, index) => (
-              <View key={index} style={styles.monthItem}>
-                <Text style={styles.monthName}>{month.month}</Text>
-                <View style={styles.monthBar}>
-                  <View 
-                    style={[
-                      styles.monthBarFill,
-                      { 
-                        height: `${(month.orders / Math.max(...analytics.monthlyStats.map(m => m.orders))) * 100}%` 
-                      }
-                    ]}
-                  />
-                </View>
-                <Text style={styles.monthOrders}>{month.orders}</Text>
-                <Text style={styles.monthEarnings}>
-                  {month.earnings.toLocaleString('ru-RU')} ₽
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      </ScrollView>
     </SafeAreaView>
   );
 }
