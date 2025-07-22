@@ -122,11 +122,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           price: Number(apiOrder.price),
           commission: 0,
           status: mapStatusCodeToOrderStatus(
-            Number(apiOrder.status?.status_code || apiOrder.status?.code || 1)
+            Number(
+              apiOrder.status?.status_code ||
+              apiOrder.status?.code ||
+              (typeof apiOrder.status === 'number' ? apiOrder.status : undefined) ||
+              1
+            )
           ),
           clientName: apiOrder.full_name,
           clientPhone: apiOrder.phone_number,
-          assignedMasterId: apiOrder.worker_id ? String(apiOrder.worker_id) : undefined,
+          assignedMasterId: apiOrder.worker_id
+            ? String(apiOrder.worker_id)
+            : (apiOrder.worker && apiOrder.worker.id ? String(apiOrder.worker.id) : undefined),
           createdAt: apiOrder.datetime ? new Date(apiOrder.datetime) : new Date(),
           updatedAt: apiOrder.datetime ? new Date(apiOrder.datetime) : new Date(),
           isPremium: false,

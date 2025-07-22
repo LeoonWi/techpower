@@ -55,29 +55,28 @@ export default function HomeScreen() {
 
     if (user.role === 'master') {
       const userOrders = orders.filter(order => order.assignedMasterId === user.id);
-      const stats = { orders: 0, earnings: 0, rating: 0 };
-      
       return {
-        activeOrders: userOrders.filter(order => 
-          ['assigned', 'in_progress'].includes(order.status)
-        ).length,
+        activeOrders: userOrders.filter(order => order.status === 'in_progress').length,
         completedOrders: userOrders.filter(order => order.status === 'completed').length,
-        totalEarnings: stats.earnings || 0,
-        rating: stats.rating,
+        totalEarnings: 0, // если нужно — подставь свою логику
+        rating: 0,        // если нужно — подставь свою логику
       };
     }
 
-    const userOrders = orders.filter(order => 
-      user.role === 'admin' || order.assignedMasterId === user.id
-    );
+    if (user.role === 'admin') {
+      return {
+        activeOrders: orders.filter(order => order.status === 'in_progress').length,
+        completedOrders: orders.filter(order => order.status === 'completed').length,
+        totalEarnings: 0,
+      };
+    }
 
+    // Для других ролей (например, senior_master и т.д.)
+    const userOrders = orders.filter(order => order.assignedMasterId === user.id);
     return {
-      activeOrders: userOrders.filter(order => 
-        ['assigned', 'in_progress'].includes(order.status)
-      ).length,
-      completedOrders: user.role === 'admin' ? 0 : 
-        userOrders.filter(order => order.status === 'completed').length,
-      totalEarnings: user.role === 'admin' ? 0 : (user.balance || 0),
+      activeOrders: userOrders.filter(order => order.status === 'in_progress').length,
+      completedOrders: userOrders.filter(order => order.status === 'completed').length,
+      totalEarnings: user.balance || 0,
     };
   };
 
