@@ -150,10 +150,10 @@ export default function ProfileScreen() {
           <View style={styles.balanceHeader}>
             <Wallet size={24} color="#2563EB" />
             <Text style={styles.balanceTitle}>Баланс</Text>
-            <TouchableOpacity style={styles.topUpButton} onPress={handlePayment}>
+            {/*<TouchableOpacity style={styles.topUpButton} onPress={handlePayment}>
               <Wallet size={16} color="white" />
               <Text style={styles.topUpText}>Пополнить</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>  */}
           </View>
           <Text style={styles.balanceAmount}>
             {typeof user.balance === 'number' ? user.balance.toLocaleString('ru-RU') : '0'} ₽

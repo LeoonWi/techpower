@@ -9,7 +9,7 @@ import { Wallet, Pickaxe, TrendingUp, ClipboardList, Users, MessageSquare, Calen
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const { orders, complaints } = useData();
+  const { orders, complaints, analytics } = useData();
 
   useEffect(() => {
     // Убираем принудительное перенаправление - пусть пользователи сами выбирают куда идти
@@ -55,10 +55,12 @@ export default function HomeScreen() {
 
     if (user.role === 'master') {
       const userOrders = orders.filter(order => order.assignedMasterId === user.id);
+      const completedOrders = userOrders.filter(order => order.status === 'completed');
+      const totalEarnings = completedOrders.reduce((sum, o) => sum + (o.price || 0), 0);
       return {
         activeOrders: userOrders.filter(order => order.status === 'in_progress').length,
-        completedOrders: userOrders.filter(order => order.status === 'completed').length,
-        totalEarnings: 0, // если нужно — подставь свою логику
+        completedOrders: completedOrders.length,
+        totalEarnings,
         rating: 0,        // если нужно — подставь свою логику
       };
     }
@@ -130,12 +132,12 @@ export default function HomeScreen() {
       );
     } else {
       baseActions.push(
-        {
+        /*{
           title: 'Карта',
           icon: MapPin,
           color: '#059669',
           onPress: () => router.push('/(tabs)/map'),
-        },
+        }, */
         {
           title: 'Чаты',
           icon: MessageSquare,
@@ -284,14 +286,14 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent} // Добавляем отступ внизу
       >
         {/* Тестовый контент для отладки */}
-        <View style={{ padding: 20, backgroundColor: 'white', margin: 20, borderRadius: 12 }}>
+        {/* <View style={{ padding: 20, backgroundColor: 'white', margin: 20, borderRadius: 12 }}>
           <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1E293B' }}>
             Отладка: Роль пользователя - {user.role || 'не определена'}
           </Text>
           <Text style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>
             Имя: {user.fullName || 'не указано'}
           </Text>
-        </View>
+        </View> */}
 
         <View style={styles.header}>
           <View>

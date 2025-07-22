@@ -63,7 +63,7 @@ export default function LoginScreen() {
         })}
       </ScrollView>
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Демо версия приложения TechWiz</Text>
+      { /* <Text style={styles.footerText}>Демо версия приложения TechWiz</Text> */}
       </View>
     </SafeAreaView>
   );

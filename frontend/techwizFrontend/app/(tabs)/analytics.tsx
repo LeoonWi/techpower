@@ -38,7 +38,19 @@ export default function AnalyticsScreen() {
     try {
       const days = periodToDays[period];
       const data = await apiClient.getStatistics(days);
-      setAdminAnalytics(data);
+      // Маппинг snake_case -> camelCase
+      const mapped = {
+        totalOrders: data.total_orders ?? 0,
+        completedOrders: data.completed_orders ?? 0,
+        earnings: data.total_revenue ?? 0,
+        activeMasters: data.active_masters ?? 0,
+        ordersByCity: data.orders_by_city ?? {},
+        ordersByCategory: data.orders_by_category ?? {},
+        monthlyStats: data.monthly_stats ?? [],
+        commission: data.commission ?? 0,
+        averageRating: data.average_rating ?? 0,
+      };
+      setAdminAnalytics(mapped);
     } catch (e: any) {
       console.error('Ошибка при загрузке статистики:', e.message);
       setError(e.message || 'Произошла ошибка');
@@ -87,26 +99,28 @@ export default function AnalyticsScreen() {
   // Для мастеров показываем их личную статистику
   if (user?.role === 'master' || user?.role === 'premium_master') {
     const userOrders = orders.filter(order => order.assignedMasterId === user.id);
+    const completedOrders = userOrders.filter(o => o.status === 'completed');
+    const totalEarnings = completedOrders.reduce((sum, o) => sum + (o.price || 0), 0);
     const userStats = masterStats[user.id || ''] || { orders: 0, earnings: 0, rating: 0 };
     
     const personalStats = [
       {
         title: 'Всего заказов',
-        value: userStats.orders,
+        value: userOrders.length,
         icon: ClipboardList,
         color: '#2563EB',
         change: '+5%',
       },
       {
         title: 'Выполнено',
-        value: userOrders.filter(o => o.status === 'completed').length,
+        value: completedOrders.length,
         icon: TrendingUp,
         color: '#10B981',
         change: '+8%',
       },
       {
         title: 'Доходы',
-        value: `${userStats.earnings.toLocaleString('ru-RU')} ₽`,
+        value: `${totalEarnings.toLocaleString('ru-RU')} ₽`,
         icon: DollarSign,
         color: '#F59E0B',
         change: '+12%',
@@ -175,7 +189,7 @@ export default function AnalyticsScreen() {
                   rejected: 'Отклонены',
                   modernization: 'Модернизация',
                 };
-                
+                const percent = userStats.orders > 0 ? Math.round((count / userStats.orders) * 100) : 0;
                 return (
                   <View key={status} style={styles.statusItem}>
                     <View style={styles.statusDot} />
@@ -184,7 +198,7 @@ export default function AnalyticsScreen() {
                       <Text style={styles.statusCount}>{count} заказов</Text>
                     </View>
                     <Text style={styles.statusPercentage}>
-                      {Math.round((count / userStats.orders) * 100)}%
+                      {percent}%
                     </Text>
                   </View>
                 );
@@ -232,21 +246,21 @@ export default function AnalyticsScreen() {
     const stats = [
       {
         title: 'Всего заказов',
-        value: adminAnalytics?.totalOrders,
+        value: adminAnalytics?.totalOrders || 0,
         icon: BarChart3,
         color: '#2563EB',
         change: '+12%',
       },
       {
         title: 'Выполнено',
-        value: adminAnalytics?.completedOrders,
+        value: adminAnalytics?.completedOrders || 0,
         icon: TrendingUp,
         color: '#10B981',
         change: '+8%',
       },
       {
         title: 'Общий доход',
-        value: adminAnalytics ? `${adminAnalytics.earnings.toLocaleString('ru-RU')} ₽` : '',
+        value: `${(adminAnalytics?.earnings || 0).toLocaleString('ru-RU')} ₽`,
         icon: DollarSign,
         color: '#F59E0B',
         change: '+15%',

@@ -126,14 +126,14 @@ export default function AuthScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.adminHint}>
+      {/*<View style={styles.adminHint}>
         <Text style={styles.hintText}>
           💡 Демо аккаунты:{'\n'}
           {role === 'admin' && '79001234567 / admin123 (ограниченный доступ)'}{'\n'}
           {role === 'support' && '79002345678 / support123'}{'\n'}
           {role === 'master' && '79003456789 / master123'}
         </Text>
-      </View>
+      </View> */}
     </SafeAreaView>
   );
 }

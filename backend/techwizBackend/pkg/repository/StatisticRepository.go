@@ -78,7 +78,7 @@ func (r StatisticRepository) Get(days int) (*models.Statistics, error) {
 							"$match",
 							bson.D{{
 								"status.code",
-								bson.D{{"$eq", 200}},
+								bson.D{{"$eq", 4}}, // <-- Исправлено с 200 на 4
 							}},
 						}},
 						bson.D{{"$count", "count"}},
@@ -91,7 +91,7 @@ func (r StatisticRepository) Get(days int) (*models.Statistics, error) {
 							"$match",
 							bson.D{{
 								"status.code",
-								bson.D{{"$eq", 200}},
+								bson.D{{"$eq", 4}}, // <-- Исправлено с 200 на 4
 							}},
 						}},
 						bson.D{{
@@ -137,6 +137,14 @@ func (r StatisticRepository) Get(days int) (*models.Statistics, error) {
 				{
 					"orders_by_category",
 					bson.A{
+						// Добавляем фильтрацию, чтобы убрать заказы без категории
+						bson.D{{
+							"$match",
+							bson.D{{
+								"category_data.name",
+								bson.D{{"$ne", nil}},
+							}},
+						}},
 						bson.D{{
 							"$group",
 							bson.D{
@@ -153,16 +161,25 @@ func (r StatisticRepository) Get(days int) (*models.Statistics, error) {
 			"$project",
 			bson.D{
 				{"total_orders", bson.D{{
-					"$arrayElemAt",
-					bson.A{"$total_orders.count", 0},
+					"$ifNull",
+					bson.A{bson.D{{
+						"$arrayElemAt",
+						bson.A{"$total_orders.count", 0},
+					}}, 0},
 				}}},
 				{"completed_orders", bson.D{{
-					"$arrayElemAt",
-					bson.A{"$completed_orders.count", 0},
+					"$ifNull",
+					bson.A{bson.D{{
+						"$arrayElemAt",
+						bson.A{"$completed_orders.count", 0},
+					}}, 0},
 				}}},
 				{"total_revenue", bson.D{{
-					"$arrayElemAt",
-					bson.A{"$total_revenue.total", 0},
+					"$ifNull",
+					bson.A{bson.D{{
+						"$arrayElemAt",
+						bson.A{"$total_revenue.total", 0},
+					}}, 0},
 				}}},
 				{"orders_by_city", bson.D{{
 					"$arrayToObject",

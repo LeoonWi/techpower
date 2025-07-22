@@ -268,20 +268,24 @@ export default function OrdersScreen() {
         <Text style={styles.title}>
           {user?.role === 'support' ? 'Назначение заказов' : 'Заказы'}
         </Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => {
-          console.log('Opening add order modal');
-          setShowAddOrderModal(true);
-        }}>
-          <Plus size={20} color="white" />
-        </TouchableOpacity>
+        {user?.role !== 'master' && (
+          <TouchableOpacity style={styles.addButton} onPress={() => {
+            console.log('Opening add order modal');
+            setShowAddOrderModal(true);
+          }}>
+            <Plus size={20} color="white" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Кнопка добавить категорию услуги */}
-      <View style={{ alignItems: 'flex-end', marginHorizontal: 20, marginBottom: 8 }}>
-        <TouchableOpacity style={{ backgroundColor: '#059669', padding: 10, borderRadius: 8 }} onPress={() => setShowAddCategoryModal(true)}>
-          <Text style={{ color: 'white', fontWeight: 'bold' }}>Добавить категории услуги</Text>
-        </TouchableOpacity>
-      </View>
+      {user?.role !== 'master' && (
+        <View style={{ alignItems: 'flex-end', marginHorizontal: 20, marginBottom: 8 }}>
+          <TouchableOpacity style={{ backgroundColor: '#059669', padding: 10, borderRadius: 8 }} onPress={() => setShowAddCategoryModal(true)}>
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Добавить категории услуги</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Модалка добавления категории */}
       <Modal
@@ -390,14 +394,17 @@ export default function OrdersScreen() {
                 {cat.name}
               </Text>
             </TouchableOpacity>
-            {/* Кнопка переименовать */}
-            <TouchableOpacity onPress={() => { setShowRenameCategoryModal(cat.id); setRenameCategoryName(cat.name); }} style={{ marginLeft: 2, padding: 2, justifyContent: 'center', alignItems: 'center', height: 28, width: 28 }}>
-              <Text style={{ color: '#2563EB', fontSize: 15, textAlign: 'center' }}>✏️</Text>
-            </TouchableOpacity>
-            {/* Кнопка удалить */}
-            <TouchableOpacity onPress={() => setShowDeleteCategoryModal(cat.id)} style={{ marginLeft: 2, padding: 2, justifyContent: 'center', alignItems: 'center', height: 28, width: 28 }}>
-              <Text style={{ color: '#DC2626', fontSize: 15, textAlign: 'center' }}>🗑️</Text>
-            </TouchableOpacity>
+            {/* Кнопки редактирования и удаления только не для мастера */}
+            {user?.role !== 'master' && (
+              <>
+                <TouchableOpacity onPress={() => { setShowRenameCategoryModal(cat.id); setRenameCategoryName(cat.name); }} style={{ marginLeft: 2, padding: 2, justifyContent: 'center', alignItems: 'center', height: 28, width: 28 }}>
+                  <Text style={{ color: '#2563EB', fontSize: 15, textAlign: 'center' }}>✏️</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowDeleteCategoryModal(cat.id)} style={{ marginLeft: 2, padding: 2, justifyContent: 'center', alignItems: 'center', height: 28, width: 28 }}>
+                  <Text style={{ color: '#DC2626', fontSize: 15, textAlign: 'center' }}>🗑️</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         ))}
       </ScrollView>
