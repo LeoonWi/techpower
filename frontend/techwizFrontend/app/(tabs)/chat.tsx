@@ -208,6 +208,25 @@ const handleSendMessage = () => {
     loadUsers();
   }, [user?.id, masters]);
 
+  // Загрузка сообщений для выбранного чата
+  const loadMessagesForChat = async (chatId: string) => {
+    try {
+      const messages = await apiClient.getMessages(chatId);
+      setMessages(messages);
+    } catch (error) {
+      setMessages([]);
+      console.error('Ошибка при загрузке сообщений:', error);
+    }
+  };
+
+  // Загружать сообщения при выборе чата
+  useEffect(() => {
+    if (selectedCategory) {
+      loadMessagesForChat(selectedCategory!);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory]);
+
   if (selectedCategory) {
     return (
       <SafeAreaView style={styles.container}>

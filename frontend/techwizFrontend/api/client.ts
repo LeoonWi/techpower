@@ -338,6 +338,14 @@ class ApiClient {
       return `ws://${URL_SERV}/ws`;
     }
   }
+
+  // Получить сообщения чата
+  async getMessages(chatId: string): Promise<any[]> {
+    const response = await this.client.get(`/message?id=${chatId}`);
+    if (Array.isArray(response.data)) return response.data;
+    if (Array.isArray(response.data.messages)) return response.data.messages;
+    return [];
+  }
 }
 
 // Экспортируем единственный экземпляр клиента

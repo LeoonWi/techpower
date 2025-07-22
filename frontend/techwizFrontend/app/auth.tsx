@@ -67,7 +67,7 @@ export default function AuthScreen() {
         console.log('переход');
         router.replace('/(tabs)/profile');
       } else {
-        Alert.alert('Ошибка', 'Неверный логин или пароль ' + JSON.stringify([success, username, password, roleInfo.permission]));
+        Alert.alert('Ошибка', 'Неверный логин или пароль ');
       }
     } catch (error) {
       console.log('handleLogin error:', error);
