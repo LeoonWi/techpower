@@ -212,7 +212,10 @@ const handleSendMessage = () => {
   const loadMessagesForChat = async (chatId: string) => {
     try {
       const messages = await apiClient.getMessages(chatId);
-      setMessages(messages);
+      // добавил условие чтобы не сохранить null
+      if (messages != null) {
+        setMessages(messages);
+      }
     } catch (error) {
       setMessages([]);
       console.error('Ошибка при загрузке сообщений:', error);
