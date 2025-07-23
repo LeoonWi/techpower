@@ -24,6 +24,7 @@ interface Employee {
   phone: string;
   role: string;
   status?: string;
+  masterStatus?: string;
 }
 
 export default function EmployeeScreen() {
@@ -39,7 +40,9 @@ export default function EmployeeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingEmployee, setSavingEmployee] = useState(false);
-
+  const [isStatusModalVisible, setStatusModalVisible] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState('default');
+  const masterRoles = ['master', 'premium_master', 'senior_master'];
 
 
   // Загрузка сотрудников с бэкенда при открытии страницы
@@ -61,6 +64,7 @@ export default function EmployeeScreen() {
           phone: user.phone_number,
           role: permissionToRole(user.permission),
           status: user.dismissed ? 'inactive' : 'active',
+          masterStatus: user.status, // предполагаем, что user.status = default|premium|senior для мастеров
         };
       });
       
@@ -71,7 +75,7 @@ export default function EmployeeScreen() {
       // В случае ошибки показываем тестовые данные
       setEmployees([
         { id: '1', name: 'Иван Иванов', phone: '+7 900 123-45-67', role: 'support', status: 'active' },
-        { id: '2', name: 'Петр Петров', phone: '+7 900 234-56-78', role: 'master', status: 'active' },
+        { id: '2', name: 'Петр Петров', phone: '+7 900 234-56-78', role: 'master', status: 'active', masterStatus: 'default' },
       ]);
     } finally {
       setLoading(false);
@@ -95,6 +99,29 @@ export default function EmployeeScreen() {
   const closeActionModal = () => {
     setActionModalVisible(false);
     setSelectedEmployee(null);
+  };
+
+  const openStatusModal = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setSelectedStatus(employee.status || 'default');
+    setStatusModalVisible(true);
+  };
+  const closeStatusModal = () => {
+    setStatusModalVisible(false);
+    setSelectedEmployee(null);
+  };
+  const handleChangeMasterStatus = async () => {
+    if (selectedEmployee) {
+      try {
+        await apiClient.changeMasterStatus(selectedEmployee.id, 'add', selectedStatus);
+        await loadEmployees();
+        closeStatusModal();
+        Alert.alert('Успех', 'Статус мастера изменён');
+      } catch (err) {
+        console.error('Ошибка изменения статуса мастера:', err);
+        Alert.alert('Ошибка', 'Не удалось изменить статус мастера');
+      }
+    }
   };
 
   const addEmployee = async () => {
@@ -204,6 +231,19 @@ export default function EmployeeScreen() {
     return status === 'active' ? 'Активен' : 'Неактивен';
   };
 
+  const getMasterStatusTitle = (status?: string) => {
+    switch (status) {
+      case 'default':
+        return 'Обычный мастер';
+      case 'premium':
+        return 'Премиум мастер';
+      case 'senior':
+        return 'Старший мастер';
+      default:
+        return '';
+    }
+  };
+
   const filteredEmployees = employees.filter(
     (e) =>
       e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -267,7 +307,12 @@ export default function EmployeeScreen() {
                 <Text style={styles.employeePhone}>{employee.phone}</Text>
                 <View style={styles.employeeDetails}>
                   <Text style={styles.employeeRole}>{getRoleTitle(employee.role)}</Text>
-                  <Text style={[styles.employeeStatus, { color: employee.status === 'active' ? '#10B981' : '#EF4444' }]}>
+                  {masterRoles.includes(employee.role) && employee.masterStatus && (
+                    <Text style={[styles.employeeStatus, { color: '#2563EB', backgroundColor: '#EFF6FF' }]}> 
+                      {getMasterStatusTitle(employee.masterStatus)}
+                    </Text>
+                  )}
+                  <Text style={[styles.employeeStatus, { color: employee.status === 'active' ? '#10B981' : '#EF4444' }]}> 
                     {getStatusTitle(employee.status)}
                   </Text>
                 </View>
@@ -375,8 +420,8 @@ export default function EmployeeScreen() {
               <>
                 <Text style={styles.modalSubtitle}>{selectedEmployee.name}</Text>
                 
-                {selectedEmployee.role === 'master' && (
-                  <TouchableOpacity style={[styles.actionModalButton, styles.statusButton]} onPress={changeEmployeeStatus}>
+                {masterRoles.includes(selectedEmployee?.role || '') && (
+                  <TouchableOpacity style={[styles.actionModalButton, styles.statusButton]} onPress={() => openStatusModal(selectedEmployee)}>
                     <Text style={styles.actionModalButtonText}>
                       Изменить статус мастера
                     </Text>
@@ -396,6 +441,36 @@ export default function EmployeeScreen() {
                 </TouchableOpacity>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно смены статуса мастера */}
+      <Modal visible={isStatusModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Сменить статус мастера</Text>
+              <Pressable onPress={closeStatusModal}>
+                <X size={24} color="#334155" />
+              </Pressable>
+            </View>
+            <Text style={styles.modalSubtitle}>{selectedEmployee?.name}</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedStatus}
+                onValueChange={setSelectedStatus}
+                style={styles.picker}
+                itemStyle={styles.pickerItem}
+              >
+                <Picker.Item label="Обычный мастер" value="default" />
+                <Picker.Item label="Премиум мастер" value="premium" />
+                <Picker.Item label="Старший мастер" value="senior" />
+              </Picker>
+            </View>
+            <TouchableOpacity style={styles.modalButton} onPress={handleChangeMasterStatus}>
+              <Text style={styles.modalButtonText}>Сохранить</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
