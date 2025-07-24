@@ -80,7 +80,7 @@ func (h Handler) changeStatusRequest(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid requestId"})
 	}
-	var newStatus models.Status
+	var newStatus models.Request
 	if err := c.Bind(&newStatus); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid status object"})
 	}
@@ -90,7 +90,7 @@ func (h Handler) changeStatusRequest(c echo.Context) error {
 		return c.JSON(status, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(status, map[string]any{"id": requestId.Hex(), "status": newStatus})
+	return c.JSON(status, map[string]any{"id": requestId.Hex()})
 }
 
 func (h Handler) changeRequest(c echo.Context) error {
