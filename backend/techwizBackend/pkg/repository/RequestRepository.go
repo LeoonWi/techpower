@@ -14,7 +14,7 @@ type (
 		GetRequests(requests *[]models.Request) error
 		GetRequest(id bson.ObjectID, request *models.Request) error
 		AttachMaster(requestId bson.ObjectID, userId bson.ObjectID, request *models.Request) error
-		ChangeStatus(id bson.ObjectID, status *models.Status) error
+		ChangeStatus(id bson.ObjectID, status *models.Request) error
 		InSpot(id bson.ObjectID) error
 	}
 
@@ -177,13 +177,16 @@ func (r RequestRepository) AttachMaster(requestId bson.ObjectID, userId bson.Obj
 	return nil
 }
 
-func (r RequestRepository) ChangeStatus(id bson.ObjectID, status *models.Status) error {
+func (r RequestRepository) ChangeStatus(id bson.ObjectID, status *models.Request) error {
 	coll := r.db.Database("TechPower").Collection("Requests")
 	filter := bson.M{"_id": id}
-	if status == nil {
-		return fmt.Errorf("status is nil")
+	if status.Status.Code == 0 && status.Status.Reason == "" && status.Status.PriceIsBail == 0 && !status.Status.InSpot {
+    return fmt.Errorf("status is empty or invalid")
+}
+	update := bson.M{"$set": bson.M{"status": status.Status}}
+	if status.Status.Code == 4 && status.Price >= 0 {
+		update = bson.M{"$set": bson.M{"price": status.Price, "status": status.Status}}
 	}
-	update := bson.M{"$set": bson.M{"status": *status}}
 
 	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
 		return fmt.Errorf("%s", err.Error())
