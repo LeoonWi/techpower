@@ -180,7 +180,7 @@ func (r RequestRepository) AttachMaster(requestId bson.ObjectID, userId bson.Obj
 func (r RequestRepository) ChangeStatus(id bson.ObjectID, status *models.Request) error {
 	coll := r.db.Database("TechPower").Collection("Requests")
 	filter := bson.M{"_id": id}
-	if status.Status.Code == 0 && status.Status.Reason == "" && status.Status.PriceIsBail == 0 && !status.Status.InSpot {
+	if status.Status.Code == 0 && status.Status.Reason == "" && status.Status.PriceIsBail == 0 {
     return fmt.Errorf("status is empty or invalid")
 }
 	update := bson.M{"$set": bson.M{"status": status.Status}}
@@ -198,7 +198,7 @@ func (r RequestRepository) ChangeStatus(id bson.ObjectID, status *models.Request
 func (r RequestRepository) InSpot(id bson.ObjectID) error {
 	coll := r.db.Database("TechPower").Collection("Requests")
 	filter := bson.M{"_id": id}
-	update := bson.M{"$set": bson.M{"status.in_spot": true}}
+	update := bson.M{"$set": bson.M{"in_spot": true}}
 
 	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
 		return err

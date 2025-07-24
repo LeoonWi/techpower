@@ -17,7 +17,6 @@ type Status struct {
 	Code        int     `json:"code,omitempty" bson:"code,omitempty"`
 	Reason      string  `json:"reason,omitempty" bson:"reason,omitempty"`
 	PriceIsBail float64 `json:"price_is_bail,omitempty" bson:"price_is_bail,omitempty"`
-	InSpot      bool    `json:"in_spot,omitempty" bson:"in_spot,omitempty"`
 	//FilesDTO    []FileDTO `json:"files,omitempty" bson:"-"`
 	//FilesDAO    []FileDAO `json:"-" bson:"files,omitempty"`
 }
@@ -30,6 +29,7 @@ type Request struct {
 	Problem     string         `json:"problem,omitempty" bson:"problem,omitempty"`
 	Price       float64        `json:"price,omitempty" bson:"price,omitempty"`
 	Status      Status         `json:"status,omitempty" bson:"status,omitempty"`
+	InSpot      bool    `json:"in_spot,omitempty" bson:"in_spot,omitempty"`
 	Premium     bool           `json:"premium,omitempty" bson:"premium,omitempty"`
 	DateTime    time.Time      `json:"datetime,omitempty" bson:"datetime,omitempty"`
 	Category    *Category      `json:"category,omitempty" bson:"category,omitempty"`
