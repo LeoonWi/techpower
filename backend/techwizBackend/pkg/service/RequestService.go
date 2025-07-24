@@ -19,7 +19,7 @@ type (
 		GetRequest(id bson.ObjectID, request *models.Request) (int, error)
 		AttachMaster(requestId bson.ObjectID, userId bson.ObjectID, request *models.Request) (int, error)
 		UpdateRequest(id bson.ObjectID, request *models.Request) error
-		ChangeStatus(requestId bson.ObjectID, status *models.Status) (int, error)
+		ChangeStatus(requestId bson.ObjectID, status *models.Request) (int, error)
 		InSpot(id bson.ObjectID) error
 	}
 
@@ -79,22 +79,22 @@ func (s RequestService) UpdateRequest(id bson.ObjectID, update *models.Request) 
 	return nil
 }
 
-func (s RequestService) ChangeStatus(requestId bson.ObjectID, status *models.Status) (int, error) {
-	if status.Code == 3 || status.Code == 4 {
-		status.Reason = ""
-		status.PriceIsBail = 0
-	} else if status.Code == 5 || status.Code == 6 {
-		if status.Reason == "" || status.PriceIsBail == 0 {
-			return http.StatusBadRequest, fmt.Errorf("status code %v is not valid reason or price", status.Code)
+func (s RequestService) ChangeStatus(requestId bson.ObjectID, request *models.Request) (int, error) {
+	if request.Status.Code == 3 || request.Status.Code == 4 {
+		request.Status.Reason = ""
+		request.Status.PriceIsBail = 0
+	} else if request.Status.Code == 5 || request.Status.Code == 6 {
+		if request.Status.Reason == "" || request.Status.PriceIsBail == 0 {
+			return http.StatusBadRequest, fmt.Errorf("status code %v is not valid reason or price", request.Status.Code)
 		}
-	} else if status.Code == 7 {
-		if status.Reason == "" {
+	} else if request.Status.Code == 7 {
+		if request.Status.Reason == "" {
 			return http.StatusBadRequest, errors.New("status code 7 is not valid reason")
 		}
-		status.PriceIsBail = 0
+		request.Status.PriceIsBail = 0
 	}
 
-	err := s.RequestRepository.ChangeStatus(requestId, status)
+	err := s.RequestRepository.ChangeStatus(requestId, request)
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Errorf("%s", err.Error())
 	}
