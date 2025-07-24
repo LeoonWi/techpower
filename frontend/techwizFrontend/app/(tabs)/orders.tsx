@@ -10,7 +10,7 @@
 
 //TODO надо сделать обновление данных о категориях и заказах при повторном входе на страницы
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -40,6 +40,7 @@ export default function OrdersScreen() {
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  // В состоянии заказа добавим isPremium
   const [newOrder, setNewOrder] = useState({
     name: '',
     phone_number: '',
@@ -48,6 +49,7 @@ export default function OrdersScreen() {
     price: '',
     category_id: '',
     date_time: '',
+    isPremium: false,
   });
 
   // Категории услуг
@@ -155,19 +157,15 @@ export default function OrdersScreen() {
       // Фильтр по категории (по id, даже если в order.category имя)
       const matchesCategory = !selectedCategory || order.category === (categories.find(c => c.id === selectedCategory)?.name || selectedCategory);
 
-      // Фильтр по роли
-      const roleFilter = () => {
-        switch (user?.role) {
-          case 'admin':
-          case 'support':
-          case 'master':
-            return true;
-          default:
+      // Премиум фильтрация
+      if (order.premium || order.isPremium) {
+        if (user?.role === 'premium_master' || user?.role === 'senior_master' || user?.role === 'admin' || user?.role === 'support') {
+          return matchesSearch && matchesFilter && matchesCategory;
+        }
             return false;
         }
-      };
-
-      return matchesSearch && matchesFilter && matchesCategory && roleFilter();
+      // Обычные заказы — всем
+      return matchesSearch && matchesFilter && matchesCategory;
     })
     // Сортировка по дате (новые сверху)
     .sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0));
@@ -205,11 +203,12 @@ export default function OrdersScreen() {
         assignedMasterId: undefined,
         createdAt: newOrder.date_time ? new Date(newOrder.date_time) : new Date(),
         updatedAt: newOrder.date_time ? new Date(newOrder.date_time) : new Date(),
-        isPremium: false,
+        isPremium: !!newOrder.isPremium,
+        premium: !!newOrder.isPremium,
       });
       Alert.alert('Успешно', 'Заказ создан');
       setShowAddOrderModal(false);
-      setNewOrder({ name: '', phone_number: '', address: '', comment: '', price: '', category_id: '', date_time: '' });
+      setNewOrder({ name: '', phone_number: '', address: '', comment: '', price: '', category_id: '', date_time: '', isPremium: false });
     } catch (e) {
       Alert.alert('Ошибка', 'Не удалось создать заказ');
     }
@@ -237,16 +236,17 @@ export default function OrdersScreen() {
   const availableMasters = Array.isArray(masters) ? masters.filter(master => master.isActive) : [];
 
   // Функция для загрузки мастеров с бэкенда
-  const fetchMastersForModal = async () => {
+  const fetchMastersForModal = async (isPremiumOrder = false) => {
     setLoadingMasters(true);
     try {
       const data = await apiClient.getUsers();
-      // Фильтруем только мастеров (роль master, senior_master, premium_master)
-      const filtered = Array.isArray(data)
-        ? data.filter(master =>
-            ['001'].includes(master.permission) && master.dismissed === false
-          )
+      let filtered = Array.isArray(data)
+        ? data.filter(master => ['001', '002', '003'].includes(master.permission) && master.dismissed === false)
         : [];
+      if (isPremiumOrder) {
+        // Только премиум и старшие мастера
+        filtered = filtered.filter(master => master.permission === '003' || master.permission === '002');
+      }
       setModalMasters(filtered);
     } catch (e) {
       setModalMasters([]);
@@ -258,8 +258,10 @@ export default function OrdersScreen() {
 
   // Открытие модалки выбора мастера с подгрузкой
   const handleOpenMasterSelection = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    const isPremiumOrder = order?.premium || order?.isPremium;
     setShowMasterSelection(orderId);
-    fetchMastersForModal();
+    fetchMastersForModal(isPremiumOrder);
   };
 
   return (
@@ -580,6 +582,16 @@ export default function OrdersScreen() {
                   placeholder="Введите цену в рублях"
                   keyboardType="numeric"
                 />
+              </View>
+
+              <View style={styles.formGroup}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={styles.formLabel}>Премиум заказ</Text>
+                  <Switch
+                    value={!!newOrder.isPremium}
+                    onValueChange={(val) => setNewOrder({ ...newOrder, isPremium: val })}
+                  />
+                </View>
               </View>
 
               <View style={styles.formGroup}>

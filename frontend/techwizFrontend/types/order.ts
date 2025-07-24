@@ -26,4 +26,5 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
   isPremium: boolean;
+  premium?: boolean;
 }

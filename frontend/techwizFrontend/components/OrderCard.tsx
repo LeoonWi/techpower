@@ -21,6 +21,10 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange,
   const [modernizationReason, setModernizationReason] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectionAmount, setRejectionAmount] = useState('');
+  // --- new state for price modal ---
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completePrice, setCompletePrice] = useState(order.price ? String(order.price) : '');
+  const [completeComment, setCompleteComment] = useState(''); // только для фронта
 
   const getStatusColor = (status: OrderStatus) => {
     const colors = {
@@ -87,7 +91,7 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange,
   };
 
   const statusActions = [
-    { status: 'completed' as OrderStatus, title: 'Сдать', color: '#10B981' },
+    { status: 'completed' as OrderStatus, title: 'Сдать', color: '#10B981', action: () => setShowCompleteModal(true) },
     { status: 'modernization' as OrderStatus, title: 'Модернизация', color: '#7C3AED', action: handleModernization },
     { status: 'rejected' as OrderStatus, title: 'Отказ', color: '#EF4444', action: handleRejection },
   ];
@@ -268,6 +272,58 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange,
                 disabled={!rejectionReason.trim() || !rejectionAmount.trim()}
               >
                 <Text style={styles.modalSubmitButtonText}>Подтвердить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- Модальное окно сдачи заказа (указание цены и комментария) --- */}
+      <Modal
+        visible={showCompleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowCompleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Сдать заказ</Text>
+            <Text style={styles.modalSubtitle}>Укажите итоговую цену заказа и комментарий (только для себя)</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Цена заказа (₽)"
+              value={completePrice}
+              onChangeText={setCompletePrice}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={[styles.modalInput, { height: 80, marginTop: 8 }]}
+              placeholder="Комментарий (только для вас, не отправляется)"
+              value={completeComment}
+              onChangeText={setCompleteComment}
+              multiline
+              numberOfLines={3}
+              maxLength={300}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowCompleteModal(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSubmitButton, (!completePrice.trim() || isNaN(Number(completePrice))) && styles.modalSubmitButtonDisabled]}
+                onPress={() => {
+                  if (!completePrice.trim() || isNaN(Number(completePrice))) return;
+                  setShowCompleteModal(false);
+                  // Сохраняем комментарий только локально (можно добавить в localStorage или state, если нужно)
+                  // Отправляем только цену и статус
+                  onStatusChange?.(order.id, 'completed', undefined, Number(completePrice));
+                }}
+                disabled={!completePrice.trim() || isNaN(Number(completePrice))}
+              >
+                <Text style={styles.modalSubmitButtonText}>Сдать</Text>
               </TouchableOpacity>
             </View>
           </View>

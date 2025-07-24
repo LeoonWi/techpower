@@ -338,12 +338,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Смена статуса заказа через backend
-  const updateOrderStatus = async (orderId: string, status: OrderStatus, reason?: string, price_is_bail?: number) => {
+  const updateOrderStatus = async (orderId: string, status: OrderStatus, reason?: string, price?: number) => {
     setIsLoading(true);
     try {
       try {
         const status_code = mapOrderStatusToStatusCode(status);
-        await apiClient.changeStatusRequest(orderId, { status_code, reason, price_is_bail });
+        if (status_code === 4) {
+          await apiClient.changeStatusRequest(orderId, { status_code, reason, price });
+        } else {
+          await apiClient.changeStatusRequest(orderId, { status_code, reason });
+        }
       } catch (backendError) {
         updateLocalOrder(orderId, { status });
       }
