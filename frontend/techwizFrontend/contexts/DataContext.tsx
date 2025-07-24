@@ -338,16 +338,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Смена статуса заказа через backend
-  const updateOrderStatus = async (orderId: string, status: OrderStatus, reason?: string, price?: number) => {
+  const updateOrderStatus = async (orderId: string, status: OrderStatus, reason?: string, priceOrBail?: number) => {
     setIsLoading(true);
     try {
       try {
         const status_code = mapOrderStatusToStatusCode(status);
-        if (status_code === 4) {
-          await apiClient.changeStatusRequest(orderId, { status_code, reason, price });
-        } else {
-          await apiClient.changeStatusRequest(orderId, { status_code, reason });
+        const statusObj: any = { code: status_code };
+        if (reason) statusObj.reason = reason;
+        // Для модернизации, отмены, отказа (5,6,7) кладём сумму в price_is_bail
+        if ([5, 6, 7].includes(status_code) && priceOrBail !== undefined) {
+          statusObj.price_is_bail = priceOrBail;
         }
+        const body: any = { status: statusObj };
+        // Для завершения (4) кладём сумму только в price на верхнем уровне
+        if (status_code === 4 && priceOrBail !== undefined) {
+          body.price = Number(priceOrBail);
+          // Не добавлять price внутрь statusObj!
+        }
+        await apiClient.changeStatusRequest(orderId, body);
       } catch (backendError) {
         updateLocalOrder(orderId, { status });
       }

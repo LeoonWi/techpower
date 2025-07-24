@@ -313,15 +313,31 @@ export default function OrderCard({ order, onPress, showActions, onStatusChange,
                 <Text style={styles.modalCancelButtonText}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalSubmitButton, (!completePrice.trim() || isNaN(Number(completePrice))) && styles.modalSubmitButtonDisabled]}
+                style={[styles.modalSubmitButton, (!completePrice.trim() || isNaN(Number(completePrice.replace(/[^0-9.,]/g, '').replace(',', '.')))) && styles.modalSubmitButtonDisabled]}
                 onPress={() => {
-                  if (!completePrice.trim() || isNaN(Number(completePrice))) return;
+                  let priceStr = completePrice.replace(/[^0-9.,]/g, '').replace(',', '.');
+                  const num = Number(priceStr);
+                  Alert.alert('DEBUG', `completePrice: "${completePrice}"
+priceStr: "${priceStr}"
+Number(priceStr): ${num}`);
+                  if (!priceStr.trim()) {
+                    Alert.alert('Ошибка', `Поле не может быть пустым\nВведено: "${completePrice}" → "${priceStr}"`);
+                    return;
+                  }
+                  if ((priceStr.match(/\./g) || []).length > 1) {
+                    Alert.alert('Ошибка', `В цене может быть только одна точка\nВведено: "${completePrice}" → "${priceStr}"`);
+                    return;
+                  }
+                  if (isNaN(num)) {
+                    Alert.alert('Ошибка', `Введено: "${completePrice}" → "${priceStr}"\nNumber(priceStr): ${num} — это не число!`);
+                    return;
+                  }
+                  // Показываем, что реально отправится в onStatusChange
+                  Alert.alert('DEBUG PATCH', `orderId: ${order.id}\nstatus: completed\nreason: undefined\nprice: ${num}`);
                   setShowCompleteModal(false);
-                  // Сохраняем комментарий только локально (можно добавить в localStorage или state, если нужно)
-                  // Отправляем только цену и статус
-                  onStatusChange?.(order.id, 'completed', undefined, Number(completePrice));
+                  onStatusChange?.(order.id, 'completed', undefined, num);
                 }}
-                disabled={!completePrice.trim() || isNaN(Number(completePrice))}
+                disabled={!completePrice.trim() || isNaN(Number(completePrice.replace(/[^0-9.,]/g, '').replace(',', '.')))}
               >
                 <Text style={styles.modalSubmitButtonText}>Сдать</Text>
               </TouchableOpacity>

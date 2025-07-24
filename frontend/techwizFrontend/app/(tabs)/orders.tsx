@@ -19,8 +19,6 @@ import { Search, Filter, Plus, User, X } from 'lucide-react-native';
 import { OrderStatus } from '@/types/order';
 import { Picker } from '@react-native-picker/picker';
 import apiClient from '@/api/client';
-// Для работы выбора даты установите: npx expo install @react-native-community/datetimepicker
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 const statusFilters = [
   { key: 'all', label: 'Все' },
@@ -29,23 +27,6 @@ const statusFilters = [
   { key: 'in_progress', label: 'В работе' },
   { key: 'completed', label: 'Выполнены' },
 ];
-
-// Преобразует строку DD-MM-YYYY или DD.MM.YYYY в ISO-формат
-function parseDateInput(input: string): string | undefined {
-  if (!input) return undefined;
-  // Поддержка DD-MM-YYYY и DD.MM.YYYY
-  const match = input.match(/^(\d{2})[.-](\d{2})[.-](\d{4})(?:[ T](\d{2}):(\d{2}))?$/);
-  if (match) {
-    const [, dd, mm, yyyy, hh, min] = match;
-    // Если есть время
-    if (hh && min) {
-      return `${yyyy}-${mm}-${dd}T${hh}:${min}:00Z`;
-    }
-    return `${yyyy}-${mm}-${dd}T00:00:00Z`;
-  }
-  // Если уже ISO-строка или что-то другое — вернуть как есть
-  return input;
-}
 
 export default function OrdersScreen() {
   const { user } = useAuth();
@@ -80,9 +61,6 @@ export default function OrdersScreen() {
   const [showRenameCategoryModal, setShowRenameCategoryModal] = useState<string | null>(null);
   const [renameCategoryName, setRenameCategoryName] = useState('');
   const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState<string | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [tempDate, setTempDate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -210,7 +188,6 @@ export default function OrdersScreen() {
       return;
     }
     try {
-      const parsedDate = parseDateInput(newOrder.date_time);
       await createOrder({
         title: newOrder.comment || 'Новый заказ',
         clientName: newOrder.name,
@@ -224,8 +201,8 @@ export default function OrdersScreen() {
         commission: 0,
         status: 'pending',
         assignedMasterId: undefined,
-        createdAt: parsedDate ? new Date(parsedDate) : new Date(),
-        updatedAt: parsedDate ? new Date(parsedDate) : new Date(),
+        createdAt: newOrder.date_time ? new Date(newOrder.date_time) : new Date(),
+        updatedAt: newOrder.date_time ? new Date(newOrder.date_time) : new Date(),
         isPremium: !!newOrder.isPremium,
         premium: !!newOrder.isPremium,
       });
@@ -633,49 +610,12 @@ export default function OrdersScreen() {
 
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Дата и время</Text>
-                <TouchableOpacity
-                  style={[styles.formInput, { justifyContent: 'center' }]}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Text style={{ color: newOrder.date_time ? '#1E293B' : '#94A3B8', fontSize: 16 }}>
-                    {newOrder.date_time
-                      ? new Date(newOrder.date_time).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                      : 'Выберите дату и время'}
-                  </Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={newOrder.date_time ? new Date(newOrder.date_time) : new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={(event: any, selectedDate?: Date | undefined) => {
-                      setShowDatePicker(false);
-                      if (selectedDate) {
-                        setTempDate(selectedDate);
-                        setShowTimePicker(true);
-                      }
-                    }}
-                  />
-                )}
-                {showTimePicker && (
-                  <DateTimePicker
-                    value={tempDate || (newOrder.date_time ? new Date(newOrder.date_time) : new Date())}
-                    mode="time"
-                    display="default"
-                    onChange={(event: any, selectedTime?: Date | undefined) => {
-                      setShowTimePicker(false);
-                      if (selectedTime && tempDate) {
-                        // Объединяем выбранную дату и время
-                        const finalDate = new Date(tempDate);
-                        finalDate.setHours(selectedTime.getHours());
-                        finalDate.setMinutes(selectedTime.getMinutes());
-                        finalDate.setSeconds(0);
-                        setNewOrder({ ...newOrder, date_time: finalDate.toISOString() });
-                        setTempDate(null);
-                      }
-                    }}
-                  />
-                )}
+                <TextInput
+                  style={styles.formInput}
+                  value={newOrder.date_time}
+                  onChangeText={(text) => setNewOrder({ ...newOrder, date_time: text })}
+                  placeholder="Введите дату и время"
+                />
               </View>
             </ScrollView>
 
