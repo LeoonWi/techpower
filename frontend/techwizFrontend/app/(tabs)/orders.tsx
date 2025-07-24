@@ -19,6 +19,10 @@ import { Search, Filter, Plus, User, X } from 'lucide-react-native';
 import { OrderStatus } from '@/types/order';
 import { Picker } from '@react-native-picker/picker';
 import apiClient from '@/api/client';
+import { getRoleTitle } from '@/utils/roleUtils';
+import DateTimePicker from 'react-native-ui-datepicker';
+import dayjs from 'dayjs';
+import { Platform } from 'react-native';
 
 const statusFilters = [
   { key: 'all', label: 'Все' },
@@ -27,6 +31,27 @@ const statusFilters = [
   { key: 'in_progress', label: 'В работе' },
   { key: 'completed', label: 'Выполнены' },
 ];
+
+// Функция для отображения статуса мастера
+const getMasterStatusTitle = (status?: string) => {
+  switch (status) {
+    case 'default':
+      return 'Обычный мастер';
+    case 'premium':
+      return 'Премиум мастер';
+    case 'senior':
+      return 'Старший мастер';
+    default:
+      return '';
+  }
+};
+
+// Функция для безопасного преобразования строки в Date
+const getValidDate = (isoString: string | undefined) => {
+  if (!isoString) return undefined;
+  const d = new Date(isoString);
+  return isNaN(d.getTime()) ? undefined : d;
+};
 
 export default function OrdersScreen() {
   const { user } = useAuth();
@@ -61,6 +86,9 @@ export default function OrdersScreen() {
   const [showRenameCategoryModal, setShowRenameCategoryModal] = useState<string | null>(null);
   const [renameCategoryName, setRenameCategoryName] = useState('');
   const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState<string | null>(null);
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -262,6 +290,23 @@ export default function OrdersScreen() {
     const isPremiumOrder = order?.premium || order?.isPremium;
     setShowMasterSelection(orderId);
     fetchMastersForModal(isPremiumOrder);
+  };
+
+  let DateTimePickerComponent: any = null;
+  let dayjsLib: any = null;
+  try {
+    DateTimePickerComponent = require('react-native-ui-datepicker').default;
+    dayjsLib = require('dayjs');
+  } catch (e) {
+    // fallback
+  }
+
+  // Функция для форматирования даты для отображения
+  const formatDateTime = (isoString: string) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const pad = (n: number) => n < 10 ? '0' + n : n;
+    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
 
   return (
@@ -610,12 +655,42 @@ export default function OrdersScreen() {
 
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Дата и время</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={newOrder.date_time}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, date_time: text })}
-                  placeholder="Введите дату и время"
-                />
+                {DateTimePickerComponent && dayjsLib ? (
+                  <DateTimePickerComponent
+                    mode="single"
+                    date={getValidDate(newOrder.date_time)}
+                    onChange={({ date }: { date: Date }) => {
+                      if (date) setNewOrder({ ...newOrder, date_time: dayjsLib(date).toISOString() });
+                    }}
+                    timePicker
+                    locale="ru"
+                    minDate={new Date()}
+                    styles={{
+                      container: { backgroundColor: '#fff', borderRadius: 8 },
+                      selected: { backgroundColor: '#2563EB' },
+                      selected_label: { color: 'white' },
+                    }}
+                  />
+                ) : (
+                  <>
+                    <TextInput
+                      style={styles.formInput}
+                      value={newOrder.date_time}
+                      onChangeText={(text) => setNewOrder({ ...newOrder, date_time: text })}
+                      placeholder="2025-07-01T14:30:00Z"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 4 }}>
+                      Введите дату в формате: 2025-07-01T14:30:00Z
+                    </Text>
+                  </>
+                )}
+                {newOrder.date_time && (
+                  <Text style={{ color: '#1E293B', fontSize: 14, marginTop: 4 }}>
+                    Выбрано: {formatDateTime(newOrder.date_time)}
+                  </Text>
+                )}
               </View>
             </ScrollView>
 
@@ -715,6 +790,12 @@ export default function OrdersScreen() {
                     >
                       <View style={styles.masterInfo}>
                         <Text style={styles.masterName}>{master.full_name || 'Без имени'}</Text>
+                        {/* Добавляем статус мастера */}
+                        {master.status && (
+                          <Text style={{ color: '#2563EB', backgroundColor: '#EFF6FF', fontSize: 14, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, marginBottom: 2, alignSelf: 'flex-start' }}>
+                            {getMasterStatusTitle(master.status)}
+                          </Text>
+                        )}
                         <Text style={styles.masterCategory}>{master.id}</Text>
                         <Text style={styles.masterCity}>{master.phone_number}</Text>
                       </View>
