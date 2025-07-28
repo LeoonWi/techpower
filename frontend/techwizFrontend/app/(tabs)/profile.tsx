@@ -30,6 +30,7 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (user) {
+      console.log(user);
       setEditedUser(user);
     }
   }, [user]);
@@ -159,7 +160,9 @@ export default function ProfileScreen() {
             {typeof user.balance === 'number' ? user.balance.toLocaleString('ru-RU') : '0'} ₽
           </Text>
           <Text style={styles.commissionInfo}>
-            Комиссия: {user.commission}% • Статус: {user.isActive ? 'Активен' : 'Неактивен'}
+            {user.commission !== undefined && typeof user.commission === 'number' 
+              ? `Комиссия: ${(user.commission * 100).toFixed(0)}% • ` 
+              : ''}Статус: {typeof user.isActive === 'boolean' ? (user.isActive ? 'Активен' : 'Неактивен') : 'Не указан'}
           </Text>
         </View>
 
