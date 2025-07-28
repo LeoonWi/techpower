@@ -9,7 +9,7 @@ import (
 
 type (
 	IStatisticService interface {
-		Get(days int) (int, *models.Statistics)
+		Get() (int, *models.Statistics)
 	}
 
 	StatisticService struct {
@@ -21,8 +21,8 @@ func NewStatisticService(statisticRepository *repository.StatisticRepository) *S
 	return &StatisticService{StatisticRepository: statisticRepository}
 }
 
-func (s StatisticService) Get(days int) (int, *models.Statistics) {
-	result, err := s.StatisticRepository.Get(days)
+func (s StatisticService) Get() (int, *models.Statistics) {
+	result, err := s.StatisticRepository.Get()
 	if err != nil {
 		log.Println(err.Error())
 		return http.StatusInternalServerError, nil

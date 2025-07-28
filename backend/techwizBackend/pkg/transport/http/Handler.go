@@ -59,7 +59,7 @@ func New(e *echo.Echo, service *service.Service, websocketConn *ws.WebsocketConn
 	//request.PUT("/:id", h.changeRequest) // in work
 
 	statistics := e.Group("statistics")
-	statistics.GET("/:days", h.getStatistics)
+	statistics.GET("", h.getStatistics)
 
 	e.GET("/ws", func(c echo.Context) error {
 		return websocketConn.Ws(c)

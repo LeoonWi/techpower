@@ -180,7 +180,7 @@ class ApiClient {
   async getUser(id: string): Promise<User> {
     const response = await this.client.get<User>(`/user/${id}`);
     if (response.status === 200) {
-        return response.data;
+      return response.data;
     }
     throw new Error('User not found');
   }
@@ -325,8 +325,8 @@ class ApiClient {
   }
 
   // Статистика
-  async getStatistics(days: number): Promise<any> { // Используем any, так как тип Analytics может отличаться
-    const response = await this.client.get(`/statistics/${days}`);
+  async getStatistics(): Promise<any> { // Используем any, так как тип Analytics может отличаться
+    const response = await this.client.get(`/statistics`);
     return response.data;
   }
 
