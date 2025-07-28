@@ -37,7 +37,7 @@ export default function AnalyticsScreen() {
     setError(null);
     try {
       const days = periodToDays[period];
-      const data = await apiClient.getStatistics(days);
+      const data = await apiClient.getStatistics();
       // Маппинг snake_case -> camelCase
       const mapped = {
         totalOrders: data.total_orders ?? 0,
