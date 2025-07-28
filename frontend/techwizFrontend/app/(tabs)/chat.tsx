@@ -8,15 +8,16 @@
 // - После успешных операций обновляйте локальное состояние.
 // - Обрабатывайте ошибки backend.
 // =========================
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Send, ArrowLeft, Users, TriangleAlert as AlertTriangle, Plus, Filter, X } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
-import { apiClient, Chat as ApiChat } from '@/api/client';
+import { apiClient, Chat } from '@/api/client';
 import { permissionToRole, getRoleTitle } from '@/utils/roleUtils';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface User {
   id: string;
@@ -27,25 +28,26 @@ interface User {
 export default function ChatScreen() {
   const { user } = useAuth();
   const { chatCategories, messages, setMessages, sendMessage, addComplaint, masters } = useData();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Chat | null>(null);
   const [messageText, setMessageText] = useState('');
   const [complaintText, setComplaintText] = useState('');
   const [showComplaintForm, setShowComplaintForm] = useState(false);
   const [showCreateChatModal, setShowCreateChatModal] = useState(false);
   const [selectedUserFilter, setSelectedUserFilter] = useState<string>(user?.id || 'all');
-  const [chats, setChats] = useState<ApiChat[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
-  const selectedCategoryData = chatCategories.find(cat => cat.id === selectedCategory);
+  const selectedCategoryData = chatCategories.find(cat => cat.id === selectedCategory?.id);
   // Безопасно инициализируем chats и chatCategories, чтобы не было ошибок при null
   const safeChats = Array.isArray(chats) ? chats : [];
   const safeChatCategories = Array.isArray(chatCategories) ? chatCategories : [];
 
   // Исправляем фильтрацию сообщений по выбранной категории/чату
   const categoryMessages = Array.isArray(messages)
-    ? messages.filter(msg => msg.chat_id === selectedCategory)
+    ? messages.filter(msg => msg.chat_id === selectedCategory?.id)
     : [];
 
   // Функция для загрузки чатов с сервера
@@ -56,8 +58,8 @@ export default function ChatScreen() {
     try {
       const userChats = await apiClient.getChats(user.id);
       setChats(userChats);
-      console.log('Loaded chats:', userChats);
-      console.log('Chat structure:', userChats.length > 0 ? userChats[0] : 'No chats');
+      // console.log('Loaded chats:', userChats);
+      // console.log('Chat structure:', userChats.length > 0 ? userChats[0] : 'No chats');
     } catch (error) {
       console.error('Failed to load chats:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить чаты');
@@ -78,7 +80,7 @@ export default function ChatScreen() {
         role: permissionToRole(apiUser.permission),
       }));
       setUsers(formattedUsers);
-      console.log('Loaded users:', formattedUsers);
+      // console.log('Loaded users:', formattedUsers);
       } else {
         console.log("Array allUsers is empty")
       }
@@ -119,10 +121,12 @@ export default function ChatScreen() {
     );
   };
 
-const handleSendMessage = () => {
-  sendMessage(user.id, messageText);
-  setMessageText('');
-};
+  const handleSendMessage = () => {
+    const recipientId = selectedCategory!.members_id.find(memberId => memberId !== user.id);
+    // console.log('Отправка сообщения. userId: ', recipientId)
+    sendMessage(recipientId!, messageText);
+    setMessageText('');
+  };
 
   const handleSubmitComplaint = () => {
     if (complaintText.trim() && user && user.id && user.fullName) {
@@ -202,11 +206,31 @@ const handleSendMessage = () => {
 
   const filteredCategories = getFilteredCategories();
 
+  // Функция для обработки pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    if (!user?.id) return;
+
+    setRefreshing(true);
+    try {
+      await Promise.all([loadChats(), loadUsers()]); // Параллельная загрузка чатов и пользователей
+      // console.log('Chats and users refreshed');
+    } catch (error) {
+      console.error('Ошибка при обновлении:', error);
+      Alert.alert('Ошибка', 'Не удалось обновить данные');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [user?.id, loadChats, loadUsers]);
+
   // Загрузка чатов и пользователей при открытии страницы
-  useEffect(() => {
-    loadChats();
-    loadUsers();
-  }, [user?.id, masters]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user?.id) {
+        loadChats();
+        loadUsers();
+      }
+    }, [user?.id, masters]) // Dependencies to re-run if these change
+  );
 
   // Загрузка сообщений для выбранного чата
   const loadMessagesForChat = async (chatId: string) => {
@@ -225,9 +249,10 @@ const handleSendMessage = () => {
   // Загружать сообщения при выборе чата
   useEffect(() => {
     if (selectedCategory) {
-      loadMessagesForChat(selectedCategory!);
+      loadMessagesForChat(selectedCategory!.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // console.log('Вошли в чат: ', selectedCategory)
   }, [selectedCategory]);
 
   if (selectedCategory) {
@@ -246,11 +271,11 @@ const handleSendMessage = () => {
               <ArrowLeft size={24} color="#1E293B" />
             </TouchableOpacity>
             <View style={styles.chatHeaderInfo}>
-              <Text style={styles.chatTitle}>{selectedCategoryData?.name}</Text>
+              <Text style={styles.chatTitle}>{selectedCategory!.name}</Text>
               <View style={styles.participantsInfo}>
                 <Users size={14} color="#64748B" />
                 <Text style={styles.participantsText}>
-                  {selectedCategoryData?.participantCount} участников
+                  {selectedCategory!.members_id.length} участников
                 </Text>
               </View>
             </View>
@@ -260,6 +285,14 @@ const handleSendMessage = () => {
             style={styles.messagesContainer}
             contentContainerStyle={styles.messagesContent}
             showsVerticalScrollIndicator={true}
+            refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#2563EB" // Цвет индикатора обновления (iOS)
+              colors={['#2563EB']} // Цвет индикатора обновления (Android)
+            />
+          }
           >
             {categoryMessages.length === 0 ? (
               <View style={styles.emptyChat}>
@@ -418,6 +451,14 @@ const handleSendMessage = () => {
         style={styles.categoriesList}
         contentContainerStyle={styles.categoriesListContent}
         showsVerticalScrollIndicator={true}
+        refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#2563EB" // Цвет индикатора обновления (iOS)
+              colors={['#2563EB']} // Цвет индикатора обновления (Android)
+            />
+          }
       >
         {user?.role === 'master' && (
           <>
@@ -452,7 +493,7 @@ const handleSendMessage = () => {
             <TouchableOpacity
               key={chat.id}
               style={styles.categoryCard}
-              onPress={() => setSelectedCategory(chat.id)}
+              onPress={() => setSelectedCategory(chat)}
               onLongPress={() => handleDeleteChat(chat.id)}
               activeOpacity={0.7}
             >
@@ -463,14 +504,9 @@ const handleSendMessage = () => {
                 <View style={styles.participantsBadge}>
                   <Users size={12} color="#64748B" />
                   <Text style={styles.participantsBadgeText}>
-                    {Array.isArray(chat.members) ? chat.members.length : 0}
+                    {Array.isArray(chat.members_id) ? chat.members_id.length : 0}
                   </Text>
                 </View>
-              </View>
-              <View style={styles.lastMessage}>
-                <Text style={styles.lastMessageText} numberOfLines={1}>
-                  Участники: {Array.isArray(chat.members) ? chat.members.join(', ') : 'Нет участников'}
-                </Text>
               </View>
             </TouchableOpacity>
           ))
