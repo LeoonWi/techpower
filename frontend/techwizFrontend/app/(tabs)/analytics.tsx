@@ -32,11 +32,10 @@ export default function AnalyticsScreen() {
   // Simulate fetching analytics for a period (replace with real API call)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fetchAnalyticsForPeriod = async (period: 'week' | 'month' | 'year') => {
+  const fetchAnalyticsForPeriod = async () => {
     setLoading(true);
     setError(null);
     try {
-      const days = periodToDays[period];
       const data = await apiClient.getStatistics();
       // Маппинг snake_case -> camelCase
       const mapped = {
@@ -62,7 +61,7 @@ export default function AnalyticsScreen() {
 
   React.useEffect(() => {
     if (isAdmin) {
-      fetchAnalyticsForPeriod(selectedPeriod);
+      fetchAnalyticsForPeriod();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod, isAdmin]);
@@ -110,28 +109,28 @@ export default function AnalyticsScreen() {
         value: userOrders.length,
         icon: ClipboardList,
         color: '#2563EB',
-        change: '+5%',
+        change: '',
       },
       {
         title: 'Выполнено',
         value: completedOrders.length,
         icon: TrendingUp,
         color: '#10B981',
-        change: '+8%',
+        change: '',
       },
       {
         title: 'Доходы',
         value: `${totalEarnings.toLocaleString('ru-RU')} ₽`,
         icon: DollarSign,
         color: '#F59E0B',
-        change: '+12%',
+        change: '',
       },
       {
         title: 'Рейтинг',
         value: userStats.rating,
         icon: Star,
         color: '#7C3AED',
-        change: '+0.2',
+        change: '',
       },
     ];
 
@@ -238,40 +237,34 @@ export default function AnalyticsScreen() {
 
   // Для админов и старших мастеров показываем только для админа
   if (isAdmin) {
-    const periods = [
-      { key: 'week', label: 'Неделя' },
-      { key: 'month', label: 'Месяц' },
-      { key: 'year', label: 'Год' },
-    ];
-
-    const stats = [
+      const stats = [
       {
         title: 'Всего заказов',
         value: adminAnalytics?.totalOrders || 0,
         icon: BarChart3,
         color: '#2563EB',
-        change: '+12%',
+        change: '',
       },
       {
         title: 'Выполнено',
         value: adminAnalytics?.completedOrders || 0,
         icon: TrendingUp,
         color: '#10B981',
-        change: '+8%',
+        change: '',
       },
       {
         title: 'Общий доход',
         value: `${(adminAnalytics?.earnings || 0).toLocaleString('ru-RU')} ₽`,
         icon: DollarSign,
         color: '#F59E0B',
-        change: '+15%',
+        change: '',
       },
       {
         title: 'Активных мастеров',
         value: masters.filter(m => m.isActive).length,
         icon: Users,
         color: '#7C3AED',
-        change: '+5%',
+        change: '',
       },
     ];
 
@@ -288,25 +281,6 @@ export default function AnalyticsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Аналитика</Text>
-          <View style={styles.periodSelector}>
-            {periods.map((period) => (
-              <TouchableOpacity
-                key={period.key}
-                style={[
-                  styles.periodButton,
-                  selectedPeriod === period.key && styles.periodButtonActive
-                ]}
-                onPress={() => setSelectedPeriod(period.key as 'week' | 'month' | 'year')}
-              >
-                <Text style={[
-                  styles.periodButtonText,
-                  selectedPeriod === period.key && styles.periodButtonTextActive
-                ]}>
-                  {period.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
 
         <ScrollView 
@@ -333,53 +307,6 @@ export default function AnalyticsScreen() {
                 </View>
               );
             })}
-          </View>
-
-          {/* Top Masters */}
-          <View style={styles.chartContainer}>
-            <View style={styles.chartHeader}>
-              <Crown size={20} color="#F59E0B" />
-              <Text style={styles.chartTitle}>Топ мастера по доходам</Text>
-            </View>
-            <View style={styles.mastersRanking}>
-              {topMasters.map((master, index) => (
-                <View key={master.id} style={styles.masterRankItem}>
-                  <View style={styles.masterRankLeft}>
-                    <View style={[
-                      styles.rankBadge,
-                      { backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#E2E8F0' }
-                    ]}>
-                      <Text style={[
-                        styles.rankNumber,
-                        { color: index < 3 ? 'white' : '#64748B' }
-                      ]}>
-                        {index + 1}
-                      </Text>
-                    </View>
-                    <View style={styles.masterRankInfo}>
-                      <View style={styles.masterNameRow}>
-                        <Text style={styles.masterRankName}>{master.fullName}</Text>
-                        {master.role === 'premium_master' && (
-                          <Crown size={14} color="#FFD700" />
-                        )}
-                        {master.role === 'senior_master' && (
-                          <Star size={14} color="#EA580C" />
-                        )}
-                      </View>
-                      <Text style={styles.masterRankCity}>{master.city}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.masterRankStats}>
-                    <Text style={styles.masterRankEarnings}>
-                      {master.stats.earnings.toLocaleString('ru-RU')} ₽
-                    </Text>
-                    <Text style={styles.masterRankOrders}>
-                      {master.stats.orders} заказов
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
           </View>
 
           {/* Orders by City */}
@@ -428,34 +355,6 @@ export default function AnalyticsScreen() {
             </View>
           </View>
 
-          {/* Monthly Stats */}
-          <View style={styles.chartContainer}>
-            <View style={styles.chartHeader}>
-              <Calendar size={20} color="#EA580C" />
-              <Text style={styles.chartTitle}>Статистика по месяцам</Text>
-            </View>
-            <View style={styles.monthlyStats}>
-              {adminAnalytics?.monthlyStats?.map((month, index) => (
-                <View key={index} style={styles.monthItem}>
-                  <Text style={styles.monthName}>{month.month}</Text>
-                  <View style={styles.monthBar}>
-                    <View 
-                      style={[
-                        styles.monthBarFill,
-                        { 
-                          height: `${(month.orders / Math.max(...(adminAnalytics?.monthlyStats?.map(m => m.orders) || [1]))) * 100}%` 
-                        }
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.monthOrders}>{month.orders}</Text>
-                  <Text style={styles.monthEarnings}>
-                    {month.earnings.toLocaleString('ru-RU')} ₽
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
         </ScrollView>
       </SafeAreaView>
     );
