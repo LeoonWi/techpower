@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // Базовый URL для бэкенда
-const URL_SERV = '192.168.0.104:8080';
+const URL_SERV = '109.120.139.145:8080';
 
 // Тестовый аккаунт админа на сервера:
 // 7 978 588 22-72
