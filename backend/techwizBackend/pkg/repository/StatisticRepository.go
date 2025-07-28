@@ -5,12 +5,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"techwizBackend/pkg/models"
-	"time"
 )
 
 type (
 	IStatisticRepository interface {
-		Get(days int) (*models.Statistics, error)
+		Get() (*models.Statistics, error)
 	}
 
 	StatisticRepository struct {
@@ -22,27 +21,13 @@ func NewStatisticRepository(db *mongo.Client) *StatisticRepository {
 	return &StatisticRepository{db: db}
 }
 
-func (r StatisticRepository) Get(days int) (*models.Statistics, error) {
+func (r StatisticRepository) Get() (*models.Statistics, error) {
 	// Получаем коллекции
 	requestsCollection := r.db.Database("TechPower").Collection("Requests")
 	usersCollection := r.db.Database("TechPower").Collection("Users")
 
-	// Время начала периода (N дней назад)
-	startDate := time.Now().AddDate(0, 0, -days)
-
 	// Агрегационный пайплайн для запросов
 	pipeline := bson.A{
-		// Фильтрация по дате
-		bson.D{{
-			"$match",
-			bson.D{{
-				"created_at",
-				bson.D{{
-					"$gte",
-					startDate,
-				}},
-			}},
-		}},
 		// Выполняем lookup для получения данных о категории
 		bson.D{{
 			"$lookup",

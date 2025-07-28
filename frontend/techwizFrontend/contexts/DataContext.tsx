@@ -110,7 +110,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       try {
         const apiOrders = await apiClient.getOrders() as any;
         const ordersArray = Array.isArray(apiOrders) ? apiOrders : (apiOrders && apiOrders.requests ? apiOrders.requests : []);
-        console.log('apiOrders from backend:', ordersArray);
+        // console.log('apiOrders from backend:', ordersArray);
         setOrders(ordersArray.map((apiOrder: any) => ({
           id: String(apiOrder.id || ''),
           title: apiOrder.problem,
