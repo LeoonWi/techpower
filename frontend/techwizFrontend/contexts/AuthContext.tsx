@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         phone: userData.phone_number,
         photo: userData.photo,
         balance: userData.balance,
+        category: Array.isArray(userData.categories) ? userData.categories[0].name : 'Отсутствует',
         commission: userData.commission,
         isActive: !userData.dismissed,
       };

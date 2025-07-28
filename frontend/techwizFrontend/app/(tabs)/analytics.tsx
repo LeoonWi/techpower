@@ -42,6 +42,7 @@ export default function AnalyticsScreen() {
       const mapped = {
         totalOrders: data.total_orders ?? 0,
         completedOrders: data.completed_orders ?? 0,
+        totalCommissions: data.total_commissions ?? 0,
         earnings: data.total_revenue ?? 0,
         activeMasters: data.active_masters ?? 0,
         ordersByCity: data.orders_by_city ?? {},
