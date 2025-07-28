@@ -35,8 +35,8 @@ func main() {
 	authService := service.NewAuthService(authRepository, userRepository)
 	chatService := service.NewChatService(chatRepository, userRepository)
 	categoryService := service.NewCategoryService(categoryRepository, chatRepository)
-	userService := service.NewUserService(userRepository, chatRepository)
-	requestService := service.NewRequestService(requestRepository)
+	userService := service.NewUserService(userRepository, chatRepository, requestRepository)
+	requestService := service.NewRequestService(requestRepository, userRepository)
 	messageService := service.NewMessageService(messageRepository, chatRepository, userRepository)
 	statisticService := service.NewStatisticService(statisticRepository)
 	// Create general service

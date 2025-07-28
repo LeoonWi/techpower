@@ -74,23 +74,13 @@ func (r StatisticRepository) Get(days int) (*models.Statistics, error) {
 				{
 					"total_commissions",
 					bson.A{
-						bson.D{{"$match", bson.D{{"status.code", 4}}}},
-						bson.D{{
-							"$lookup", bson.D{
-								{"from", "Users"},
-								{"localField", "worker_id"},
-								{"foreignField", "_id"},
-								{"as", "executor"},
-							},
-						}},
-						bson.D{{"$unwind", "$executor"}},
+						bson.D{{"$match", bson.D{{"status.code", 4}}}}, // только завершённые заказы
 						bson.D{{
 							"$project", bson.D{
-								// Используем commission напрямую из пользователя
 								{"commission", bson.D{
 									{"$multiply", bson.A{
 										"$price",
-										"$executor.commission", // ← поле из User (0.45, 0.4 и т.д.)
+										"$commission", // ← теперь берём комиссию напрямую из заказа
 									}},
 								}},
 							},

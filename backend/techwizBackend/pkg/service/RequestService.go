@@ -25,12 +25,14 @@ type (
 
 	RequestService struct {
 		RequestRepository repository.IRequestRepository
+		UserRepository    repository.IUserRepository
 	}
 )
 
-func NewRequestService(requestRepository repository.IRequestRepository) *RequestService {
+func NewRequestService(requestRepository repository.IRequestRepository, userRepository repository.IUserRepository) *RequestService {
 	return &RequestService{
 		RequestRepository: requestRepository,
+		UserRepository:    userRepository,
 	}
 }
 
@@ -56,6 +58,11 @@ func (s RequestService) GetRequests() *[]models.Request {
 }
 
 func (s RequestService) AttachMaster(requestId bson.ObjectID, userId bson.ObjectID, request *models.Request) (int, error) {
+	var user models.User
+	if err := s.UserRepository.GetUserById(userId, &user); err != nil {
+		return http.StatusBadRequest, err
+	}
+	request.Commission = user.Commission
 	if err := s.RequestRepository.AttachMaster(requestId, userId, request); err != nil {
 		return http.StatusBadRequest, err
 	}

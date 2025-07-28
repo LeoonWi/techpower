@@ -23,18 +23,21 @@ type (
 	}
 
 	UserService struct {
-		UserRepository repository.IUserRepository
-		ChatRepository repository.IChatRepository
+		UserRepository    repository.IUserRepository
+		ChatRepository    repository.IChatRepository
+		RequestRepository repository.IRequestRepository
 	}
 )
 
 func NewUserService(
 	userRepository repository.IUserRepository,
 	chatRepository repository.IChatRepository,
+	requestRepository repository.IRequestRepository,
 ) *UserService {
 	return &UserService{
-		UserRepository: userRepository,
-		ChatRepository: chatRepository,
+		UserRepository:    userRepository,
+		ChatRepository:    chatRepository,
+		RequestRepository: requestRepository,
 	}
 }
 

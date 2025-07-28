@@ -165,7 +165,7 @@ func (r RequestRepository) GetRequest(id bson.ObjectID, request *models.Request)
 func (r RequestRepository) AttachMaster(requestId bson.ObjectID, userId bson.ObjectID, request *models.Request) error {
 	coll := r.db.Database("TechPower").Collection("Requests")
 	filter := bson.M{"_id": requestId}
-	update := bson.M{"$set": bson.M{"worker_id": userId, "status.code": 2}}
+	update := bson.M{"$set": bson.M{"worker_id": userId, "status.code": 2, "commission": request.Commission}}
 
 	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
 		return err

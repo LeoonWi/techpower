@@ -29,11 +29,12 @@ type Request struct {
 	Problem     string         `json:"problem,omitempty" bson:"problem,omitempty"`
 	Price       float64        `json:"price,omitempty" bson:"price,omitempty"`
 	Status      Status         `json:"status,omitempty" bson:"status,omitempty"`
-	InSpot      bool    `json:"in_spot,omitempty" bson:"in_spot,omitempty"`
+	InSpot      bool           `json:"in_spot,omitempty" bson:"in_spot,omitempty"`
 	Premium     bool           `json:"premium,omitempty" bson:"premium,omitempty"`
 	DateTime    time.Time      `json:"datetime,omitempty" bson:"datetime,omitempty"`
 	Category    *Category      `json:"category,omitempty" bson:"category,omitempty"`
 	CategoryId  *bson.ObjectID `json:"category_id,omitempty" bson:"category_id,omitempty"`
+	Commission  float64        `json:"commission,omitempty" bson:"commission,omitempty"`
 	Worker      *User          `json:"worker,omitempty" bson:"worker,omitempty"`
 	WorkerId    *bson.ObjectID `json:"worker_id,omitempty" bson:"worker_id,omitempty"`
 	CreatedAt   time.Time      `json:"created_at,omitempty" bson:"created_at,omitempty"`
