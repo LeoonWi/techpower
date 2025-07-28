@@ -3,6 +3,7 @@ package models
 // Statistics структура для хранения результата статистики
 type Statistics struct {
 	TotalOrders      int64          `json:"total_orders" bson:"total_orders"`
+	TotalCommissions int64          `json:"total_commissions" bson:"total_commissions"`
 	CompletedOrders  int64          `json:"completed_orders" bson:"completed_orders"`
 	TotalRevenue     float64        `json:"total_revenue" bson:"total_revenue"`
 	ActiveMasters    int64          `json:"active_masters" bson:"active_masters"`

@@ -43,6 +43,7 @@ func (s *AuthService) CreateUser(user *models.User) error {
 
 	if user.Permission == "001" {
 		user.Status = "default"
+		user.Commission = 0.6
 	}
 
 	if err := s.AuthRepository.CreateUser(user); err != nil {

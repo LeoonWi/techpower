@@ -28,8 +28,9 @@ func NewRequestRepository(db *mongo.Client) *RequestRepository {
 }
 
 func (r RequestRepository) Create(request *models.Request) error {
-	coll := r.db.Database("TechPower").Collection("Requests")
-	res, err := coll.InsertOne(context.TODO(), request)
+	collRequest := r.db.Database("TechPower").Collection("Requests")
+	res, err := collRequest.InsertOne(context.TODO(), request)
+
 	if err != nil {
 		return err
 	}
@@ -181,8 +182,8 @@ func (r RequestRepository) ChangeStatus(id bson.ObjectID, status *models.Request
 	coll := r.db.Database("TechPower").Collection("Requests")
 	filter := bson.M{"_id": id}
 	if status.Status.Code == 0 && status.Status.Reason == "" && status.Status.PriceIsBail == 0 {
-    return fmt.Errorf("status is empty or invalid")
-}
+		return fmt.Errorf("status is empty or invalid")
+	}
 	update := bson.M{"$set": bson.M{"status": status.Status}}
 	if status.Status.Code == 4 && status.Price >= 0 {
 		update = bson.M{"$set": bson.M{"price": status.Price, "status": status.Status}}
@@ -190,6 +191,17 @@ func (r RequestRepository) ChangeStatus(id bson.ObjectID, status *models.Request
 
 	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
 		return fmt.Errorf("%s", err.Error())
+	}
+
+	if status.Status.Code == 4 {
+		userColl := r.db.Database("TechPower").Collection("Users")
+		var tmpReq models.Request
+		if err := r.GetRequest(id, &tmpReq); err != nil {
+			return fmt.Errorf("%s", err.Error())
+		}
+		if _, err := userColl.UpdateOne(context.TODO(), bson.M{"_id": tmpReq.Worker.Id}, bson.M{"$set": bson.M{"balance": tmpReq.Worker.Balance + (tmpReq.Price - tmpReq.Price*tmpReq.Worker.Commission)}}); err != nil {
+			return fmt.Errorf("%s", err.Error())
+		}
 	}
 
 	return nil

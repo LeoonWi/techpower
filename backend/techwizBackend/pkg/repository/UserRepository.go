@@ -324,7 +324,13 @@ func (r UserRepository) RemoveCategory(idUser bson.ObjectID, idCategory bson.Obj
 func (r UserRepository) ChangeStatus(id bson.ObjectID, status string) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	filter := bson.D{{"_id", id}}
-	update := bson.D{{"$set", bson.D{{"status", status}}}}
+	var commissions float64
+	if status == "senior" {
+		commissions = 0.4
+	} else {
+		commissions = 0.45
+	}
+	update := bson.D{{"$set", bson.D{{"status", status}, {"commission", commissions}}}}
 
 	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
 		return errors.New("Failed to change status of master")
@@ -336,7 +342,7 @@ func (r UserRepository) ChangeStatus(id bson.ObjectID, status string) error {
 func (r UserRepository) RemoveStatus(id bson.ObjectID) error {
 	coll := r.db.Database("TechPower").Collection("Users")
 	filter := bson.D{{"_id", id}}
-	update := bson.D{{"$unset", bson.D{{"status", ""}}}}
+	update := bson.D{{"$set", bson.D{{"status", "default"}, {"commission", 0.6}}}}
 
 	if _, err := coll.UpdateOne(context.TODO(), filter, update); err != nil {
 		return errors.New("Failed to change status of master")
